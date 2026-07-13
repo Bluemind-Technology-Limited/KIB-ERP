@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { 
-  Search, Compass, Sprout, LayoutDashboard, TrendingUp, FolderClosed, LogOut, 
-  ChevronDown, ChevronRight, Map, LogIn, FileText, Database, ShieldAlert, 
-  HeartHandshake, ExternalLink, Settings, Terminal, Users 
+  Compass, Sprout, LayoutDashboard, TrendingUp, FolderClosed, LogOut, 
+  ChevronDown, ChevronRight, Map, FileText, Database, ShieldAlert, 
+  HeartHandshake, ExternalLink, Terminal, Users 
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { rolePermissions } from './routing/RoleGuard';
@@ -13,10 +13,9 @@ interface SidebarProps {
   onLogout: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
-  onSearchClick: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed, setIsCollapsed, onSearchClick }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed, setIsCollapsed }: SidebarProps) {
   const user = useAuthStore((state) => state.user);
 
   // Keep track of expanded module accordion sections for the expanded sidebar

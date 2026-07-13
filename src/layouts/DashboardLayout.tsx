@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../stores/useAuthStore';
-import { rolePermissions } from '../components/routing/RoleGuard';
+
 import { 
-  ChevronRight, HelpCircle, User as UserIcon, Menu, X, LogOut, Settings, Users, Search 
+  ChevronRight, HelpCircle, User as UserIcon, Menu, X, LogOut, Settings, Search 
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -52,27 +52,6 @@ export default function DashboardLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const allowedViews = user ? rolePermissions[user.role] || [] : [];
-
-  const searchItems = [
-    { id: 'executive', name: 'Overview', desc: 'Main executive traffic and metrics overview dashboard', category: 'Dashboards' },
-    { id: 'admin-users', name: 'Manage Users', desc: 'Provision user accounts and view credentials', category: 'Dashboards' },
-    { id: 'erp-formulation', name: 'Batch Formulation', desc: 'Configure recipe batches and trigger formulations', category: 'Production ERP' },
-    { id: 'erp-ingredients', name: 'Recipe Ingredients', desc: 'Material catalog definitions and costing metrics', category: 'Production ERP' },
-    { id: 'sfa-map', name: 'Properties Map', desc: 'Map directory pointing out farm properties on Mapbox GL', category: 'Ecosystem Logs & Map' },
-    { id: 'sfa-visits', name: 'Audit Logs', desc: 'Review ecosystem-wide dashboard operator audit logs', category: 'Ecosystem Logs & Map' },
-    { id: 'creations-vault', name: 'Document Vault', desc: 'Secure cloud assets storage vault', category: 'Creations Vault' },
-    { id: 'creations-audit', name: 'Financial Audits', desc: 'Reconcile compliance and financial ledgers', category: 'Creations Vault' },
-    { id: 'farms-tracker', name: 'Harvest Logs', desc: 'Log crop and yield data entries', category: 'Harvest Registry' },
-    { id: 'farms-registry', name: 'Farm Registry', desc: 'Register farm properties and coordinates', category: 'Harvest Registry' },
-  ].filter(item => allowedViews.includes(item.id));
-
-  const filteredSearchItems = searchItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const handleLogoutAction = () => {
     onLogout();
   };
@@ -118,7 +97,6 @@ export default function DashboardLayout({
           onLogout={handleLogoutAction} 
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
-          onSearchClick={() => setIsSearchOpen(true)}
         />
       </div>
 

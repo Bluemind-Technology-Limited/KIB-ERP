@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Terminal, Shield, Cpu, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Terminal, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface VisitLoggingProps {
   searchQuery?: string;
