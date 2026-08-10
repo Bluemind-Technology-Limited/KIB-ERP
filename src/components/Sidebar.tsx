@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { 
-  Compass, Sprout, LayoutDashboard, TrendingUp, FolderClosed, LogOut, 
-  ChevronDown, ChevronRight, Map, FileText, Database, ShieldAlert, 
-  HeartHandshake, ExternalLink, Terminal, Users 
+  LayoutDashboard, LogOut, ChevronDown, ChevronRight, Database,
+  HeartHandshake, ExternalLink, Users, ShoppingCart, Boxes,
+  FlaskConical, ClipboardList, ShieldCheck, Network, Truck, Bell, BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { rolePermissions } from './routing/RoleGuard';
@@ -20,10 +20,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   // Keep track of expanded module accordion sections for the expanded sidebar
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    erp: true,
-    sfa: true,
-    creations: true,
-    farms: true,
+    masterdata: true,
+    procurement: true,
+    inventory: true,
+    production: true,
+    qa: true,
+    alerts: true,
   });
 
   const toggleGroup = (groupId: string) => {
@@ -33,39 +35,58 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
   // Nav Groups hierarchy
   const navGroups = [
     {
-      id: 'erp',
-      title: 'Production ERP',
-      icon: TrendingUp,
+      id: 'masterdata',
+      title: 'Master Data',
+      icon: Database,
       items: [
-        { id: 'erp-formulation', name: 'Batch Formulation', icon: Database },
-        { id: 'erp-ingredients', name: 'Recipe Ingredients', icon: Database },
+        { id: 'md-warehouses', name: 'Warehouses', icon: Database },
+        { id: 'md-materials', name: 'Materials', icon: Database },
+        { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
       ],
     },
     {
-      id: 'sfa',
-      title: 'Ecosystem Logs & Map',
-      icon: Compass,
+      id: 'procurement',
+      title: 'Procurement',
+      icon: ShoppingCart,
       items: [
-        { id: 'sfa-map', name: 'Properties Map', icon: Map },
-        { id: 'sfa-visits', name: 'Audit Logs', icon: Terminal },
+        { id: 'proc-procurement', name: 'Requisitions & POs', icon: ShoppingCart },
       ],
     },
     {
-      id: 'creations',
-      title: 'Creations Vault',
-      icon: FolderClosed,
+      id: 'inventory',
+      title: 'Inventory',
+      icon: Boxes,
       items: [
-        { id: 'creations-vault', name: 'Document Vault', icon: FileText },
-        { id: 'creations-audit', name: 'Financial Audits', icon: ShieldAlert },
+        { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
+        { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
+        { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
       ],
     },
     {
-      id: 'farms',
-      title: 'Harvest Registry',
-      icon: Sprout,
+      id: 'production',
+      title: 'Production',
+      icon: FlaskConical,
       items: [
-        { id: 'farms-tracker', name: 'Harvest Logs', icon: Sprout },
-        { id: 'farms-registry', name: 'Farm Registry', icon: HeartHandshake },
+        { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
+        { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+        { id: 'prod-trace', name: 'Traceability', icon: Network },
+      ],
+    },
+    {
+      id: 'qa',
+      title: 'Quality Assurance',
+      icon: ShieldCheck,
+      items: [
+        { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
+      ],
+    },
+    {
+      id: 'alerts',
+      title: 'Alerts & Reports',
+      icon: Bell,
+      items: [
+        { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
+        { id: 'reports', name: 'Reports', icon: BarChart3 },
       ],
     },
   ];
@@ -74,14 +95,19 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
   const allCollapsedItems = [
     { id: 'executive', name: 'Overview', icon: LayoutDashboard },
     { id: 'admin-users', name: 'Manage Users', icon: Users },
-    { id: 'erp-formulation', name: 'Batch Formulation', icon: Database },
-    { id: 'erp-ingredients', name: 'Recipe Ingredients', icon: Database },
-    { id: 'sfa-map', name: 'Properties Map', icon: Map },
-    { id: 'sfa-visits', name: 'Audit Logs', icon: Terminal },
-    { id: 'creations-vault', name: 'Document Vault', icon: FileText },
-    { id: 'creations-audit', name: 'Financial Audits', icon: ShieldAlert },
-    { id: 'farms-tracker', name: 'Harvest Logs', icon: Sprout },
-    { id: 'farms-registry', name: 'Farm Registry', icon: HeartHandshake },
+    { id: 'md-warehouses', name: 'Warehouses', icon: Database },
+    { id: 'md-materials', name: 'Materials', icon: Database },
+    { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
+    { id: 'proc-procurement', name: 'Requisitions & POs', icon: ShoppingCart },
+    { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
+    { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
+    { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
+    { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
+    { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+    { id: 'prod-trace', name: 'Traceability', icon: Network },
+    { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
+    { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
+    { id: 'reports', name: 'Reports', icon: BarChart3 },
   ];
 
   const allowedViews = user ? rolePermissions[user.role] : [];

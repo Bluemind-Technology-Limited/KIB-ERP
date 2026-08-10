@@ -1,24 +1,23 @@
+// Roles match the backend Prisma `UserRole` enum (separation of duties).
 export type UserRole =
   | 'SUPER_ADMIN'
   | 'EXECUTIVE_ADMIN'
+  | 'STORE_OFFICER'
   | 'PRODUCTION_MANAGER'
-  | 'INVENTORY_OFFICER'
-  | 'SALES_MANAGER'
-  | 'DISTRIBUTOR'
-  | 'SALES_REP'
-  | 'FARM_MANAGER'
-  | 'OPERATIONS_OFFICER';
+  | 'PROCUREMENT_OFFICER'
+  | 'QA_INSPECTOR';
 
+// User shape mirrors the Prisma User returned by GET /auth/me (camelCase).
 export interface User {
   id: string;
   email: string;
   username: string;
-  full_name: string;
+  fullName: string;
   role: UserRole;
-  is_active: boolean;
-  phone_number?: string;
-  created_at?: string;
-  updated_at?: string;
+  isActive: boolean;
+  phoneNumber?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CustomerVisit {

@@ -63,22 +63,32 @@ export default function DashboardLayout({
         return { parent: 'Dashboards', current: 'Overview' };
       case 'admin-users':
         return { parent: 'Dashboards', current: 'Manage Users' };
-      case 'erp-formulation':
-        return { parent: 'Production ERP', current: 'Batch Formulation' };
-      case 'erp-ingredients':
-        return { parent: 'Production ERP', current: 'Recipe Ingredients' };
-      case 'sfa-map':
-        return { parent: 'Ecosystem Logs & Map', current: 'Properties Map' };
-      case 'sfa-visits':
-        return { parent: 'Ecosystem Logs & Map', current: 'Audit Logs' };
-      case 'creations-vault':
-        return { parent: 'Creations Vault', current: 'Document Vault' };
-      case 'creations-audit':
-        return { parent: 'Creations Vault', current: 'Financial Audits' };
-      case 'farms-tracker':
-        return { parent: 'Harvest Registry', current: 'Harvest Logs' };
-      case 'farms-registry':
-        return { parent: 'Harvest Registry', current: 'Farm Registry' };
+      case 'md-warehouses':
+        return { parent: 'Master Data', current: 'Warehouses' };
+      case 'md-materials':
+        return { parent: 'Master Data', current: 'Materials' };
+      case 'md-suppliers':
+        return { parent: 'Master Data', current: 'Suppliers' };
+      case 'proc-procurement':
+        return { parent: 'Procurement', current: 'Requisitions & POs' };
+      case 'inv-stock':
+        return { parent: 'Inventory', current: 'Stock Ledger' };
+      case 'inv-grn':
+        return { parent: 'Inventory', current: 'Goods Receipt' };
+      case 'inv-finished':
+        return { parent: 'Inventory', current: 'Finished Goods' };
+      case 'prod-boms':
+        return { parent: 'Production', current: 'Bill of Materials' };
+      case 'prod-orders':
+        return { parent: 'Production', current: 'Production Orders' };
+      case 'prod-trace':
+        return { parent: 'Production', current: 'Traceability' };
+      case 'qa-inspections':
+        return { parent: 'Quality Assurance', current: 'Inspections' };
+      case 'alerts-notifications':
+        return { parent: 'Alerts & Reports', current: 'Notifications' };
+      case 'reports':
+        return { parent: 'Alerts & Reports', current: 'Reports' };
       default:
         return { parent: 'Dashboards', current: 'Traffic overview' };
     }
@@ -156,7 +166,7 @@ export default function DashboardLayout({
                 className="relative focus:outline-none cursor-pointer group flex items-center"
               >
                 <div className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-xs font-bold text-[#171717] uppercase transition-colors">
-                  {user?.full_name?.slice(0, 2) || <UserIcon className="w-4 h-4 text-slate-400" />}
+                  {user?.fullName?.slice(0, 2) || <UserIcon className="w-4 h-4 text-slate-400" />}
                 </div>
                 <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
               </button>
@@ -168,7 +178,7 @@ export default function DashboardLayout({
                   <div className="absolute right-0 mt-2 w-[220px] bg-white border border-[#E9E9E9] rounded-lg shadow-lg z-50 p-4 flex flex-col gap-3 animate-in fade-in duration-100">
                     <div className="border-b border-slate-100 pb-2.5">
                       <p className="text-xs font-bold text-[#171717] leading-none mb-1">
-                        {user?.full_name?.split(' ')[0] || 'Isaac'}
+                        {user?.fullName?.split(' ')[0] || 'Isaac'}
                       </p>
                       <p className="text-[10px] text-slate-400 truncate mb-2">{user?.email}</p>
                       <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-[#EA4335]/10 text-[#EA4335] px-2 py-0.5 rounded border border-[#EA4335]/20">
@@ -214,28 +224,16 @@ export default function DashboardLayout({
                 Overview
               </button>
               <button
-                onClick={() => { setActiveTab('erp-formulation'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'erp-formulation' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
+                onClick={() => { setActiveTab('md-warehouses'); setIsMobileMenuOpen(false); }}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-warehouses' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
               >
-                ERP Batch Formulation
+                Warehouses
               </button>
               <button
-                onClick={() => { setActiveTab('sfa-map'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'sfa-map' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
+                onClick={() => { setActiveTab('md-materials'); setIsMobileMenuOpen(false); }}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-materials' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
               >
-                SFA Map Route
-              </button>
-              <button
-                onClick={() => { setActiveTab('creations-vault'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'creations-vault' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
-              >
-                Creations Vault
-              </button>
-              <button
-                onClick={() => { setActiveTab('farms-tracker'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'farms-tracker' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
-              >
-                Harvest Registry
+                Materials
               </button>
             </div>
             
