@@ -16,6 +16,12 @@ interface Material {
   requiresLot: boolean;
   attachments?: { name?: string; url?: string; kind?: string }[] | null;
   status: string;
+  suppliers?: Array<{ supplier: { id: string; name: string } }>;
+}
+
+interface SupplierOption {
+  id: string;
+  name: string;
 }
 
 const typeBadge: Record<string, string> = {
@@ -30,11 +36,13 @@ const statusBadge: Record<string, string> = {
 
 export default function Materials({ searchQuery = '' }: { searchQuery?: string }) {
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Material | null>(null);
   const [filter, setFilter] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('');
   const [form, setForm] = useState({
     name: '',
     sku: '',
@@ -46,13 +54,14 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     requiresLot: true,
     nafdacUrl: '',
     msdsUrl: '',
+    supplierIds: [] as string[],
   });
 
   const load = async () => {
     setLoading(true);
     try {
       const res = await axiosClient.get<{ materials: Material[] }>('/master-data/materials', {
-        params: { type: filter || undefined },
+        params: { type: filter || undefined, supplierId: supplierFilter || undefined },
       });
       setMaterials(res.data.materials);
       setError('');
@@ -65,11 +74,19 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   useEffect(() => {
     load();
-  }, [filter]);
+  }, [filter, supplierFilter]);
+
+  // Suppliers for the tag filter + modal multi-select.
+  useEffect(() => {
+    axiosClient
+      .get<{ suppliers: SupplierOption[] }>('/master-data/suppliers')
+      .then((res) => setSuppliers(res.data.suppliers))
+      .catch(() => {});
+  }, []);
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', sku: '', type: 'RAW', category: '', unitOfMeasure: '', barcode: '', shelfLifeDays: '', requiresLot: true, nafdacUrl: '', msdsUrl: '' });
+    setForm({ name: '', sku: '', type: 'RAW', category: '', unitOfMeasure: '', barcode: '', shelfLifeDays: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [] });
     setShowModal(true);
   };
 
@@ -86,6 +103,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       requiresLot: m.requiresLot,
       nafdacUrl: (m.attachments?.find((a) => a.kind === 'NAFDAC')?.url) ?? '',
       msdsUrl: (m.attachments?.find((a) => a.kind === 'MSDS')?.url) ?? '',
+      supplierIds: (m.suppliers ?? []).map((s) => s.supplier.id),
     });
     setShowModal(true);
   };
@@ -147,6 +165,16 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-56 focus:outline-none focus:border-[#EA4335]"
             />
           </div>
+          <select
+            value={supplierFilter}
+            onChange={(e) => setSupplierFilter(e.target.value)}
+            className="h-9 rounded-lg border border-[#E9E9E9] bg-white px-2.5 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
+          >
+            <option value="">All suppliers</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
           <button onClick={openAdd} className="btn-3d px-4 h-9">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
               <Plus className="w-3.5 h-3.5" /> Add Material
@@ -162,7 +190,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       {/* 2. Table */}
       <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={7} rows={6} />
+          <TableSkeleton cols={8} rows={6} />
         ) : filtered.length === 0 ? (
           <EmptyState title="No materials found." />
         ) : (
@@ -173,6 +201,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">SKU</th>
                   <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold">Suppliers</th>
                   <th className="px-4 py-3 font-semibold">UoM</th>
                   <th className="px-4 py-3 font-semibold">Expiry</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
@@ -202,6 +231,19 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${typeBadge[m.type]}`}>{m.type}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {(m.suppliers ?? []).length === 0 ? (
+                          <span className="text-[10px] text-slate-400">—</span>
+                        ) : (
+                          (m.suppliers ?? []).map(({ supplier }) => (
+                            <span key={supplier.id} className="text-[9px] font-semibold text-[#171717] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                              {supplier.name}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">{m.unitOfMeasure}</td>
                     <td className="px-4 py-3">
