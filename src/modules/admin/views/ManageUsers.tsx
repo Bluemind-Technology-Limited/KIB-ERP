@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Users, Plus, Shield, Check, Copy, X } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton, HeaderSkeleton } from '../../../components/ui/Skeleton';
+import { Modal } from '../../../components/ui/Modal';
 
 interface ManageUsersProps {
   searchQuery?: string;
@@ -157,7 +158,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
 
       {/* Form Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#0A0A0A]/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <Modal onClose={() => setIsModalOpen(false)}>
           <div className="bg-white border border-[#E9E9E9] rounded-lg w-full max-w-md p-6 relative flex flex-col gap-4">
             <button
               type="button"
@@ -255,7 +256,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

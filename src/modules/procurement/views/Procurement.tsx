@@ -3,6 +3,7 @@ import { FilePlus2, Plus, Send, Check, X, Truck } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
 interface SupplierOption { id: string; name: string }
@@ -156,67 +157,116 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
 
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
 
-      {/* 3a. Requisition form */}
-      {tab === 'requisitions' && showReqForm && (
-        <form onSubmit={createRequisition} className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3">
-          {reqItems.map((item, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              <select
-                value={item.materialId}
-                onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
-                className="h-9 md:col-span-2 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-              >
-                <option value="">Select material…</option>
-                {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
-              </select>
-              <input
-                value={item.quantity}
-                onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))}
-                placeholder="Quantity"
-                type="number"
-                className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
-              />
-              <div className="flex gap-2">
-                <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 flex-1 rounded-lg border border-[#E9E9E9] px-3 text-xs bg-slate-50" />
-                {reqItems.length > 1 && (
-                  <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="h-9 w-9 rounded-lg border border-slate-200 text-slate-400 text-xs">✕</button>
-                )}
+      {/* 3a. New Requisition modal */}
+      {showReqForm && (
+        <Modal onClose={() => setShowReqForm(false)}>
+          <form onSubmit={createRequisition} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#171717]">
+                <FilePlus2 className="w-4 h-4 text-[#EA4335]" />
+                <h3 className="text-sm font-bold">New Requisition</h3>
+              </div>
+              <button type="button" onClick={() => setShowReqForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div className="space-y-2">
+              {reqItems.map((item, idx) => (
+                <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500">Item {idx + 1}</span>
+                    {reqItems.length > 1 && (
+                      <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                    <select
+                      value={item.materialId}
+                      onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
+                      className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                    >
+                      <option value="">Select material…</option>
+                      {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
+                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
+                      <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button type="button" onClick={() => setReqItems([...reqItems, { materialId: '', quantity: '', unitOfMeasure: '' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> Add Item
+              </button>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
+                <textarea value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} rows={3} placeholder="Reason, urgency, etc." className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
-          ))}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setReqItems([...reqItems, { materialId: '', quantity: '', unitOfMeasure: '' }])} className="h-8 px-3 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                <FilePlus2 className="w-3 h-3" /> Add line
-              </button>
-              <input value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} placeholder="Notes" className="h-8 w-48 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-            </div>
-            <div className="flex gap-2">
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button type="button" onClick={() => setShowReqForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button type="submit" className="btn-3d px-4 h-9"><span className="text-white text-xs font-semibold">Create (Draft)</span></button>
+              <button type="submit" className="btn-3d px-4 h-9">
+                <span className="text-white text-xs font-semibold whitespace-nowrap">Create (Draft)</span>
+              </button>
             </div>
-          </div>
-        </form>
+          </form>
+        </Modal>
       )}
 
-      {/* 3b. PO form */}
-      {tab === 'purchase-orders' && showPoForm && (
-        <form onSubmit={createPo} className="bg-white border border-[#E9E9E9] rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <select value={poSupplierId} onChange={(e) => setPoSupplierId(e.target.value)} className="h-9 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-            <option value="">Select supplier…</option>
-            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <select value={poRequisitionId} onChange={(e) => setPoRequisitionId(e.target.value)} className="h-9 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-            <option value="">Link from approved requisition…</option>
-            {requisitions.filter((r) => r.status === 'APPROVED').map((r) => <option key={r.id} value={r.id}>{r.number}</option>)}
-          </select>
-          <input value={poNotes} onChange={(e) => setPoNotes(e.target.value)} placeholder="Notes" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-          <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-          <div className="md:col-span-2 flex justify-end gap-2">
-            <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-            <button type="submit" className="btn-3d px-4 h-9"><span className="text-white text-xs font-semibold">Create PO</span></button>
-          </div>
-        </form>
+      {/* 3b. New Purchase Order modal */}
+      {showPoForm && (
+        <Modal onClose={() => setShowPoForm(false)}>
+          <form onSubmit={createPo} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#171717]">
+                <Truck className="w-4 h-4 text-[#EA4335]" />
+                <h3 className="text-sm font-bold">New Purchase Order</h3>
+              </div>
+              <button type="button" onClick={() => setShowPoForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier *</label>
+                <select value={poSupplierId} onChange={(e) => setPoSupplierId(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                  <option value="">Select supplier…</option>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From approved requisition (optional)</label>
+                <select value={poRequisitionId} onChange={(e) => setPoRequisitionId(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                  <option value="">None — create standalone</option>
+                  {requisitions.filter((r) => r.status === 'APPROVED').map((r) => <option key={r.id} value={r.id}>{r.number}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected delivery</label>
+                <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
+                <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button type="submit" className="btn-3d px-4 h-9">
+                <span className="text-white text-xs font-semibold whitespace-nowrap">Create PO</span>
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* 4. Lists */}

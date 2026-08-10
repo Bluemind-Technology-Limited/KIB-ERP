@@ -3,6 +3,7 @@ import { Package, Plus, Search, Pencil, QrCode } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 
 interface Material {
   id: string;
@@ -175,9 +176,9 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <button onClick={openAdd} className="btn-3d px-4 h-9">
-            <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
-              <Plus className="w-3.5 h-3.5" /> Add Material
+          <button onClick={openAdd} className="btn-3d px-4 h-9 shrink-0">
+            <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
+              <Plus className="w-3.5 h-3.5 shrink-0" /> Add Material
             </span>
           </button>
         </div>
@@ -273,8 +274,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
       {/* 3. Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowModal(false)}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+        <Modal onClose={() => setShowModal(false)}>
+          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Material' : 'Add Material'}</h3>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -329,6 +330,56 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               </div>
             </div>
 
+            {/* Suppliers — dropdown to pick which suppliers this material comes from */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Suppliers</label>
+              {suppliers.length === 0 ? (
+                <p className="text-[11px] text-slate-400">No suppliers yet — add some in the Supplier Directory first.</p>
+              ) : (
+                <>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      if (id && !form.supplierIds.includes(id)) {
+                        setForm({ ...form, supplierIds: [...form.supplierIds, id] });
+                      }
+                    }}
+                    className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2.5 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
+                  >
+                    <option value="">Select supplier…</option>
+                    {suppliers
+                      .filter((s) => !form.supplierIds.includes(s.id))
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                  </select>
+                  {form.supplierIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {form.supplierIds.map((id) => {
+                        const s = suppliers.find((x) => x.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#EA4335] bg-[#EA4335]/10 border border-[#EA4335]/40 px-2 py-0.5 rounded-lg"
+                          >
+                            {s?.name ?? id}
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, supplierIds: form.supplierIds.filter((x) => x !== id) })}
+                              className="text-[#EA4335]/70 hover:text-[#EA4335]"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">
                 Cancel
@@ -338,7 +389,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

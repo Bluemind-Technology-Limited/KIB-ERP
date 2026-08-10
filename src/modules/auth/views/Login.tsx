@@ -179,7 +179,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* 3. Footer */}
       <footer className="w-full bg-[#FBFBFB] border-t border-slate-200 py-4 px-6 mt-auto">
         <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#737373]">
-          <button type="button" className="hover:text-slate-900 transition-colors text-[#0A0A0A]">Support</button>
+          <a href="mailto:dev@bluemind.cloud" className="hover:text-slate-900 transition-colors text-[#0A0A0A]">Support</a>
           <button type="button" className="hover:text-slate-900 transition-colors text-[#0A0A0A]">System status</button>
           <button type="button" className="hover:text-slate-900 transition-colors text-[#0A0A0A]">Careers</button>
           <button type="button" className="hover:text-slate-900 transition-colors text-[#0A0A0A]">Terms of Use</button>

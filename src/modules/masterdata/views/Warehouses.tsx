@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, Search, MapPin, Boxes } from 'lucide-react';
+import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, MapPin, Boxes } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -114,15 +114,6 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
           <p className="text-[#737373] text-xs">Warehouses → Zones → Bins spatial hierarchy for stock location tracking.</p>
         </div>
         <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              value={searchQuery}
-              readOnly
-              placeholder="Search (use top bar)"
-              className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-48 focus:outline-none focus:border-[#EA4335]"
-            />
-          </div>
           <button onClick={() => setShowAdd(!showAdd)} className="btn-3d px-4 h-9">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
               <Plus className="w-3.5 h-3.5" /> Add Warehouse

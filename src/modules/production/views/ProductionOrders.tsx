@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, PlayCircle, CheckCircle2, ChevronRight, Factory, CalendarDays, Recycle } from 'lucide-react';
+import { ClipboardList, Plus, PlayCircle, CheckCircle2, ChevronRight, ChevronLeft, Factory, CalendarDays, Recycle, Search, Check } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
+
+interface BomIngredientOption {
+  id: string;
+  quantity: number;
+  unitOfMeasure: string;
+  isPercentage: boolean;
+  material: { id: string; name: string; sku: string; unitOfMeasure: string };
+}
 
 interface BomVersionOption {
   id: string;
@@ -13,6 +22,7 @@ interface BomVersionOption {
   status: string;
   productName: string;
   finishedSku?: { id: string; name: string; sku: string } | null;
+  ingredients: BomIngredientOption[];
 }
 
 interface Machine { id: string; name: string; code: string }
@@ -58,6 +68,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const [showWizard, setShowWizard] = useState(false);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [bomSearch, setBomSearch] = useState('');
   // waste logging
   const [showWaste, setShowWaste] = useState(false);
   const [wasteForm, setWasteForm] = useState({ materialId: '', warehouseId: '', quantity: '', unitOfMeasure: '', notes: '' });
@@ -100,6 +111,13 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               status: v.status,
               productName: bom.productName,
               finishedSku: v.finishedSku ?? null,
+              ingredients: (v.ingredients ?? []).map((ing: any) => ({
+                id: ing.id,
+                quantity: Number(ing.quantity),
+                unitOfMeasure: ing.unitOfMeasure,
+                isPercentage: ing.isPercentage,
+                material: { id: ing.material.id, name: ing.material.name, sku: ing.material.sku, unitOfMeasure: ing.material.unitOfMeasure },
+              })),
             }))
         )
       );
@@ -121,9 +139,33 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
   const selectedBom = useMemo(() => bomOptions.find((b) => b.id === form.bomVersionId) ?? null, [form.bomVersionId, bomOptions]);
 
+  const filteredBomOptions = useMemo(() => {
+    const q = bomSearch.trim().toLowerCase();
+    if (!q) return bomOptions;
+    return bomOptions.filter(
+      (b) =>
+        b.productName.toLowerCase().includes(q) ||
+        (b.finishedSku?.name ?? '').toLowerCase().includes(q) ||
+        (b.finishedSku?.sku ?? '').toLowerCase().includes(q)
+    );
+  }, [bomSearch, bomOptions]);
+
+  // Scaled ingredient requirement preview for the chosen target quantity.
+  const estimatedIngredients = useMemo(() => {
+    if (!selectedBom || !form.targetQuantity) return [];
+    const scale = selectedBom.expectedYield > 0 ? Number(form.targetQuantity) / selectedBom.expectedYield : 0;
+    return selectedBom.ingredients.map((ing) => {
+      const amount = ing.isPercentage ? (Number(form.targetQuantity) * ing.quantity) / 100 : ing.quantity * scale;
+      return { ...ing, amount };
+    });
+  }, [selectedBom, form.targetQuantity]);
+
   const openWizard = () => {
-    setForm({ bomVersionId: '', targetQuantity: '', scheduledStart: '', machineId: '', shiftId: '' });
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setForm({ bomVersionId: '', targetQuantity: '', scheduledStart: local, machineId: '', shiftId: '' });
     setStep(1);
+    setBomSearch('');
     setError('');
     setShowWizard(true);
   };
@@ -345,10 +387,13 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
       {/* 3. Plan Production Wizard */}
       {showWizard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowWizard(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl w-full max-w-xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+        <Modal onClose={() => setShowWizard(false)}>
+          <div data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Plan Production</h3>
+              <div className="flex items-center gap-2">
+                <Factory className="w-4 h-4 text-[#EA4335]" />
+                <h3 className="text-sm font-bold text-[#171717]">Plan Production</h3>
+              </div>
               <button type="button" onClick={() => setShowWizard(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
@@ -374,26 +419,60 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
             {step === 1 && (
               <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved BOM Version *</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved BOM Version *</label>
+                  {filteredBomOptions.length > 0 && (
+                    <span className="text-[9px] font-semibold text-slate-400">{filteredBomOptions.length} available</span>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    value={bomSearch}
+                    onChange={(e) => setBomSearch(e.target.value)}
+                    placeholder="Search BOMs by product or SKU…"
+                    className="pl-9 pr-3 h-9 w-full rounded-lg border border-[#E9E9E9] bg-white text-xs focus:outline-none focus:border-[#EA4335]"
+                  />
+                </div>
+
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {bomOptions.length === 0 && (
                     <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                       No approved BOMs yet — approve a BOM version in the Bill of Materials screen first.
                     </p>
                   )}
-                  {bomOptions.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => setForm({ ...form, bomVersionId: b.id })}
-                      className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${form.bomVersionId === b.id ? 'border-[#EA4335] bg-rose-50/40' : 'border-[#E9E9E9] hover:border-slate-300'}`}
-                    >
-                      <p className="text-xs font-bold text-slate-700">{b.productName}</p>
-                      <p className="text-[10px] text-slate-400">
-                        v{b.version} · {b.finishedSku?.name ?? ''} · Yield {b.expectedYield} {b.yieldUnit}
-                      </p>
-                    </button>
-                  ))}
+                  {bomOptions.length > 0 && filteredBomOptions.length === 0 && (
+                    <p className="text-[11px] text-slate-400 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">No BOMs match "{bomSearch}".</p>
+                  )}
+                  {filteredBomOptions.map((b) => {
+                    const selected = form.bomVersionId === b.id;
+                    const ingCount = b.ingredients.length;
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, bomVersionId: b.id })}
+                        className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${selected ? 'border-[#EA4335] bg-rose-50/40' : 'border-[#E9E9E9] hover:border-slate-300'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-bold text-slate-700">{b.productName}</p>
+                            <p className="text-[10px] text-slate-400">
+                              v{b.version} · {b.finishedSku?.name ?? ''} · Yield {b.expectedYield} {b.yieldUnit}
+                            </p>
+                          </div>
+                          {selected ? (
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-[#EA4335] text-white flex items-center justify-center">
+                              <Check className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-[9px] font-semibold text-slate-300 mt-0.5">{ingCount} ingredients</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -401,45 +480,72 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             {step === 2 && (
               <div className="space-y-3">
                 {selectedBom && (
-                  <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
-                    <p className="text-[11px] font-bold text-slate-700">{selectedBom.productName}</p>
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-slate-700">{selectedBom.productName}</p>
+                      <button type="button" onClick={() => { setStep(1); }} className="text-[9px] font-bold uppercase tracking-wider text-[#EA4335] hover:underline">Change</button>
+                    </div>
                     <p className="text-[10px] text-slate-400">v{selectedBom.version} · Yield {selectedBom.expectedYield} {selectedBom.yieldUnit}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Target Quantity *</label>
-                    <input value={form.targetQuantity} onChange={(e) => setForm({ ...form, targetQuantity: e.target.value })} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                    <input value={form.targetQuantity} onChange={(e) => setForm({ ...form, targetQuantity: e.target.value })} type="number" step="0.0001" min={0} placeholder={`e.g. ${selectedBom?.expectedYield ?? 100}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Scheduled Start</label>
                     <input value={form.scheduledStart} onChange={(e) => setForm({ ...form, scheduledStart: e.target.value })} type="datetime-local" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Machine</label>
-                    <select value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                      <option value="">Any…</option>
-                      {machines.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Machine</label>
+                      <select value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                        <option value="">Any…</option>
+                        {machines.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shift</label>
+                      <select value={form.shiftId} onChange={(e) => setForm({ ...form, shiftId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                        <option value="">Any…</option>
+                        {shifts.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name} ({s.startTime}–{s.endTime})</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shift</label>
-                    <select value={form.shiftId} onChange={(e) => setForm({ ...form, shiftId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                      <option value="">Any…</option>
-                      {shifts.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.startTime}–{s.endTime})</option>
-                      ))}
-                    </select>
-                  </div>
+
+                  {estimatedIngredients.length > 0 && (
+                    <div className="rounded-lg border border-slate-100 overflow-hidden">
+                      <div className="flex items-center justify-between bg-slate-50 border-b border-slate-100 px-3 py-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Ingredient requirements</span>
+                        <span className="text-[9px] font-semibold text-slate-400">{estimatedIngredients.length} items</span>
+                      </div>
+                      <div className="divide-y divide-slate-50">
+                        {estimatedIngredients.map((ing) => (
+                          <div key={ing.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                            <span className="text-[11px] font-semibold text-slate-700 truncate">{ing.material.name}</span>
+                            <span className="text-[10px] text-slate-500 shrink-0">
+                              {ing.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {ing.unitOfMeasure}
+                              {ing.isPercentage && <span className="text-slate-400"> (of batch)</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            <div className="flex justify-between gap-2 pt-2">
+            <div className="flex justify-between gap-2 pt-2 border-t border-slate-100">
               {step === 2 ? (
-                <button onClick={() => setStep(1)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Back</button>
+                <button onClick={() => setStep(1)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 flex items-center gap-1">
+                  <ChevronLeft className="w-3.5 h-3.5" /> Back
+                </button>
               ) : <span />}
               {step === 1 ? (
                 <button onClick={() => form.bomVersionId ? setStep(2) : setError('Select a BOM version first')} className="btn-3d px-4 h-9">
@@ -456,13 +562,13 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               )}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* 4. Start / Complete Modal */}
       {actingOrder && action && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => { setActingOrder(null); setAction(null); }}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+        <Modal onClose={() => { setActingOrder(null); setAction(null); }}>
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">
                 {action === 'start' ? 'Start Production' : 'Complete Production'}
@@ -516,19 +622,19 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
       {/* 5. Waste Logging Modal */}
       {showWaste && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowWaste(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+        <Modal onClose={() => setShowWaste(false)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">Log Production Waste</h3>
               <button onClick={() => setShowWaste(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1 md:col-span-2">
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
                 <select value={wasteForm.materialId} onChange={(e) => {
                   const m = materials.find((x) => x.id === e.target.value);
@@ -540,7 +646,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   ))}
                 </select>
               </div>
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warehouse *</label>
                 <select value={wasteForm.warehouseId} onChange={(e) => setWasteForm({ ...wasteForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">Select warehouse…</option>
@@ -557,9 +663,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit *</label>
                 <input value={wasteForm.unitOfMeasure} onChange={(e) => setWasteForm({ ...wasteForm, unitOfMeasure: e.target.value })} placeholder="kg / units" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={wasteForm.notes} onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })} rows={2} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <textarea value={wasteForm.notes} onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })} rows={3} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
@@ -570,61 +676,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               </button>
             </div>
           </div>
-        </div>
-      )}
-      {/* 5. Waste Logging Modal */}
-      {showWaste && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowWaste(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Log Production Waste</h3>
-              <button onClick={() => setShowWaste(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
-                <select value={wasteForm.materialId} onChange={(e) => {
-                  const m = materials.find((x) => x.id === e.target.value);
-                  setWasteForm({ ...wasteForm, materialId: e.target.value, unitOfMeasure: m?.unitOfMeasure ?? wasteForm.unitOfMeasure });
-                }} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="">Select material…</option>
-                  {materials.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warehouse *</label>
-                <select value={wasteForm.warehouseId} onChange={(e) => setWasteForm({ ...wasteForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="">Select warehouse…</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                <input value={wasteForm.quantity} onChange={(e) => setWasteForm({ ...wasteForm, quantity: e.target.value })} type="number" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit *</label>
-                <input value={wasteForm.unitOfMeasure} onChange={(e) => setWasteForm({ ...wasteForm, unitOfMeasure: e.target.value })} placeholder="kg / units" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={wasteForm.notes} onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })} rows={2} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowWaste(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button onClick={submitWaste} disabled={saving} className="btn-3d px-4 h-9">
-                <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Record Waste'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
