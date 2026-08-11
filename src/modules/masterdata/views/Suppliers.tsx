@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Handshake, Plus, Search, Pencil, Mail, Phone, MapPin } from 'lucide-react';
+import { Handshake, Plus, Pencil, Mail } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
-import { Skeleton } from '../../../components/ui/Skeleton';
+import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 
 interface Supplier {
   id: string;
@@ -92,15 +93,6 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
           <p className="text-[#737373] text-xs">Supplier profiles used by the procurement workflow (requisitions → purchase orders).</p>
         </div>
         <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              value={searchQuery}
-              readOnly
-              placeholder="Search (use top bar)"
-              className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-48 focus:outline-none focus:border-[#EA4335]"
-            />
-          </div>
           <button onClick={openAdd} className="btn-3d px-4 h-9">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
               <Plus className="w-3.5 h-3.5" /> Add Supplier
@@ -113,81 +105,72 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
         <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
       )}
 
-      {/* 2. Cards */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-2.5 w-28" />
-                    <Skeleton className="h-2 w-20" />
-                  </div>
-                </div>
-                <Skeleton className="h-4 w-14 rounded" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-2 w-40" />
-                <Skeleton className="h-2 w-32" />
-              </div>
-              <div className="flex justify-end border-t border-slate-100 pt-2">
-                <Skeleton className="h-6 w-6 rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState title="No suppliers found." />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <div key={s.id} className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
-                    <Handshake className="w-4 h-4 text-[#EA4335]" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#171717] leading-none">{s.name}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">{s.contactPerson || '—'}</p>
-                  </div>
-                </div>
-                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[s.status] || statusBadge.ACTIVE}`}>
-                  {s.status}
-                </span>
-              </div>
-
-              <div className="space-y-1.5 text-[11px] text-slate-500">
-                {s.email && (
-                  <p className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-slate-300" /> {s.email}</p>
-                )}
-                {s.phone && (
-                  <p className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-slate-300" /> {s.phone}</p>
-                )}
-                {s.address && (
-                  <p className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-slate-300" /> {s.address}</p>
-                )}
-                {s.taxId && (
-                  <p className="flex items-center gap-1.5 font-mono text-[10px]"><span className="text-slate-400">Tax ID:</span> {s.taxId}</p>
-                )}
-              </div>
-
-              <div className="flex justify-end border-t border-slate-100 pt-2">
-                <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-[#EA4335] p-1">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* 2. Table */}
+      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        {loading ? (
+          <TableSkeleton cols={6} rows={6} hasAvatar={false} />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No suppliers found." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3 font-semibold">Supplier</th>
+                  <th className="px-4 py-3 font-semibold">Contact</th>
+                  <th className="px-4 py-3 font-semibold">Phone</th>
+                  <th className="px-4 py-3 font-semibold">Address</th>
+                  <th className="px-4 py-3 font-semibold">Tax ID</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => (
+                  <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
+                          <Handshake className="w-3.5 h-3.5 text-[#EA4335]" />
+                        </div>
+                        <p className="text-xs font-bold text-[#171717] leading-none">{s.name}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="text-xs text-slate-600">{s.contactPerson || '—'}</p>
+                        {s.email && (
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <Mail className="w-2.5 h-2.5" /> {s.email}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">{s.phone || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[220px] truncate">{s.address || '—'}</td>
+                    <td className="px-4 py-3">
+                      {s.taxId ? <span className="text-[10px] font-mono text-slate-500">{s.taxId}</span> : <span className="text-[10px] text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[s.status] || statusBadge.ACTIVE}`}>{s.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-[#EA4335] p-1">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* 3. Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowModal(false)}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+        <Modal onClose={() => setShowModal(false)}>
+          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Supplier' : 'Add Supplier'}</h3>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -229,7 +212,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { FlaskConical, Plus, ChevronDown, ChevronRight, CheckCircle2, Trash2, Fi
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 
 interface Material {
   id: string;
@@ -100,7 +101,18 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   };
 
   const updateIngredient = (i: number, field: keyof typeof emptyIngredient, value: string | boolean) => {
-    setIngredients((prev) => prev.map((ing, idx) => (idx === i ? { ...ing, [field]: value } : ing)));
+    setIngredients((prev) =>
+      prev.map((ing, idx) => {
+        if (idx !== i) return ing;
+        const next = { ...ing, [field]: value };
+        // Auto-fill the unit from the selected material's UoM when picking a material.
+        if (field === 'materialId') {
+          const m = materials.find((x) => x.id === value);
+          if (m) next.unitOfMeasure = m.unitOfMeasure;
+        }
+        return next;
+      })
+    );
   };
 
   const addIngredientRow = () => setIngredients((prev) => [...prev, { ...emptyIngredient }]);
@@ -314,94 +326,111 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
 
       {/* 3. Add BOM Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowModal(false)}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+        <Modal onClose={() => setShowModal(false)}>
+          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">New BOM</h3>
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-[#EA4335]" />
+                <h3 className="text-sm font-bold text-[#171717]">New BOM</h3>
+              </div>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1 md:col-span-2">
+            {/* 3a. Basic recipe info */}
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product Name *</label>
                 <input value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} placeholder="e.g. Cocoa Butter Body Balm" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Version</label>
+                  <input value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} type="number" min={1} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished SKU *</label>
+                  <select value={form.finishedSkuId} onChange={(e) => setForm({ ...form, finishedSkuId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                    <option value="">Select finished product…</option>
+                    {finishedMaterials.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Yield *</label>
+                  <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Yield Unit *</label>
+                  <input value={form.yieldUnit} onChange={(e) => setForm({ ...form, yieldUnit: e.target.value })} placeholder="kg / units / liters" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                </div>
+              </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Version</label>
-                <input value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} type="number" min={1} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished SKU *</label>
-                <select value={form.finishedSkuId} onChange={(e) => setForm({ ...form, finishedSkuId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="">Select finished product…</option>
-                  {finishedMaterials.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Yield *</label>
-                <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Yield Unit *</label>
-                <input value={form.yieldUnit} onChange={(e) => setForm({ ...form, yieldUnit: e.target.value })} placeholder="kg / units / liters" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1 md:col-span-3">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
+            {/* 3b. Ingredients */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ingredients *</label>
-                <button type="button" onClick={addIngredientRow} className="text-[10px] font-bold text-[#EA4335] hover:underline">+ Add ingredient</button>
+                <span className="text-[9px] text-slate-400">{ingredients.filter((i) => i.materialId && i.quantity).length} added</span>
               </div>
 
               <div className="space-y-2">
-                {ingredients.map((ing, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5 space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material</label>
-                      <select value={ing.materialId} onChange={(e) => updateIngredient(i, 'materialId', e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                        <option value="">Select…</option>
-                        {rawMaterials.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                        ))}
-                      </select>
+                {ingredients.map((ing, i) => {
+                  const mat = materials.find((m) => m.id === ing.materialId);
+                  return (
+                    <div key={i} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-500">Ingredient {i + 1}</span>
+                        <button type="button" onClick={() => removeIngredientRow(i)} className="text-slate-300 hover:text-rose-500 p-0.5">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                        <select value={ing.materialId} onChange={(e) => updateIngredient(i, 'materialId', e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                          <option value="">Select material…</option>
+                          {rawMaterials.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
+                          <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
+                          <input value={ing.unitOfMeasure} onChange={(e) => updateIngredient(i, 'unitOfMeasure', e.target.value)} placeholder={mat?.unitOfMeasure ?? 'kg'} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" checked={ing.isPercentage} onChange={(e) => updateIngredient(i, 'isPercentage', e.target.checked)} className="accent-[#EA4335] h-3.5 w-3.5" />
+                        <span className="text-[10px] font-semibold text-slate-500">Percentage of batch</span>
+                      </label>
                     </div>
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Qty</label>
-                      <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" step="0.0001" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
-                    </div>
-                    <div className="col-span-3 space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                      <input value={ing.unitOfMeasure} onChange={(e) => updateIngredient(i, 'unitOfMeasure', e.target.value)} placeholder="kg" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
-                    </div>
-                    <div className="col-span-1 space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">%</label>
-                      <input type="checkbox" checked={ing.isPercentage} onChange={(e) => updateIngredient(i, 'isPercentage', e.target.checked)} className="accent-[#EA4335] h-4 w-4 mt-1" />
-                    </div>
-                    <div className="col-span-1">
-                      <button type="button" onClick={() => removeIngredientRow(i)} className="text-slate-300 hover:text-rose-500 p-1">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <p className="text-[9px] text-slate-400">Check % for ingredients expressed as a percentage of the batch, uncheck for absolute quantities per yield.</p>
+
+              <button type="button" onClick={addIngredientRow} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> Add Ingredient
+              </button>
+              <p className="text-[9px] text-slate-400">Unit auto-fills from the material. Check "Percentage of batch" to express quantity as a % — uncheck for absolute quantity per yield.</p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
               <button type="submit" disabled={saving} className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Create BOM'}</span>
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

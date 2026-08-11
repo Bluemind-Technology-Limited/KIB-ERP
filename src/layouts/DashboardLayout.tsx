@@ -151,13 +151,13 @@ export default function DashboardLayout({
           {/* Right Header Menu Controls */}
           <div className="flex items-center gap-2">
             {/* Support link (98px x 32px) */}
-            <button
-              type="button"
+            <a
+              href="mailto:dev@bluemind.cloud"
               className="w-[98px] h-8 border border-slate-200 hover:bg-slate-50 rounded-lg flex items-center justify-center gap-1.5 text-xs font-semibold text-[#171717] transition-colors cursor-pointer bg-white"
             >
               <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
               <span>Support</span>
-            </button>
+            </a>
 
             {/* Premium User Avatar with online indicator */}
             <div className="relative shrink-0">

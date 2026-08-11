@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { PackageCheck, Truck, Search } from 'lucide-react';
+import { PackageCheck, Truck } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 
 interface FinishedGoodsRow {
   materialId: string;
@@ -114,15 +115,6 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Finished Goods</h2>
           <p className="text-[#737373] text-xs">QA-released finished product batches per warehouse, with dispatch via the ledger.</p>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <input
-            value={searchQuery}
-            readOnly
-            placeholder="Use global search…"
-            className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-52 focus:outline-none focus:border-[#EA4335]"
-          />
-        </div>
       </div>
 
       {error && (
@@ -199,8 +191,8 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
 
       {/* 3. Dispatch Modal */}
       {dispatchRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setDispatchRow(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+        <Modal onClose={() => setDispatchRow(null)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">Dispatch Finished Goods</h3>
               <button onClick={() => setDispatchRow(null)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -240,7 +232,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
