@@ -231,7 +231,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                       <span className="text-[10px] font-mono text-slate-500">{m.sku}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${typeBadge[m.type]}`}>{m.type}</span>
+                      <span title={m.type} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block truncate max-w-[80px] ${typeBadge[m.type]}`}>{m.type}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
@@ -239,7 +239,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                           <span className="text-[10px] text-slate-400">—</span>
                         ) : (
                           (m.suppliers ?? []).map(({ supplier }) => (
-                            <span key={supplier.id} className="text-[9px] font-semibold text-[#171717] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                            <span key={supplier.id} title={supplier.name} className="text-[9px] font-semibold text-[#171717] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded inline-block truncate max-w-[100px]">
                               {supplier.name}
                             </span>
                           ))
