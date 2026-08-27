@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import Lenis from 'lenis';
 import { useAuthStore } from './stores/useAuthStore';
 import Login from './modules/auth/views/Login';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -12,6 +11,7 @@ import Materials from './modules/masterdata/views/Materials';
 import Suppliers from './modules/masterdata/views/Suppliers';
 import Procurement from './modules/procurement/views/Procurement';
 import Inventory from './modules/inventory/views/Inventory';
+import DailyProduction from './modules/inventory/views/DailyProduction';
 import GRN from './modules/inventory/views/GRN';
 import FinishedGoods from './modules/inventory/views/FinishedGoods';
 import BOM from './modules/production/views/BOM';
@@ -33,6 +33,7 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'md-suppliers': { path: '/master-data/suppliers', parent: 'Master Data', label: 'Suppliers' },
   'proc-procurement': { path: '/procurement', parent: 'Procurement', label: 'Requisitions & POs' },
   'inv-stock': { path: '/inventory/stock', parent: 'Inventory', label: 'Stock Ledger' },
+  'inv-daily-prod': { path: '/inventory/daily-production', parent: 'Inventory', label: 'Daily Production' },
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
   'inv-finished': { path: '/inventory/finished-goods', parent: 'Inventory', label: 'Finished Goods' },
   'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Bill of Materials' },
@@ -76,19 +77,6 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    // Initialize Lenis smooth scroll
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
-
     // Global tactile audio feedback synthesis listener
     const playClickSound = () => {
       // Try playing custom click.mp3 uploaded to public folder first
@@ -131,7 +119,6 @@ export default function App() {
     window.addEventListener('click', handleGlobalClick, { capture: true });
     return () => {
       window.removeEventListener('click', handleGlobalClick, { capture: true });
-      lenis.destroy();
     };
   }, []);
 
@@ -188,6 +175,12 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="inv-stock">
             <Inventory searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'inv-daily-prod':
+        return (
+          <RoleGuard userRole={user.role} viewId="inv-daily-prod">
+            <DailyProduction searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'inv-grn':

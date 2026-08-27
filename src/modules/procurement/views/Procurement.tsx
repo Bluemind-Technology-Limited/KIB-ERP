@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FilePlus2, Plus, Send, Check, X, Truck } from 'lucide-react';
+import { FilePlus2, Plus, Send, Check, X, Truck, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
 interface SupplierOption { id: string; name: string }
@@ -32,6 +33,11 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
   const [loading, setLoading] = useState(true);
   const [showReqForm, setShowReqForm] = useState(false);
   const [showPoForm, setShowPoForm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ type: 'requisition' | 'po'; id: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [createReqConfirmation, setCreateReqConfirmation] = useState(false);
+  const [createPoConfirmation, setCreatePoConfirmation] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Requisition form
   const [reqNotes, setReqNotes] = useState('');
@@ -44,6 +50,15 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
   const [poRequisitionId, setPoRequisitionId] = useState('');
   const [poNotes, setPoNotes] = useState('');
   const [poExpected, setPoExpected] = useState('');
+  const [poItems, setPoItems] = useState<Array<{
+    materialId: string;
+    materialName: string;
+    sku: string;
+    quantity: string;
+    originalQuantity?: number;
+    unitOfMeasure: string;
+    unitCost: string;
+  }>>([]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -85,13 +100,23 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       .filter((i) => i.materialId && i.quantity)
       .map((i) => ({ materialId: i.materialId, quantity: Number(i.quantity), unitOfMeasure: i.unitOfMeasure }));
     if (items.length === 0) { setError('Add at least one item'); return; }
+    setCreateReqConfirmation(true);
+  };
+
+  const confirmCreateRequisition = async () => {
+    const items = reqItems
+      .filter((i) => i.materialId && i.quantity)
+      .map((i) => ({ materialId: i.materialId, quantity: Number(i.quantity), unitOfMeasure: i.unitOfMeasure }));
+    setSaving(true);
     try {
       await axiosClient.post('/procurement/requisitions', { notes: reqNotes, items });
       setShowReqForm(false);
+      setCreateReqConfirmation(false);
       setReqItems([{ materialId: '', quantity: '', unitOfMeasure: '' }]);
       setReqNotes('');
       loadAll();
-    } catch (err: any) { setError(err?.response?.data?.error || 'Failed to create requisition'); }
+    } catch (err: any) { setError(err?.response?.data?.error || 'Failed to create requisition'); setCreateReqConfirmation(false); }
+    finally { setSaving(false); }
   };
 
   const updateRequisition = async (id: string, action: 'submit' | 'approve' | 'reject') => {
@@ -101,18 +126,55 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
     } catch (err: any) { setError(err?.response?.data?.error || 'Action failed'); }
   };
 
+  const handleRequisitionChange = (reqId: string) => {
+    setPoRequisitionId(reqId);
+    if (!reqId) {
+      setPoItems([]);
+      return;
+    }
+    const r = requisitions.find((req) => req.id === reqId);
+    if (r && r.items) {
+      setPoItems(r.items.map((it: any) => ({
+        materialId: it.materialId,
+        materialName: it.material?.name || it.materialId,
+        sku: it.material?.sku || '',
+        quantity: String(it.quantity),
+        originalQuantity: it.quantity,
+        unitOfMeasure: it.unitOfMeasure,
+        unitCost: '0'
+      })));
+    }
+  };
+
   const createPo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!poSupplierId) { setError('Select a supplier'); return; }
+    if (poItems.length === 0) { setError('At least one item is required'); return; }
+    setCreatePoConfirmation(true);
+  };
+
+  const confirmCreatePo = async () => {
+    setSaving(true);
     try {
-      const body: any = { supplierId: poSupplierId, notes: poNotes };
+      const body: any = { 
+        supplierId: poSupplierId, 
+        notes: poNotes,
+        items: poItems.map((it) => ({
+          materialId: it.materialId,
+          quantity: Number(it.quantity),
+          unitCost: Number(it.unitCost || 0),
+          unitOfMeasure: it.unitOfMeasure
+        }))
+      };
       if (poRequisitionId) body.requisitionId = poRequisitionId;
       if (poExpected) body.expectedDelivery = new Date(poExpected).toISOString();
       await axiosClient.post('/procurement/purchase-orders', body);
       setShowPoForm(false);
-      setPoSupplierId(''); setPoRequisitionId(''); setPoNotes(''); setPoExpected('');
+      setCreatePoConfirmation(false);
+      setPoSupplierId(''); setPoRequisitionId(''); setPoNotes(''); setPoExpected(''); setPoItems([]);
       loadAll();
-    } catch (err: any) { setError(err?.response?.data?.error || 'Failed to create PO'); }
+    } catch (err: any) { setError(err?.response?.data?.error || 'Failed to create PO'); setCreatePoConfirmation(false); }
+    finally { setSaving(false); }
   };
 
   const updatePoStatus = async (id: string, status: string) => {
@@ -120,6 +182,33 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       await axiosClient.patch(`/procurement/purchase-orders/${id}/status`, { status });
       loadAll();
     } catch (err: any) { setError(err?.response?.data?.error || 'Status update failed'); }
+  };
+
+  const deleteRequisition = async (id: string) => {
+    setDeleteConfirmation({ type: 'requisition', id });
+  };
+
+  const deletePurchaseOrder = async (id: string) => {
+    setDeleteConfirmation({ type: 'po', id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      if (deleteConfirmation.type === 'requisition') {
+        await axiosClient.delete(`/procurement/requisitions/${deleteConfirmation.id}`);
+      } else {
+        await axiosClient.delete(`/procurement/purchase-orders/${deleteConfirmation.id}`);
+      }
+      setDeleteConfirmation(null);
+      loadAll();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -160,7 +249,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       {/* 3a. New Requisition modal */}
       {showReqForm && (
         <Modal onClose={() => setShowReqForm(false)}>
-          <form onSubmit={createRequisition} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createRequisition} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#171717]">
                 <FilePlus2 className="w-4 h-4 text-[#EA4335]" />
@@ -222,10 +311,9 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
         </Modal>
       )}
 
-      {/* 3b. New Purchase Order modal */}
       {showPoForm && (
         <Modal onClose={() => setShowPoForm(false)}>
-          <form onSubmit={createPo} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createPo} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#171717]">
                 <Truck className="w-4 h-4 text-[#EA4335]" />
@@ -244,11 +332,86 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From approved requisition (optional)</label>
-                <select value={poRequisitionId} onChange={(e) => setPoRequisitionId(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                <select value={poRequisitionId} onChange={(e) => handleRequisitionChange(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">None — create standalone</option>
                   {requisitions.filter((r) => r.status === 'APPROVED').map((r) => <option key={r.id} value={r.id}>{r.number}</option>)}
                 </select>
               </div>
+
+              {/* Items List */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">PO Items *</label>
+                {poItems.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">Select a requisition or add items manually below.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {poItems.map((item, idx) => (
+                      <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-500">
+                            {item.materialName ? `${item.materialName} (${item.sku})` : `Item ${idx + 1}`}
+                          </span>
+                          {!poRequisitionId && (
+                            <button type="button" onClick={() => setPoItems(poItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
+                          )}
+                        </div>
+                        
+                        {!poRequisitionId && (
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                            <select
+                              value={item.materialId}
+                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, materialName: materials.find((m) => m.id === e.target.value)?.name || '', sku: materials.find((m) => m.id === e.target.value)?.sku || '', unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
+                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                            >
+                              <option value="">Select material…</option>
+                              {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
+                            </select>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                              Qty {item.originalQuantity !== undefined && `(Req: ${item.originalQuantity})`} *
+                            </label>
+                            <input 
+                              value={item.quantity} 
+                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} 
+                              placeholder="Qty" 
+                              type="number" 
+                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit Cost *</label>
+                            <input 
+                              value={item.unitCost} 
+                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, unitCost: e.target.value } : r))} 
+                              placeholder="Cost" 
+                              type="number" 
+                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
+                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!poRequisitionId && (
+                  <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5" /> Add Item
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected delivery</label>
                 <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
@@ -308,9 +471,14 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                 </div>
                 <div className="flex gap-2">
                   {r.status === 'DRAFT' && (
-                    <button onClick={() => updateRequisition(r.id, 'submit')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
-                      <Send className="w-3 h-3" /> Submit
-                    </button>
+                    <>
+                      <button onClick={() => updateRequisition(r.id, 'submit')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
+                        <Send className="w-3 h-3" /> Submit
+                      </button>
+                      <button onClick={() => deleteRequisition(r.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    </>
                   )}
                   {r.status === 'PENDING_APPROVAL' && (
                     <>
@@ -352,7 +520,12 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                 </div>
                 <div className="flex gap-2">
                   {p.status === 'DRAFT' && (
-                    <button onClick={() => updatePoStatus(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
+                    <>
+                      <button onClick={() => updatePoStatus(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
+                      <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    </>
                   )}
                   {['PARTIAL', 'RECEIVED'].includes(p.status) && (
                     <button onClick={() => updatePoStatus(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
@@ -362,6 +535,42 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
             ))
           )}
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title={deleteConfirmation.type === 'requisition' ? 'Delete Requisition' : 'Delete Purchase Order'}
+          description={`This ${deleteConfirmation.type === 'requisition' ? 'requisition' : 'purchase order'} will be permanently deleted. This action cannot be undone.`}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
+      )}
+
+      {/* Create Requisition Confirmation Modal */}
+      {createReqConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create Requisition"
+          description="Create a new purchase requisition with the specified items."
+          onConfirm={confirmCreateRequisition}
+          onCancel={() => setCreateReqConfirmation(false)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Create Purchase Order Confirmation Modal */}
+      {createPoConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create Purchase Order"
+          description="Create a new purchase order with the specified items and supplier."
+          onConfirm={confirmCreatePo}
+          onCancel={() => setCreatePoConfirmation(false)}
+          isLoading={saving}
+        />
       )}
     </div>
   );

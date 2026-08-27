@@ -155,7 +155,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 4. Receive Goods modal */}
       {showForm && (
         <Modal onClose={() => setShowForm(false)}>
-          <form onSubmit={receive} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={receive} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#171717]">
                 <PackageCheck className="w-4 h-4 text-[#EA4335]" />
@@ -200,7 +200,9 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   value={line.expiryDate}
                   onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, expiryDate: e.target.value } : l))}
                   type="date"
+                  min={new Date().toISOString().split('T')[0]}
                   className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                  required
                 />
                 <select
                   value={line.warehouseId}

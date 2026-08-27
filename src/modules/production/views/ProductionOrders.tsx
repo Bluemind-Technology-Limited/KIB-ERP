@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, PlayCircle, CheckCircle2, ChevronRight, ChevronLeft, Factory, CalendarDays, Recycle, Search, Check } from 'lucide-react';
+import { ClipboardList, Plus, CheckCircle2, ChevronRight, ChevronLeft, Factory, CalendarDays, Recycle, Search, Check, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface BomIngredientOption {
   id: string;
@@ -35,6 +36,7 @@ interface ProductionOrder {
   orderNumber: string;
   targetQuantity: number;
   actualYield?: number | null;
+  errorPercentage?: number | null;
   status: string;
   scheduledStart?: string | null;
   actualEnd?: string | null;
@@ -47,10 +49,29 @@ interface ProductionOrder {
   shift?: { name: string } | null;
   createdBy?: { fullName?: string } | null;
   finishedBatch?: { batchNumber: string; status: string } | null;
+  mixCode?: string | null;
+  mixLogDate?: string | null;
+  mixUnits?: number | null;
+  ingredientsReleasedAt?: string | null;
+  ingredientsReleasedBy?: { fullName?: string } | null;
+  yieldLoggedAt?: string | null;
+  yieldLoggedBy?: { fullName?: string } | null;
+  productionIngredients?: Array<{
+    id: string;
+    materialId: string;
+    projectedQuantity: number;
+    releasedQuantity: number;
+    returnedQuantity: number;
+    batchLotId?: string | null;
+    releasedAt?: string | null;
+    material: { name: string; sku: string; unitOfMeasure: string };
+    batchLot?: { batchNumber: string; expiryDate?: string } | null;
+  }>;
 }
 
 const statusBadge: Record<string, string> = {
   SCHEDULED: 'bg-slate-100 text-slate-600 border-slate-200',
+  RELEASED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200',
   COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   WASTED: 'bg-rose-50 text-rose-600 border-rose-200',
@@ -68,6 +89,10 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const [showWizard, setShowWizard] = useState(false);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [createConfirmation, setCreateConfirmation] = useState(false);
+  const [actionConfirmation, setActionConfirmation] = useState<'complete' | 'mix' | 'returns' | null>(null);
   const [bomSearch, setBomSearch] = useState('');
   // waste logging
   const [showWaste, setShowWaste] = useState(false);
@@ -83,8 +108,10 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   });
   // start / complete
   const [actingOrder, setActingOrder] = useState<ProductionOrder | null>(null);
-  const [action, setAction] = useState<'start' | 'complete' | null>(null);
-  const [actionForm, setActionForm] = useState({ warehouseId: '', batchNumber: '', actualYield: '' });
+  const [action, setAction] = useState<'complete' | 'mix' | 'returns' | null>(null);
+  const [actionForm, setActionForm] = useState({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
+  const [mixForm, setMixForm] = useState({ mixUnits: '' });
+  const [returnsForm, setReturnsForm] = useState<Array<{ id: string; name: string; releasedQuantity: number; returnedQuantity: number; unit: string }>>([]);
 
   const load = async () => {
     setLoading(true);
@@ -205,6 +232,10 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       setError('Select a BOM version and enter the target quantity');
       return;
     }
+    setCreateConfirmation(true);
+  };
+
+  const confirmCreateOrder = async () => {
     setSaving(true);
     try {
       await axiosClient.post('/production/production-orders', {
@@ -215,43 +246,82 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         shiftId: form.shiftId || undefined,
       });
       setShowWizard(false);
+      setCreateConfirmation(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to create production order');
+      setCreateConfirmation(false);
     } finally {
       setSaving(false);
     }
   };
 
-  const openAction = (order: ProductionOrder, kind: 'start' | 'complete') => {
+  const openAction = async (order: ProductionOrder, kind: 'complete' | 'mix' | 'returns') => {
     setActingOrder(order);
-    setAction(kind);
-    setActionForm({ warehouseId: '', batchNumber: '', actualYield: '' });
+    setActionConfirmation(kind);
     setError('');
+    
+    if (kind === 'returns') {
+      setActionForm({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
+      const returnsList = (order.productionIngredients ?? []).map(ing => ({
+        id: ing.id,
+        name: ing.material.name,
+        releasedQuantity: ing.releasedQuantity,
+        returnedQuantity: 0,
+        unit: ing.material.unitOfMeasure
+      }));
+      setReturnsForm(returnsList);
+    } else if (kind === 'mix') {
+      setMixForm({ mixUnits: '' });
+    } else if (kind === 'complete') {
+      setActionForm({ warehouseId: '', batchNumber: '', actualYield: String(order.targetQuantity), finishedGoodsExpiryDate: '' });
+    }
+  };
+
+  const confirmAction = () => {
+    if (!actionConfirmation) return;
+    setAction(actionConfirmation);
+    setActionConfirmation(null);
   };
 
   const submitAction = async () => {
     if (!actingOrder) return;
     setSaving(true);
     try {
-      if (action === 'start') {
-        if (!actionForm.warehouseId) {
-          setError('Select the warehouse to issue raw materials from');
+      if (action === 'mix') {
+        if (!mixForm.mixUnits || Number(mixForm.mixUnits) <= 0) {
+          setError('Enter a valid mix units quantity');
+          setSaving(false);
           return;
         }
-        await axiosClient.post(`/production/production-orders/${actingOrder.id}/start`, {
-          warehouseId: actionForm.warehouseId,
+        await axiosClient.post(`/production/production-orders/${actingOrder.id}/mix`, {
+          mixUnits: Number(mixForm.mixUnits),
         });
-      } else {
-        if (!actionForm.warehouseId || !actionForm.batchNumber) {
-          setError('Batch number and receiving warehouse are required');
+      } else if (action === 'returns') {
+        if (!actionForm.warehouseId) {
+          setError('Select the warehouse to return raw materials to');
+          setSaving(false);
+          return;
+        }
+        await axiosClient.post(`/production/production-orders/${actingOrder.id}/returns`, {
+          warehouseId: actionForm.warehouseId,
+          returns: returnsForm.map(r => ({
+            id: r.id,
+            returnedQuantity: Number(r.returnedQuantity)
+          }))
+        });
+      } else if (action === 'complete') {
+        if (!actionForm.warehouseId || !actionForm.batchNumber || !actionForm.actualYield || !actionForm.finishedGoodsExpiryDate) {
+          setError('Batch number, receiving warehouse, actual yield, and expiry date are required');
+          setSaving(false);
           return;
         }
         await axiosClient.post(`/production/production-orders/${actingOrder.id}/complete`, {
           batchNumber: actionForm.batchNumber,
           warehouseId: actionForm.warehouseId,
-          actualYield: actionForm.actualYield ? Number(actionForm.actualYield) : undefined,
+          actualYield: Number(actionForm.actualYield),
+          finishedGoodsExpiryDate: actionForm.finishedGoodsExpiryDate,
         });
       }
       setActingOrder(null);
@@ -270,6 +340,25 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (o.bomVersion?.finishedSku?.name ?? o.bomVersion?.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const deleteProductionOrder = async (id: string) => {
+    setDeleteConfirmation(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/production/production-orders/${deleteConfirmation}`);
+      setDeleteConfirmation(null);
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete production order');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="w-full mx-auto space-y-6">
@@ -361,20 +450,35 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[o.status] || statusBadge.SCHEDULED}`}>{o.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       {o.status === 'SCHEDULED' && (
-                        <button onClick={() => openAction(o, 'start')} className="btn-3d px-3 h-7">
-                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                            <PlayCircle className="w-3 h-3" /> Start
-                          </span>
+                        <button onClick={() => deleteProductionOrder(o.id)} className="h-7 px-2.5 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold flex items-center gap-1 bg-white hover:bg-rose-50 transition-colors">
+                          <Trash2 className="w-3 h-3" /> Delete
                         </button>
                       )}
+                      {o.status === 'RELEASED' && (
+                        <>
+                          <button onClick={() => openAction(o, 'mix')} className="btn-3d px-3 h-7 bg-amber-600 border-amber-700 hover:bg-amber-500">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <Factory className="w-3.5 h-3.5" /> Mix
+                            </span>
+                          </button>
+                          <button onClick={() => openAction(o, 'returns')} className="h-7 px-2.5 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors">
+                            Returns
+                          </button>
+                        </>
+                      )}
                       {o.status === 'PROCESSING' && (
-                        <button onClick={() => openAction(o, 'complete')} className="btn-3d px-3 h-7">
-                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                            <CheckCircle2 className="w-3 h-3" /> Complete
-                          </span>
-                        </button>
+                        <>
+                          <button onClick={() => openAction(o, 'complete')} className="btn-3d px-3 h-7">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                            </span>
+                          </button>
+                          <button onClick={() => openAction(o, 'returns')} className="h-7 px-2.5 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors">
+                            Returns
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -388,7 +492,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       {/* 3. Plan Production Wizard */}
       {showWizard && (
         <Modal onClose={() => setShowWizard(false)}>
-          <div data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Factory className="w-4 h-4 text-[#EA4335]" />
@@ -565,13 +669,15 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         </Modal>
       )}
 
-      {/* 4. Start / Complete Modal */}
+      {/* 4. Action Modals (Release / Mix / Returns / Complete) */}
       {actingOrder && action && (
         <Modal onClose={() => { setActingOrder(null); setAction(null); }}>
-          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+          <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">
-                {action === 'start' ? 'Start Production' : 'Complete Production'}
+                {action === 'mix' && 'Record Batch Mix'}
+                {action === 'returns' && 'Log Returns/Deficits'}
+                {action === 'complete' && 'Complete Production'}
               </h3>
               <button onClick={() => { setActingOrder(null); setAction(null); }} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
@@ -581,18 +687,69 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               {actingOrder.bomVersion?.finishedSku?.name ?? actingOrder.bomVersion?.bom?.productName ?? ''}
             </p>
 
-            {action === 'start' ? (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Issue raw materials from warehouse *</label>
-                <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="">Select warehouse…</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                  ))}
-                </select>
-                <p className="text-[9px] text-slate-400">Starting the order will auto-consume BOM ingredients via the inventory ledger.</p>
+            {action === 'mix' && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Number of Unit Mix Generated *</label>
+                  <input
+                    type="number"
+                    step="1"
+                    placeholder="e.g. 5"
+                    value={mixForm.mixUnits}
+                    onChange={(e) => setMixForm({ mixUnits: e.target.value })}
+                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  />
+                  <p className="text-[9px] text-slate-400">
+                    This represents the ground mixture batch of ingredients. A mix code will be auto-generated.
+                  </p>
+                </div>
               </div>
-            ) : (
+            )}
+
+            {action === 'returns' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Return raw materials to warehouse *</label>
+                  <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                    <option value="">Select warehouse…</option>
+                    {warehouses.map((w) => (
+                      <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2 border border-slate-100 rounded-lg overflow-hidden">
+                  <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    Log Returns / Deficits
+                  </div>
+                  <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto p-2 space-y-2">
+                    {returnsForm.map((item, idx) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 text-xs p-1.5">
+                        <span className="font-semibold text-slate-700 truncate">{item.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-slate-400">Released: {item.releasedQuantity.toFixed(2)}</span>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            placeholder="Qty returned"
+                            value={item.returnedQuantity || ''}
+                            onChange={(e) => {
+                              const updated = [...returnsForm];
+                              updated[idx].returnedQuantity = Number(e.target.value);
+                              setReturnsForm(updated);
+                            }}
+                            className="h-8 w-24 rounded border border-[#E9E9E9] px-2 text-right focus:outline-none focus:border-[#EA4335]"
+                          />
+                          <span className="text-slate-400 text-[10px] w-6">{item.unit}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {action === 'complete' && (
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batch Number *</label>
@@ -608,17 +765,52 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Actual Yield</label>
-                  <input value={actionForm.actualYield} onChange={(e) => setActionForm({ ...actionForm, actualYield: e.target.value })} type="number" step="0.0001" placeholder={`Defaults to ${actingOrder.targetQuantity}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Actual Realized Yield *</label>
+                  <input value={actionForm.actualYield} onChange={(e) => setActionForm({ ...actionForm, actualYield: e.target.value })} type="number" step="0.0001" placeholder={`Expected: ${actingOrder.targetQuantity}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                 </div>
-                <p className="text-[9px] text-slate-400">Completed batch is created in QUARANTINE and sent to QA for inspection.</p>
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished Goods Expiry Date *</label>
+                  <input 
+                    type="date" 
+                    value={actionForm.finishedGoodsExpiryDate} 
+                    onChange={(e) => setActionForm({ ...actionForm, finishedGoodsExpiryDate: e.target.value })} 
+                    min={new Date().toISOString().split('T')[0]}
+                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                    required
+                  />
+                  <p className="text-[9px] text-slate-400 mt-1">
+                    Auto-expiry: 2 years from today if not set manually
+                  </p>
+                </div>
+                
+                {actionForm.actualYield && actingOrder.targetQuantity > 0 && (
+                  <div className="rounded-lg p-2.5 bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">Yield Deviation Error:</span>
+                    <span className={`font-mono font-bold ${Math.abs(Number(actionForm.actualYield) - actingOrder.targetQuantity) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {(Math.abs(Number(actionForm.actualYield) - actingOrder.targetQuantity) / actingOrder.targetQuantity * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                )}
+                
+                <p className="text-[9px] text-slate-400">
+                  Completing the order will auto-set the expiry date to exactly 2 years from today.
+                </p>
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button onClick={() => { setActingOrder(null); setAction(null); }} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
               <button onClick={submitAction} disabled={saving} className="btn-3d px-4 h-9">
-                <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : action === 'start' ? 'Start & Consume' : 'Complete Batch'}</span>
+                <span className="text-white text-xs font-semibold">
+                  {saving ? 'Saving…' : (
+                    <>
+                      {action === 'mix' && 'Confirm Batch Mix'}
+                      {action === 'returns' && 'Submit Returns'}
+                      {action === 'complete' && 'Complete Batch'}
+                    </>
+                  )}
+                </span>
               </button>
             </div>
           </div>
@@ -677,6 +869,43 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete Production Order"
+          description="This production order will be permanently deleted. This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
+      )}
+
+      {/* Create Production Order Confirmation Modal */}
+      {createConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create Production Order"
+          description="Create a new production order with the specified BOM version and target quantity."
+          onConfirm={confirmCreateOrder}
+          onCancel={() => setCreateConfirmation(false)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Action Confirmation Modal */}
+      {actionConfirmation && (
+        <ConfirmationModal
+          type="action"
+          title={actionConfirmation === 'mix' ? 'Record Batch Mix' : actionConfirmation === 'returns' ? 'Log Returns/Deficits' : 'Complete Production'}
+          description={actionConfirmation === 'mix' ? 'Record the unit mix generated for this batch.' : actionConfirmation === 'returns' ? 'Log any returned or deficit ingredients.' : 'Complete this production order and generate finished batch lot.'}
+          onConfirm={confirmAction}
+          onCancel={() => setActionConfirmation(null)}
+          isLoading={false}
+          confirmText={actionConfirmation === 'mix' ? 'Record Mix' : actionConfirmation === 'returns' ? 'Log Returns' : 'Complete'}
+        />
       )}
     </div>
   );

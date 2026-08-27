@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface Material {
   id: string;
@@ -56,6 +57,9 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   const [showModal, setShowModal] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ bomId: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [createConfirmation, setCreateConfirmation] = useState(false);
 
   const [form, setForm] = useState({
     productName: '',
@@ -131,6 +135,11 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       setError('Add at least one ingredient with a material and quantity');
       return;
     }
+    setCreateConfirmation(true);
+  };
+
+  const confirmCreate = async () => {
+    const validIngredients = ingredients.filter((ing) => ing.materialId && ing.quantity);
     setSaving(true);
     try {
       await axiosClient.post('/production/boms', {
@@ -148,10 +157,12 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
         })),
       });
       setShowModal(false);
+      setCreateConfirmation(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save BOM');
+      setCreateConfirmation(false);
     } finally {
       setSaving(false);
     }
@@ -164,6 +175,25 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to update BOM status');
+    }
+  };
+
+  const deleteBom = async (bomId: string) => {
+    setDeleteConfirmation({ bomId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/production/boms/${deleteConfirmation.bomId}`);
+      setDeleteConfirmation(null);
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete BOM');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -228,28 +258,53 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                   onClick={() => toggleExpanded(bom.id)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50/60 text-left"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                       <FlaskConical className="w-4 h-4 text-[#EA4335]" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-xs font-bold text-[#171717]">{bom.productName}</p>
                       <p className="text-[10px] text-slate-400">
-                        {currentVersion?.finishedSku?.name ?? '—'} · Yield {currentVersion?.expectedYield ?? '—'} {currentVersion?.yieldUnit ?? ''}
+                        {currentVersion?.finishedSku?.name ?? '—'} · Yield {currentVersion?.expectedYield ?? '—'} {currentVersion?.yieldUnit ?? ''} · {currentVersion?.ingredients.length ?? 0} ingredients
                       </p>
+                      {!isOpen && currentVersion?.ingredients && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {currentVersion.ingredients.slice(0, 3).map((ing) => (
+                            <span key={ing.id} className="text-[9px] text-slate-500 bg-slate-100/50 px-1.5 py-0.5 rounded">
+                              {ing.material.name} {ing.isPercentage ? `${ing.quantity}%` : `${ing.quantity} ${ing.unitOfMeasure}`}
+                            </span>
+                          ))}
+                          {(currentVersion.ingredients.length ?? 0) > 3 && (
+                            <span className="text-[9px] text-slate-400 px-1.5 py-0.5">
+                              +{(currentVersion.ingredients.length ?? 0) - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[currentVersion?.status ?? 'DRAFT']}`}>
                       v{currentVersion?.version ?? '—'} · {currentVersion?.status ?? 'DRAFT'}
                     </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBom(bom.id);
+                      }}
+                      className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
+                      title="Delete BOM"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                     {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
                   </div>
                 </button>
 
                 {isOpen && (
                   <div className="border-t border-slate-100 px-4 py-4 space-y-4">
-                    {bom.versions.map((v) => (
+                    {bom.versions && bom.versions.length > 0 ? (
+                      bom.versions.map((v) => (
                       <div key={v.id} className="rounded-lg border border-slate-100 p-3 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
@@ -315,7 +370,12 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           </table>
                         </div>
                       </div>
-                    ))}
+                    ))
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-[10px] text-slate-400">No versions available</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -327,7 +387,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 3. Add BOM Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-4 h-4 text-[#EA4335]" />
@@ -404,14 +464,39 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                          <input value={ing.unitOfMeasure} onChange={(e) => updateIngredient(i, 'unitOfMeasure', e.target.value)} placeholder={mat?.unitOfMeasure ?? 'kg'} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Measured As</label>
+                          <div className="flex gap-1 h-9">
+                            <button
+                              type="button"
+                              onClick={() => updateIngredient(i, 'isPercentage', false)}
+                              className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                                !ing.isPercentage
+                                  ? 'bg-[#EA4335] text-white border-[#EA4335]'
+                                  : 'bg-white text-slate-400 border-[#E9E9E9] hover:border-slate-300'
+                              }`}
+                            >
+                              Unit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateIngredient(i, 'isPercentage', true)}
+                              className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                                ing.isPercentage
+                                  ? 'bg-[#EA4335] text-white border-[#EA4335]'
+                                  : 'bg-white text-slate-400 border-[#E9E9E9] hover:border-slate-300'
+                              }`}
+                            >
+                              % of Batch
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" checked={ing.isPercentage} onChange={(e) => updateIngredient(i, 'isPercentage', e.target.checked)} className="accent-[#EA4335] h-3.5 w-3.5" />
-                        <span className="text-[10px] font-semibold text-slate-500">Percentage of batch</span>
-                      </label>
+                      {!ing.isPercentage && (
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure</label>
+                          <input value={ing.unitOfMeasure} onChange={(e) => updateIngredient(i, 'unitOfMeasure', e.target.value)} placeholder={mat?.unitOfMeasure ?? 'kg'} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -420,7 +505,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
               <button type="button" onClick={addIngredientRow} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Add Ingredient
               </button>
-              <p className="text-[9px] text-slate-400">Unit auto-fills from the material. Check "Percentage of batch" to express quantity as a % — uncheck for absolute quantity per yield.</p>
+              <p className="text-[9px] text-slate-400">Choose "Unit" for absolute amounts or "% of Batch" to scale with batch size.</p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -431,6 +516,30 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Create Confirmation Modal */}
+      {createConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create BOM"
+          description="Create a new Bill of Materials with the specified ingredients and expected yield."
+          onConfirm={confirmCreate}
+          onCancel={() => setCreateConfirmation(false)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete BOM"
+          description="This BOM and all its versions will be permanently deleted. This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
       )}
     </div>
   );

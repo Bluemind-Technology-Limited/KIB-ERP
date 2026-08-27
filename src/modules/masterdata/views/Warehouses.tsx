@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, MapPin, Boxes } from 'lucide-react';
+import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, MapPin, Boxes, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { DeleteConfirmationModal } from '../../../components/ui/DeleteConfirmationModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface Bin {
   id: string;
@@ -43,6 +45,10 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
   const [newWarehouse, setNewWarehouse] = useState({ name: '', code: '', address: '' });
   const [newZone, setNewZone] = useState({ warehouseId: '', name: '', code: '' });
   const [newBin, setNewBin] = useState({ zoneId: '', warehouseId: '', name: '', code: '' });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ type: 'warehouse' | 'zone' | 'bin'; id: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [createConfirmation, setCreateConfirmation] = useState<'warehouse' | 'zone' | 'bin' | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -69,39 +75,97 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
   const addWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWarehouse.name || !newWarehouse.code) return;
+    setCreateConfirmation('warehouse');
+  };
+
+  const confirmAddWarehouse = async () => {
+    setSaving(true);
     try {
       await axiosClient.post('/master-data/warehouses', newWarehouse);
       setNewWarehouse({ name: '', code: '', address: '' });
       setShowAdd(false);
+      setCreateConfirmation(null);
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to create warehouse');
+      setCreateConfirmation(null);
+    } finally {
+      setSaving(false);
     }
   };
 
   const addZone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newZone.name || !newZone.code) return;
+    setCreateConfirmation('zone');
+  };
+
+  const confirmAddZone = async () => {
+    setSaving(true);
     try {
       await axiosClient.post('/master-data/zones', newZone);
       setNewZone({ warehouseId: '', name: '', code: '' });
       setAddingZoneTo(null);
+      setCreateConfirmation(null);
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to create zone');
+      setCreateConfirmation(null);
+    } finally {
+      setSaving(false);
     }
   };
 
   const addBin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBin.name || !newBin.code) return;
+    setCreateConfirmation('bin');
+  };
+
+  const confirmAddBin = async () => {
+    setSaving(true);
     try {
       await axiosClient.post('/master-data/bins', newBin);
       setNewBin({ zoneId: '', warehouseId: '', name: '', code: '' });
       setAddingBinTo(null);
+      setCreateConfirmation(null);
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to create bin');
+      setCreateConfirmation(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteWarehouse = async (id: string) => {
+    setDeleteConfirmation({ type: 'warehouse', id });
+  };
+
+  const deleteZone = async (id: string) => {
+    setDeleteConfirmation({ type: 'zone', id });
+  };
+
+  const deleteBin = async (id: string) => {
+    setDeleteConfirmation({ type: 'bin', id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      const endpoint = 
+        deleteConfirmation.type === 'warehouse' ? `/master-data/warehouses/${deleteConfirmation.id}` :
+        deleteConfirmation.type === 'zone' ? `/master-data/zones/${deleteConfirmation.id}` :
+        `/master-data/bins/${deleteConfirmation.id}`;
+      await axiosClient.delete(endpoint);
+      setDeleteConfirmation(null);
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -214,6 +278,16 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[w.status] || statusBadge.ACTIVE}`}>
                     {w.status}
                   </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteWarehouse(w.id);
+                    }}
+                    className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                    title="Delete warehouse"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </button>
 
@@ -270,7 +344,19 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                           <span className="text-xs font-semibold text-[#171717]">{z.name}</span>
                           <span className="text-[10px] text-slate-400 font-mono">{z.code}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400">{z.bins.length} bins</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400">{z.bins.length} bins</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteZone(z.id);
+                            }}
+                            className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                            title="Delete zone"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </button>
 
                       {expandedZone[z.id] && (
@@ -309,10 +395,19 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                             <p className="text-[10px] text-slate-400 pl-6">No bins in this zone.</p>
                           ) : (
                             z.bins.map((b) => (
-                              <div key={b.id} className="flex items-center gap-2 pl-6">
-                                <Boxes className="w-3 h-3 text-slate-300" />
-                                <span className="text-[11px] text-slate-600">{b.name}</span>
-                                <span className="text-[10px] text-slate-400 font-mono">{b.code}</span>
+                              <div key={b.id} className="flex items-center justify-between gap-2 pl-6">
+                                <div className="flex items-center gap-2">
+                                  <Boxes className="w-3 h-3 text-slate-300" />
+                                  <span className="text-[11px] text-slate-600">{b.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">{b.code}</span>
+                                </div>
+                                <button
+                                  onClick={() => deleteBin(b.id)}
+                                  className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                                  title="Delete bin"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
                               </div>
                             ))
                           )}
@@ -325,6 +420,57 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
             </div>
           ))}
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <DeleteConfirmationModal
+          title={
+            deleteConfirmation.type === 'warehouse' ? 'Delete Warehouse' :
+            deleteConfirmation.type === 'zone' ? 'Delete Zone' :
+            'Delete Bin'
+          }
+          description={`This ${deleteConfirmation.type} will be permanently deleted. This action cannot be undone.`}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
+      )}
+
+      {/* Create Warehouse Confirmation Modal */}
+      {createConfirmation === 'warehouse' && (
+        <ConfirmationModal
+          type="create"
+          title="Create Warehouse"
+          description="Add this new warehouse to the system."
+          onConfirm={confirmAddWarehouse}
+          onCancel={() => setCreateConfirmation(null)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Create Zone Confirmation Modal */}
+      {createConfirmation === 'zone' && (
+        <ConfirmationModal
+          type="create"
+          title="Create Zone"
+          description="Add this new zone to the warehouse."
+          onConfirm={confirmAddZone}
+          onCancel={() => setCreateConfirmation(null)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Create Bin Confirmation Modal */}
+      {createConfirmation === 'bin' && (
+        <ConfirmationModal
+          type="create"
+          title="Create Bin"
+          description="Add this new bin to the zone."
+          onConfirm={confirmAddBin}
+          onCancel={() => setCreateConfirmation(null)}
+          isLoading={saving}
+        />
       )}
     </div>
   );
