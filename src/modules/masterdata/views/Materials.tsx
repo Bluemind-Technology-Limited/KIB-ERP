@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, Search, Pencil, QrCode } from 'lucide-react';
+import { Package, Plus, Search, Pencil, QrCode, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import DatePicker from '../../../components/ui/DatePicker';
 
 interface Material {
   id: string;
@@ -13,7 +15,7 @@ interface Material {
   category?: string | null;
   unitOfMeasure: string;
   barcode?: string | null;
-  shelfLifeDays?: number | null;
+  defaultExpiryDate?: string | null;
   requiresLot: boolean;
   attachments?: { name?: string; url?: string; kind?: string }[] | null;
   status: string;
@@ -51,7 +53,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     category: '',
     unitOfMeasure: '',
     barcode: '',
-    shelfLifeDays: '',
+    defaultExpiryDate: '',
     requiresLot: true,
     nafdacUrl: '',
     msdsUrl: '',
@@ -85,14 +87,23 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       .catch(() => {});
   }, []);
 
-  const openAdd = () => {
+  const [lockedType, setLockedType] = useState<'RAW' | 'FINISHED' | null>(null);
+  const [createConfirmation, setCreateConfirmation] = useState(false);
+  const [updateConfirmation, setUpdateConfirmation] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openAddWithType = (type: 'RAW' | 'FINISHED') => {
     setEditing(null);
-    setForm({ name: '', sku: '', type: 'RAW', category: '', unitOfMeasure: '', barcode: '', shelfLifeDays: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [] });
+    setLockedType(type);
+    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', barcode: '', defaultExpiryDate: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [] });
     setShowModal(true);
   };
 
   const openEdit = (m: Material) => {
     setEditing(m);
+    setLockedType(m.type === 'FINISHED' ? 'FINISHED' : 'RAW');
     setForm({
       name: m.name,
       sku: m.sku,
@@ -100,7 +111,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       category: m.category ?? '',
       unitOfMeasure: m.unitOfMeasure,
       barcode: m.barcode ?? '',
-      shelfLifeDays: m.shelfLifeDays ? String(m.shelfLifeDays) : '',
+      defaultExpiryDate: m.defaultExpiryDate ?? '',
       requiresLot: m.requiresLot,
       nafdacUrl: (m.attachments?.find((a) => a.kind === 'NAFDAC')?.url) ?? '',
       msdsUrl: (m.attachments?.find((a) => a.kind === 'MSDS')?.url) ?? '',
@@ -111,34 +122,69 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.sku || !form.unitOfMeasure) {
-      setError('Name, SKU and Unit of Measure are required');
+    if (!form.name || !form.unitOfMeasure) {
+      setError('Name and Unit of Measure are required');
       return;
     }
+    if (editing) {
+      setUpdateConfirmation(true);
+    } else {
+      setCreateConfirmation(true);
+    }
+  };
+
+  const confirmSave = async () => {
     const attachments = [
       form.nafdacUrl ? { kind: 'NAFDAC', url: form.nafdacUrl, name: 'NAFDAC Certificate' } : null,
       form.msdsUrl ? { kind: 'MSDS', url: form.msdsUrl, name: 'Material Safety Data Sheet' } : null,
     ].filter(Boolean);
 
+    setSaving(true);
     try {
       if (editing) {
         await axiosClient.patch(`/master-data/materials/${editing.id}`, {
           ...form,
-          shelfLifeDays: form.shelfLifeDays ? Number(form.shelfLifeDays) : null,
+          defaultExpiryDate: form.defaultExpiryDate || null,
           attachments,
         });
+        setUpdateConfirmation(false);
       } else {
         await axiosClient.post('/master-data/materials', {
           ...form,
-          shelfLifeDays: form.shelfLifeDays ? Number(form.shelfLifeDays) : null,
+          defaultExpiryDate: form.defaultExpiryDate || null,
           attachments,
         });
+        setCreateConfirmation(false);
       }
       setShowModal(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save material');
+      setCreateConfirmation(false);
+      setUpdateConfirmation(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMaterial = async (id: string) => {
+    setDeleteConfirmation(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/master-data/materials/${deleteConfirmation}`);
+      setError('');
+      setDeleteConfirmation(null);
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete material');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -176,9 +222,14 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <button onClick={openAdd} className="btn-3d px-4 h-9 shrink-0">
+          <button onClick={() => openAddWithType('RAW')} className="btn-3d px-4 h-9 shrink-0">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
               <Plus className="w-3.5 h-3.5 shrink-0" /> Add Material
+            </span>
+          </button>
+          <button onClick={() => openAddWithType('FINISHED')} className="btn-3d px-4 h-9 shrink-0 bg-emerald-600 border-emerald-700 hover:bg-emerald-500">
+            <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
+              <Plus className="w-3.5 h-3.5 shrink-0" /> Add Finished Product
             </span>
           </button>
         </div>
@@ -231,7 +282,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                       <span className="text-[10px] font-mono text-slate-500">{m.sku}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span title={m.type} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block truncate max-w-[80px] ${typeBadge[m.type]}`}>{m.type}</span>
+                      <span title={m.type} className={`text-[9px] font-bold uppercase tracking-wider w-20 text-center py-0.5 rounded border inline-block ${typeBadge[m.type]}`}>{m.type}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
@@ -250,7 +301,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     <td className="px-4 py-3">
                       {m.requiresLot ? (
                         <span className="text-[10px] text-slate-500">
-                          {m.shelfLifeDays ? `${m.shelfLifeDays} days` : 'Lot tracked'}
+                          {m.defaultExpiryDate ? new Date(m.defaultExpiryDate).toLocaleDateString() : 'No expiry set'}
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-400">No lot</span>
@@ -260,9 +311,14 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[m.status] || statusBadge.ACTIVE}`}>{m.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => openEdit(m)} className="text-slate-400 hover:text-[#EA4335] p-1">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(m)} className="text-slate-400 hover:text-indigo-600 p-1 transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => deleteMaterial(m.id)} className="text-slate-400 hover:text-rose-600 p-1 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -275,9 +331,9 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       {/* 3. Add/Edit Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Material' : 'Add Material'}</h3>
+              <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Item' : form.type === 'FINISHED' ? 'Add Finished Product' : 'Add Material'}</h3>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
@@ -287,15 +343,24 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SKU *</label>
-                <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-semibold text-slate-400">SKU</label>
+                <input 
+                  value={editing ? form.sku : "Auto-generated"} 
+                  disabled 
+                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs bg-slate-50 text-slate-500 focus:outline-none" 
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Type *</label>
-                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="RAW">Raw</option>
-                  <option value="PACKAGING">Packaging</option>
-                  <option value="FINISHED">Finished</option>
+                <select value={form.type} disabled={lockedType === 'FINISHED'} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50">
+                  {lockedType === 'FINISHED' ? (
+                    <option value="FINISHED">Finished</option>
+                  ) : (
+                    <>
+                      <option value="RAW">Raw</option>
+                      <option value="PACKAGING">Packaging</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div className="space-y-1">
@@ -311,8 +376,14 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 <input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shelf Life (days)</label>
-                <input value={form.shelfLifeDays} onChange={(e) => setForm({ ...form, shelfLifeDays: e.target.value })} type="number" placeholder="e.g. 365" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Default Expiry Date</label>
+                <DatePicker
+                  label=""
+                  value={form.defaultExpiryDate}
+                  onChange={(date) => setForm({ ...form, defaultExpiryDate: date })}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  placeholder="Select expiry date"
+                />
               </div>
               <div className="space-y-1 flex items-end">
                 <label className="flex items-center gap-2 h-9 text-xs text-slate-600 cursor-pointer">
@@ -390,6 +461,43 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Create Confirmation Modal */}
+      {createConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create Material"
+          description="Add this new material to the system inventory."
+          onConfirm={confirmSave}
+          onCancel={() => setCreateConfirmation(false)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Update Confirmation Modal */}
+      {updateConfirmation && (
+        <ConfirmationModal
+          type="update"
+          title="Update Material"
+          description="Save changes to this material's information."
+          onConfirm={confirmSave}
+          onCancel={() => setUpdateConfirmation(false)}
+          isLoading={saving}
+          confirmText="Save"
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete Material"
+          description="This material will be permanently deleted. This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
       )}
     </div>
   );

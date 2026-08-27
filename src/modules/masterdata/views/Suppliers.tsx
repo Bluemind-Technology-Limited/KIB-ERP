@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Handshake, Plus, Pencil, Mail } from 'lucide-react';
+import { Handshake, Plus, Pencil, Mail, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface Supplier {
   id: string;
@@ -28,6 +29,11 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [form, setForm] = useState({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '' });
+  const [createConfirmation, setCreateConfirmation] = useState(false);
+  const [updateConfirmation, setUpdateConfirmation] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -64,17 +70,52 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
       setError('Supplier name is required');
       return;
     }
+    if (editing) {
+      setUpdateConfirmation(true);
+    } else {
+      setCreateConfirmation(true);
+    }
+  };
+
+  const confirmSave = async () => {
+    setSaving(true);
     try {
       if (editing) {
         await axiosClient.patch(`/master-data/suppliers/${editing.id}`, form);
+        setUpdateConfirmation(false);
       } else {
         await axiosClient.post('/master-data/suppliers', form);
+        setCreateConfirmation(false);
       }
       setShowModal(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save supplier');
+      setCreateConfirmation(false);
+      setUpdateConfirmation(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteSupplier = async (id: string) => {
+    setDeleteConfirmation(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/master-data/suppliers/${deleteConfirmation}`);
+      setError('');
+      setDeleteConfirmation(null);
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete supplier');
+      setDeleteConfirmation(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -155,9 +196,14 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[s.status] || statusBadge.ACTIVE}`}>{s.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-[#EA4335] p-1">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-indigo-600 p-1 transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => deleteSupplier(s.id)} className="text-slate-400 hover:text-rose-600 p-1 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -170,7 +216,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
       {/* 3. Add/Edit Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} data-lenis-prevent className="kib-scroll bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Supplier' : 'Add Supplier'}</h3>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -213,6 +259,43 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Create Confirmation Modal */}
+      {createConfirmation && (
+        <ConfirmationModal
+          type="create"
+          title="Create Supplier"
+          description="Add this new supplier to the system directory."
+          onConfirm={confirmSave}
+          onCancel={() => setCreateConfirmation(false)}
+          isLoading={saving}
+        />
+      )}
+
+      {/* Update Confirmation Modal */}
+      {updateConfirmation && (
+        <ConfirmationModal
+          type="update"
+          title="Update Supplier"
+          description="Save changes to this supplier's information."
+          onConfirm={confirmSave}
+          onCancel={() => setUpdateConfirmation(false)}
+          isLoading={saving}
+          confirmText="Save"
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete Supplier"
+          description="This supplier will be permanently deleted. This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={isDeleting}
+        />
       )}
     </div>
   );

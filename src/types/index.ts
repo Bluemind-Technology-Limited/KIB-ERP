@@ -15,6 +15,7 @@ export interface User {
   fullName: string;
   role: UserRole;
   isActive: boolean;
+  hasSeenTour?: boolean; // Track if user has completed onboarding tour
   phoneNumber?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../stores/useAuthStore';
 
 import { 
-  ChevronRight, HelpCircle, User as UserIcon, Menu, X, LogOut, Settings, Search 
+  ChevronRight, User as UserIcon, Menu, X, LogOut, Settings, Search 
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -150,14 +150,7 @@ export default function DashboardLayout({
 
           {/* Right Header Menu Controls */}
           <div className="flex items-center gap-2">
-            {/* Support link (98px x 32px) */}
-            <a
-              href="mailto:dev@bluemind.cloud"
-              className="w-[98px] h-8 border border-slate-200 hover:bg-slate-50 rounded-lg flex items-center justify-center gap-1.5 text-xs font-semibold text-[#171717] transition-colors cursor-pointer bg-white"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
-              <span>Support</span>
-            </a>
+            {/* Help section removed */}
 
             {/* Premium User Avatar with online indicator */}
             <div className="relative shrink-0">

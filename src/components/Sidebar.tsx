@@ -58,6 +58,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: Boxes,
       items: [
         { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
+        { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
         { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
       ],
@@ -100,6 +101,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
     { id: 'proc-procurement', name: 'Requisitions & POs', icon: ShoppingCart },
     { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
+    { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
@@ -123,7 +125,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
   // --- COLLAPSED VIEW SIDEBAR ---
   if (isCollapsed) {
     return (
-      <aside data-lenis-prevent className="w-[56px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between items-center font-sans shrink-0 py-3 z-30 relative">
+      <aside className="w-[56px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between items-center font-sans shrink-0 py-3 z-30 relative">
         {/* Absolute Peg Extension Button */}
         <button
           onClick={() => setIsCollapsed(false)}
@@ -206,7 +208,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   // --- EXPANDED VIEW SIDEBAR ---
   return (
-    <aside data-lenis-prevent className="w-[260px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between font-sans shrink-0 z-30 relative">
+    <aside className="w-[260px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between font-sans shrink-0 z-30 relative">
       {/* Absolute Peg Extension Button */}
       <button
         onClick={() => setIsCollapsed(true)}

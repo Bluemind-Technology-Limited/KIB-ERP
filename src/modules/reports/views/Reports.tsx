@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, DollarSign, Download, LineChart } from 'lucide-react';
+import { BarChart3, Download, LineChart, Wallet2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton, Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -139,7 +139,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
           onClick={() => setTab('valuation')}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === 'valuation' ? 'bg-[#171717] text-white' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          <DollarSign className="w-3.5 h-3.5" /> Inventory Valuation
+          <Wallet2 className="w-3.5 h-3.5" /> Inventory Valuation
         </button>
       </div>
 
@@ -191,7 +191,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Value</p>
             <p className="text-xl font-bold text-emerald-600">
-              {valuation.summary.totalValue?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) ?? '$0.00'}
+              {valuation.summary.totalValue?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }) ?? '₦0.00'}
             </p>
           </div>
         </div>
@@ -278,10 +278,10 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                         {r.quantity} <span className="text-[9px] font-normal text-slate-400">{r.unitOfMeasure}</span>
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
-                        {r.unitCost ? r.unitCost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '—'}
+                        {r.unitCost ? r.unitCost.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono font-bold text-emerald-600">
-                        {r.value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {r.value.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}
                       </td>
                     </tr>
                   ))}
