@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface FinishedGoodsRow {
   materialId: string;
@@ -40,6 +41,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
   const [dispatchRow, setDispatchRow] = useState<FinishedGoodsRow | null>(null);
   const [dispatchForm, setDispatchForm] = useState({ toWarehouseId: '', quantity: '', notes: '' });
   const [saving, setSaving] = useState(false);
+  const [dispatchConfirmation, setDispatchConfirmation] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -78,6 +80,11 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
       setError('Destination warehouse must differ from the source');
       return;
     }
+    setDispatchConfirmation(true);
+  };
+
+  const confirmDispatch = async () => {
+    if (!dispatchRow) return;
     setSaving(true);
     try {
       await axiosClient.post('/inventory/stock/transfer', {
@@ -90,11 +97,11 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
         notes: dispatchForm.notes || `Dispatch ${dispatchRow.batchNumber}`,
       });
       setDispatchRow(null);
+      setDispatchConfirmation(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Dispatch failed');
-    } finally {
       setSaving(false);
     }
   };
@@ -233,6 +240,18 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
             </div>
           </div>
         </Modal>
+      )}
+
+      {dispatchConfirmation && (
+        <ConfirmationModal
+          type="submit"
+          title="Dispatch Finished Goods"
+          description="Transfer this finished goods batch to the destination warehouse?"
+          onConfirm={confirmDispatch}
+          onCancel={() => setDispatchConfirmation(false)}
+          isLoading={saving}
+          confirmText="Dispatch"
+        />
       )}
     </div>
   );

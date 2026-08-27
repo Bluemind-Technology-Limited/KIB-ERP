@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface GrnData { id: string; number: string; status: string; receivedAt: string; po: { number: string; supplier: { name: string } } | null; receivedBy: { fullName: string } | null; items: any[] }
 
@@ -25,6 +26,8 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   const [lines, setLines] = useState<{ materialId: string; batchNumber: string; quantity: string; unitOfMeasure: string; expiryDate: string; warehouseId: string }[]>([
     { materialId: '', batchNumber: '', quantity: '', unitOfMeasure: '', expiryDate: '', warehouseId: '' },
   ]);
+  const [submitConfirmation, setSubmitConfirmation] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -68,12 +71,20 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       .filter((l) => l.materialId && l.batchNumber && l.quantity && l.warehouseId)
       .map((l) => ({ ...l, quantity: Number(l.quantity) }));
     if (items.length === 0) { setError('Complete at least one line (batch, qty, warehouse)'); return; }
+    setSubmitConfirmation(true);
+  };
+
+  const confirmReceive = async () => {
+    setSaving(true);
     try {
-      await axiosClient.post('/grn', { poId, notes: grnNotes, items });
+      await axiosClient.post('/grn', { poId, notes: grnNotes, items: lines
+        .filter((l) => l.materialId && l.batchNumber && l.quantity && l.warehouseId)
+        .map((l) => ({ ...l, quantity: Number(l.quantity) })) });
       setShowForm(false);
       setPoId(''); setGrnNotes(''); setLines([{ materialId: '', batchNumber: '', quantity: '', unitOfMeasure: '', expiryDate: '', warehouseId: '' }]);
+      setSubmitConfirmation(false);
       load();
-    } catch (err: any) { setError(err?.response?.data?.error || 'Receive failed'); }
+    } catch (err: any) { setError(err?.response?.data?.error || 'Receive failed'); setSaving(false); }
   };
 
   const filtered = grns.filter((g) =>
@@ -223,6 +234,18 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
             </div>
           </form>
         </Modal>
+      )}
+
+      {submitConfirmation && (
+        <ConfirmationModal
+          type="submit"
+          title="Post Receipt + Ledger"
+          description="Post this goods receipt to update stock levels and create QA inspection records?"
+          onConfirm={confirmReceive}
+          onCancel={() => setSubmitConfirmation(false)}
+          isLoading={saving}
+          confirmText="Post Receipt"
+        />
       )}
     </div>
   );

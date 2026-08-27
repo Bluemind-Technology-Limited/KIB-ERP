@@ -46,10 +46,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     },
     {
       id: 'procurement',
-      title: 'Procurement',
+      title: 'Requisitions & PO',
       icon: ShoppingCart,
       items: [
-        { id: 'proc-procurement', name: 'Requisitions & POs', icon: ShoppingCart },
+        { id: 'proc-requisitions', name: 'Requisitions', icon: ShoppingCart },
+        { id: 'proc-actions', name: 'Requisition Actions', icon: ShoppingCart },
+        { id: 'proc-procurements', name: 'Procurements', icon: Truck },
       ],
     },
     {
@@ -58,7 +60,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: Boxes,
       items: [
         { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
-        { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
         { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
       ],
@@ -70,6 +71,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       items: [
         { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+        { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'prod-trace', name: 'Traceability', icon: Network },
       ],
     },
@@ -99,13 +101,15 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'md-warehouses', name: 'Warehouses', icon: Database },
     { id: 'md-materials', name: 'Materials', icon: Database },
     { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
-    { id: 'proc-procurement', name: 'Requisitions & POs', icon: ShoppingCart },
+    { id: 'proc-requisitions', name: 'Requisitions', icon: ShoppingCart },
+    { id: 'proc-actions', name: 'Requisition Actions', icon: ShoppingCart },
+    { id: 'proc-procurements', name: 'Procurements', icon: Truck },
     { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
-    { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+    { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'prod-trace', name: 'Traceability', icon: Network },
     { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
     { id: 'alerts-notifications', name: 'Notifications', icon: Bell },

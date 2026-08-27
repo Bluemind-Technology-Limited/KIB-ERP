@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface ProductionOrder {
   id: string;
@@ -36,6 +37,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [releaseConfirmation, setReleaseConfirmation] = useState(false);
 
   // Release action state
   const [actingOrder, setActingOrder] = useState<ProductionOrder | null>(null);
@@ -122,6 +124,11 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
       return;
     }
 
+    setReleaseConfirmation(true);
+  };
+
+  const confirmRelease = async () => {
+    if (!actingOrder) return;
     setSaving(true);
     try {
       await axiosClient.post(`/production/production-orders/${actingOrder.id}/release`, {
@@ -133,11 +140,11 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
         }))
       });
       setActingOrder(null);
+      setReleaseConfirmation(false);
       setError('');
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Release failed');
-    } finally {
       setSaving(false);
     }
   };
@@ -399,6 +406,18 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
             </div>
           </div>
         </Modal>
+      )}
+
+      {releaseConfirmation && (
+        <ConfirmationModal
+          type="submit"
+          title="Release Ingredients"
+          description="Release raw materials from the selected warehouse and move production order to PROCESSING status?"
+          onConfirm={confirmRelease}
+          onCancel={() => setReleaseConfirmation(false)}
+          isLoading={saving}
+          confirmText="Release Ingredients"
+        />
       )}
     </div>
   );

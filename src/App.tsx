@@ -9,7 +9,9 @@ import { RoleGuard, rolePermissions } from './components/routing/RoleGuard';
 import Warehouses from './modules/masterdata/views/Warehouses';
 import Materials from './modules/masterdata/views/Materials';
 import Suppliers from './modules/masterdata/views/Suppliers';
-import Procurement from './modules/procurement/views/Procurement';
+import Requisitions from './modules/procurement/views/Requisitions';
+import RequisitionActions from './modules/procurement/views/RequisitionActions';
+import Procurements from './modules/procurement/views/Procurements';
 import Inventory from './modules/inventory/views/Inventory';
 import DailyProduction from './modules/inventory/views/DailyProduction';
 import GRN from './modules/inventory/views/GRN';
@@ -31,7 +33,9 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'md-warehouses': { path: '/master-data/warehouses', parent: 'Master Data', label: 'Warehouses' },
   'md-materials': { path: '/master-data/materials', parent: 'Master Data', label: 'Materials' },
   'md-suppliers': { path: '/master-data/suppliers', parent: 'Master Data', label: 'Suppliers' },
-  'proc-procurement': { path: '/procurement', parent: 'Procurement', label: 'Requisitions & POs' },
+  'proc-requisitions': { path: '/procurement/requisitions', parent: 'Requisitions & PO', label: 'Requisitions' },
+  'proc-actions': { path: '/procurement/actions', parent: 'Requisitions & PO', label: 'Requisition Actions' },
+  'proc-procurements': { path: '/procurement/procurements', parent: 'Requisitions & PO', label: 'Procurements' },
   'inv-stock': { path: '/inventory/stock', parent: 'Inventory', label: 'Stock Ledger' },
   'inv-daily-prod': { path: '/inventory/daily-production', parent: 'Inventory', label: 'Daily Production' },
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
@@ -165,10 +169,22 @@ export default function App() {
             <Suppliers searchQuery={searchQuery} />
           </RoleGuard>
         );
-      case 'proc-procurement':
+      case 'proc-requisitions':
         return (
-          <RoleGuard userRole={user.role} viewId="proc-procurement">
-            <Procurement searchQuery={searchQuery} />
+          <RoleGuard userRole={user.role} viewId="proc-requisitions">
+            <Requisitions searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'proc-actions':
+        return (
+          <RoleGuard userRole={user.role} viewId="proc-actions">
+            <RequisitionActions searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'proc-procurements':
+        return (
+          <RoleGuard userRole={user.role} viewId="proc-procurements">
+            <Procurements searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'inv-stock':

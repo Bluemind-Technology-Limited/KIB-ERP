@@ -69,8 +69,12 @@ export default function DashboardLayout({
         return { parent: 'Master Data', current: 'Materials' };
       case 'md-suppliers':
         return { parent: 'Master Data', current: 'Suppliers' };
-      case 'proc-procurement':
-        return { parent: 'Procurement', current: 'Requisitions & POs' };
+      case 'proc-requisitions':
+        return { parent: 'Requisitions & PO', current: 'Requisitions' };
+      case 'proc-actions':
+        return { parent: 'Requisitions & PO', current: 'Requisition Actions' };
+      case 'proc-procurements':
+        return { parent: 'Requisitions & PO', current: 'Procurements' };
       case 'inv-stock':
         return { parent: 'Inventory', current: 'Stock Ledger' };
       case 'inv-grn':
