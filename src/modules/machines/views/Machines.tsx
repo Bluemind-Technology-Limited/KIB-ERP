@@ -11,17 +11,30 @@ interface Machine {
   name: string;
   code: string;
   serialNumber: string;
-  category: string;
-  department: string;
-  location?: string;
+  categoryId: string;
+  departmentId: string;
+  locationId?: string;
   status: string;
-  estimatedOutputPerHour?: number;
+  category: { id: string; name: string; code: string };
+  department: { id: string; name: string; code: string };
+  location?: { id: string; name: string; code: string };
   createdAt: string;
+}
+
+interface MasterData {
+  id: string;
+  name: string;
+  code: string;
 }
 
 export default function Machines({ searchQuery = '' }: { searchQuery?: string }) {
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [categories, setCategories] = useState<MasterData[]>([]);
+  const [departments, setDepartments] = useState<MasterData[]>([]);
+  const [locations, setLocations] = useState<MasterData[]>([]);
+  
   const [loading, setLoading] = useState(true);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
@@ -34,12 +47,31 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
     name: '',
     code: '',
     serialNumber: '',
-    category: 'OTHER',
-    department: '',
-    location: '',
+    categoryId: '',
+    departmentId: '',
+    locationId: '',
     status: 'ACTIVE',
-    estimatedOutputPerHour: '',
   });
+
+  const loadDropdowns = async () => {
+    setLoadingDropdowns(true);
+    try {
+      const [categoriesRes, departmentsRes, locationsRes] = await Promise.all([
+        axiosClient.get('/machines/categories'),
+        axiosClient.get('/machines/departments'),
+        axiosClient.get('/machines/locations'),
+      ]);
+      setCategories(categoriesRes.data);
+      setDepartments(departmentsRes.data);
+      setLocations(locationsRes.data);
+      setError('');
+    } catch (err: any) {
+      console.error('[Machines] Error loading dropdowns:', err);
+      setError('Failed to load dropdowns. Is the backend running?');
+    } finally {
+      setLoadingDropdowns(false);
+    }
+  };
 
   const loadMachines = async () => {
     setLoading(true);
@@ -53,6 +85,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
       setMachines(res.data.machines);
       setError('');
     } catch (err: any) {
+      console.error('[Machines] Error loading machines:', err);
       setError(err?.response?.data?.error || 'Failed to load machines. Is the backend running?');
     } finally {
       setLoading(false);
@@ -60,6 +93,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
   };
 
   useEffect(() => {
+    loadDropdowns();
     loadMachines();
   }, [searchQuery]);
 
@@ -68,11 +102,10 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
       name: '',
       code: '',
       serialNumber: '',
-      category: 'OTHER',
-      department: '',
-      location: '',
+      categoryId: '',
+      departmentId: '',
+      locationId: '',
       status: 'ACTIVE',
-      estimatedOutputPerHour: '',
     });
     setEditingMachine(null);
   };
@@ -82,11 +115,10 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
       name: machine.name,
       code: machine.code,
       serialNumber: machine.serialNumber,
-      category: machine.category,
-      department: machine.department,
-      location: machine.location || '',
+      categoryId: machine.categoryId,
+      departmentId: machine.departmentId,
+      locationId: machine.locationId || '',
       status: machine.status,
-      estimatedOutputPerHour: machine.estimatedOutputPerHour?.toString() || '',
     });
     setEditingMachine(machine);
     setShowForm(true);
@@ -94,8 +126,8 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
 
   const handleSaveMachine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.code || !form.serialNumber || !form.department) {
-      setError('Name, code, serial number, and department are required');
+    if (!form.name || !form.code || !form.serialNumber || !form.categoryId || !form.departmentId) {
+      setError('Name, code, serial number, category, and department are required');
       return;
     }
 
@@ -105,15 +137,21 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
         // Update
         await axiosClient.patch(`/machines/${editingMachine.id}`, {
           name: form.name,
+          categoryId: form.categoryId,
+          departmentId: form.departmentId,
+          locationId: form.locationId || undefined,
           status: form.status,
-          location: form.location,
-          estimatedOutputPerHour: form.estimatedOutputPerHour ? Number(form.estimatedOutputPerHour) : undefined,
         });
       } else {
         // Create
         await axiosClient.post('/machines', {
-          ...form,
-          estimatedOutputPerHour: form.estimatedOutputPerHour ? Number(form.estimatedOutputPerHour) : undefined,
+          name: form.name,
+          code: form.code,
+          serialNumber: form.serialNumber,
+          categoryId: form.categoryId,
+          departmentId: form.departmentId,
+          locationId: form.locationId || undefined,
+          status: form.status,
         });
       }
       resetForm();
@@ -121,6 +159,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
       setError('');
       loadMachines();
     } catch (err: any) {
+      console.error('[Machines] Error saving machine:', err);
       setError(err?.response?.data?.error || 'Failed to save machine');
     } finally {
       setIsSaving(false);
@@ -135,6 +174,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
       setDeleteConfirmation(null);
       loadMachines();
     } catch (err: any) {
+      console.error('[Machines] Error deleting machine:', err);
       setError(err?.response?.data?.error || 'Failed to delete machine');
     } finally {
       setIsDeleting(false);
@@ -146,26 +186,9 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
     IDLE: 'bg-slate-50 text-slate-700 border-slate-200',
     UNDER_MAINTENANCE: 'bg-amber-50 text-amber-700 border-amber-200',
     OUT_OF_SERVICE: 'bg-rose-50 text-rose-700 border-rose-200',
-    DECOMMISSIONED: 'bg-gray-50 text-gray-700 border-gray-200',
-    DISPOSED: 'bg-gray-100 text-gray-600 border-gray-300',
   };
 
-  const categories = [
-    'BOTTLING_LINE',
-    'CARTONING_MACHINE',
-    'DATE_CODER',
-    'SCALE',
-    'BLOWER',
-    'FILLING_MACHINE',
-    'CAPPING_MACHINE',
-    'LABELING_MACHINE',
-    'GRINDING_MACHINE',
-    'MIXING_MACHINE',
-    'PACKAGING_LINE',
-    'OTHER',
-  ];
-
-  const statuses = ['ACTIVE', 'IDLE', 'UNDER_MAINTENANCE', 'OUT_OF_SERVICE', 'DECOMMISSIONED', 'DISPOSED'];
+  const statuses = ['ACTIVE', 'IDLE', 'UNDER_MAINTENANCE', 'OUT_OF_SERVICE'];
 
   const filteredMachines = machines.filter((m) =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -186,6 +209,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
             resetForm();
             setShowForm(true);
           }}
+          disabled={loadingDropdowns}
           className="btn-3d px-4 h-9"
         >
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
@@ -254,14 +278,16 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Category *</label>
                   <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    disabled={!!editingMachine}
+                    value={form.categoryId}
+                    onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                    disabled={!!editingMachine || loadingDropdowns}
                     className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    required
                   >
+                    <option value="">Select category</option>
                     {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat.replace(/_/g, ' ')}
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
                       </option>
                     ))}
                   </select>
@@ -269,17 +295,18 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Department *</label>
                   <select
-                    value={form.department}
-                    onChange={(e) => setForm({ ...form, department: e.target.value })}
-                    disabled={!!editingMachine}
+                    value={form.departmentId}
+                    onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                    disabled={!!editingMachine || loadingDropdowns}
                     className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    required
                   >
                     <option value="">Select department</option>
-                    <option value="Packaging">Packaging</option>
-                    <option value="Grinding">Grinding</option>
-                    <option value="Quality">Quality</option>
-                    <option value="Warehouse">Warehouse</option>
-                    <option value="Administration">Administration</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -301,26 +328,20 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</label>
-                  <input
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    placeholder="e.g., Building A, Floor 2"
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
-                  />
+                  <select
+                    value={form.locationId}
+                    onChange={(e) => setForm({ ...form, locationId: e.target.value })}
+                    disabled={loadingDropdowns}
+                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                  >
+                    <option value="">Select location</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estimated Output/Hour</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.estimatedOutputPerHour}
-                  onChange={(e) => setForm({ ...form, estimatedOutputPerHour: e.target.value })}
-                  placeholder="e.g., 1000"
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
-                />
               </div>
             </div>
 
@@ -365,9 +386,9 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    {machine.name} · {machine.category.replace(/_/g, ' ')} · {machine.department}
+                    {machine.name} · {machine.category?.name || 'N/A'} · {machine.department?.name || 'N/A'}
                   </p>
-                  {machine.location && <p className="text-[10px] text-slate-500">📍 {machine.location}</p>}
+                  {machine.location && <p className="text-[10px] text-slate-500">📍 {machine.location.name}</p>}
                   {machine.serialNumber && <p className="text-[10px] text-slate-500">SN: {machine.serialNumber}</p>}
                 </div>
                 <div className="flex gap-2">
@@ -395,7 +416,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string })
         <ConfirmationModal
           type="delete"
           title="Delete Machine"
-          description={`Machine "${deleteConfirmation.name}" will be decommissioned. This action cannot be undone.`}
+          description={`Machine "${deleteConfirmation.name}" will be deleted. This action cannot be undone.`}
           onConfirm={handleDeleteMachine}
           onCancel={() => setDeleteConfirmation(null)}
           isLoading={isDeleting}
