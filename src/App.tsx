@@ -12,15 +12,18 @@ import Suppliers from './modules/masterdata/views/Suppliers';
 import Requisitions from './modules/procurement/views/Requisitions';
 import RequisitionActions from './modules/procurement/views/RequisitionActions';
 import Procurements from './modules/procurement/views/Procurements';
+import Consignments from './modules/procurement/views/Consignments';
 import Inventory from './modules/inventory/views/Inventory';
 import DailyProduction from './modules/inventory/views/DailyProduction';
 import GRN from './modules/inventory/views/GRN';
 import FinishedGoods from './modules/inventory/views/FinishedGoods';
 import BOM from './modules/production/views/BOM';
+import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
 import Traceability from './modules/production/views/Traceability';
 import Inspections from './modules/qa/views/Inspections';
 import Notifications from './modules/alerts/views/Notifications';
+import AuditTrail from './modules/admin/views/AuditTrail';
 import Reports from './modules/reports/views/Reports';
 
 /**
@@ -36,15 +39,18 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'proc-requisitions': { path: '/procurement/requisitions', parent: 'Requisitions & PO', label: 'Requisitions' },
   'proc-actions': { path: '/procurement/actions', parent: 'Requisitions & PO', label: 'Requisition Actions' },
   'proc-procurements': { path: '/procurement/procurements', parent: 'Requisitions & PO', label: 'Procurements' },
+  'proc-consignments': { path: '/procurement/consignments', parent: 'Requisitions & PO', label: 'Consignments' },
   'inv-stock': { path: '/inventory/stock', parent: 'Inventory', label: 'Stock Ledger' },
   'inv-daily-prod': { path: '/inventory/daily-production', parent: 'Inventory', label: 'Daily Production' },
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
   'inv-finished': { path: '/inventory/finished-goods', parent: 'Inventory', label: 'Finished Goods' },
   'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Bill of Materials' },
+  'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Plans' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
   'qa-inspections': { path: '/quality/inspections', parent: 'Quality Assurance', label: 'Inspections' },
   'alerts-notifications': { path: '/alerts/notifications', parent: 'Alerts & Reports', label: 'Notifications' },
+  'admin-audit': { path: '/admin/audit', parent: 'Alerts & Reports', label: 'Audit Trail' },
   reports: { path: '/reports', parent: 'Alerts & Reports', label: 'Reports' },
 };
 
@@ -187,6 +193,12 @@ export default function App() {
             <Procurements searchQuery={searchQuery} />
           </RoleGuard>
         );
+      case 'proc-consignments':
+        return (
+          <RoleGuard userRole={user.role} viewId="proc-consignments">
+            <Consignments searchQuery={searchQuery} />
+          </RoleGuard>
+        );
       case 'inv-stock':
         return (
           <RoleGuard userRole={user.role} viewId="inv-stock">
@@ -217,6 +229,12 @@ export default function App() {
             <BOM searchQuery={searchQuery} />
           </RoleGuard>
         );
+      case 'prod-plans':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-plans">
+            <ProductionPlans searchQuery={searchQuery} />
+          </RoleGuard>
+        );
       case 'prod-orders':
         return (
           <RoleGuard userRole={user.role} viewId="prod-orders">
@@ -239,6 +257,12 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="alerts-notifications">
             <Notifications searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'admin-audit':
+        return (
+          <RoleGuard userRole={user.role} viewId="admin-audit">
+            <AuditTrail searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'reports':

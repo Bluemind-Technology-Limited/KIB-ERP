@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
+import NotificationBell from '../components/ui/NotificationBell';
 import { useAuthStore } from '../stores/useAuthStore';
 
 import { 
@@ -154,6 +155,9 @@ export default function DashboardLayout({
 
           {/* Right Header Menu Controls */}
           <div className="flex items-center gap-2">
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* Help section removed */}
 
             {/* Premium User Avatar with online indicator */}

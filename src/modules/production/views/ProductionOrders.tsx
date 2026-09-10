@@ -92,7 +92,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [createConfirmation, setCreateConfirmation] = useState(false);
-  const [actionConfirmation, setActionConfirmation] = useState<'complete' | 'mix' | 'returns' | null>(null);
+  const [actionConfirmation, setActionConfirmation] = useState<'complete' | 'mix' | 'returns' | 'release' | null>(null);
   const [bomSearch, setBomSearch] = useState('');
   // waste logging
   const [showWaste, setShowWaste] = useState(false);
@@ -108,10 +108,10 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   });
   // start / complete
   const [actingOrder, setActingOrder] = useState<ProductionOrder | null>(null);
-  const [action, setAction] = useState<'complete' | 'mix' | 'returns' | null>(null);
+  const [action, setAction] = useState<'complete' | 'mix' | 'returns' | 'release' | null>(null);
   const [actionForm, setActionForm] = useState({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
   const [mixForm, setMixForm] = useState({ mixUnits: '' });
-  const [returnsForm, setReturnsForm] = useState<Array<{ id: string; name: string; releasedQuantity: number; returnedQuantity: number; unit: string }>>([]);
+  const [releaseForm, setReleaseForm] = useState<Array<{ id: string; name: string; projectedQuantity: number; releasedQuantity: number; batchLotId: string; unit: string }>>([]);
 
   const load = async () => {
     setLoading(true);
@@ -257,12 +257,22 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     }
   };
 
-  const openAction = async (order: ProductionOrder, kind: 'complete' | 'mix' | 'returns') => {
+  const openAction = async (order: ProductionOrder, kind: 'complete' | 'mix' | 'returns' | 'release') => {
     setActingOrder(order);
     setActionConfirmation(kind);
     setError('');
     
-    if (kind === 'returns') {
+    if (kind === 'release') {
+      const releaseList = (order.productionIngredients ?? []).map(ing => ({
+        id: ing.id,
+        name: ing.material.name,
+        projectedQuantity: ing.projectedQuantity,
+        releasedQuantity: ing.projectedQuantity, // Default to projected, but can be adjusted
+        batchLotId: ing.batchLotId || '',
+        unit: ing.material.unitOfMeasure
+      }));
+      setReleaseForm(releaseList);
+    } else if (kind === 'returns') {
       setActionForm({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
       const returnsList = (order.productionIngredients ?? []).map(ing => ({
         id: ing.id,
@@ -289,7 +299,24 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     if (!actingOrder) return;
     setSaving(true);
     try {
-      if (action === 'mix') {
+      if (action === 'release') {
+        // Validate release form
+        const allReleased = releaseForm.every(r => r.releasedQuantity > 0);
+        if (!allReleased) {
+          setError('All ingredients must have a released quantity greater than 0');
+          setSaving(false);
+          return;
+        }
+        
+        await axiosClient.post(`/production/production-orders/${actingOrder.id}/release`, {
+          warehouseId: warehouses[0]?.id || '',  // Default to first warehouse
+          ingredients: releaseForm.map(r => ({
+            id: r.id,
+            releasedQuantity: Number(r.releasedQuantity),
+            batchLotId: r.batchLotId || null,
+          }))
+        });
+      } else if (action === 'mix') {
         if (!mixForm.mixUnits || Number(mixForm.mixUnits) <= 0) {
           setError('Enter a valid mix units quantity');
           setSaving(false);
@@ -403,6 +430,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   <th className="px-4 py-3 font-semibold">Machine / Shift</th>
                   <th className="px-4 py-3 font-semibold">Scheduled</th>
                   <th className="px-4 py-3 font-semibold">Batch</th>
+                  <th className="px-4 py-3 font-semibold">Yield Error</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -448,13 +476,29 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       )}
                     </td>
                     <td className="px-4 py-3">
+                      {o.errorPercentage !== undefined && o.errorPercentage !== null ? (
+                        <span className={`text-[11px] font-mono font-bold ${Math.abs(o.errorPercentage) < 5 ? 'text-emerald-600' : Math.abs(o.errorPercentage) < 15 ? 'text-amber-600' : 'text-rose-600'}`}>
+                          {Math.abs(o.errorPercentage).toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[o.status] || statusBadge.SCHEDULED}`}>{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       {o.status === 'SCHEDULED' && (
-                        <button onClick={() => deleteProductionOrder(o.id)} className="h-7 px-2.5 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold flex items-center gap-1 bg-white hover:bg-rose-50 transition-colors">
-                          <Trash2 className="w-3 h-3" /> Delete
-                        </button>
+                        <>
+                          <button onClick={() => openAction(o, 'release')} className="btn-3d px-3 h-7">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <CheckCircle2 className="w-3 h-3" /> Release Ingredients
+                            </span>
+                          </button>
+                          <button onClick={() => deleteProductionOrder(o.id)} className="h-7 px-2.5 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold flex items-center gap-1 bg-white hover:bg-rose-50 transition-colors">
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </>
                       )}
                       {o.status === 'RELEASED' && (
                         <>
@@ -675,6 +719,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
           <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#171717]">
+                {action === 'release' && 'Release Ingredients'}
                 {action === 'mix' && 'Record Batch Mix'}
                 {action === 'returns' && 'Log Returns/Deficits'}
                 {action === 'complete' && 'Complete Production'}
@@ -686,6 +731,76 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               <span className="font-mono font-bold text-slate-700">{actingOrder.orderNumber}</span> —{' '}
               {actingOrder.bomVersion?.finishedSku?.name ?? actingOrder.bomVersion?.bom?.productName ?? ''}
             </p>
+
+            {action === 'release' && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-[10px] text-blue-700">
+                    <span className="font-semibold">Release ingredients:</span> Confirm the quantities to release from warehouse to production floor. These will be deducted from inventory.
+                  </p>
+                </div>
+
+                <div className="space-y-2 border border-slate-100 rounded-lg overflow-hidden">
+                  <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    Ingredients to Release
+                  </div>
+                  <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto p-2 space-y-3">
+                    {releaseForm.map((item, idx) => (
+                      <div key={item.id} className="text-xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-slate-700">{item.name}</span>
+                          <span className="text-[10px] text-slate-400">Projected: <b>{Number(item.projectedQuantity).toFixed(2)}</b> {item.unit}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase">Released Qty *</label>
+                            <input
+                              type="number"
+                              step="0.0001"
+                              value={item.releasedQuantity}
+                              onChange={(e) => {
+                                const updated = [...releaseForm];
+                                updated[idx].releasedQuantity = Number(e.target.value);
+                                setReleaseForm(updated);
+                              }}
+                              className="h-8 w-full rounded border border-[#E9E9E9] px-2 text-right focus:outline-none focus:border-[#EA4335]"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase">Batch Lot</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. BATCH-001"
+                              value={item.batchLotId}
+                              onChange={(e) => {
+                                const updated = [...releaseForm];
+                                updated[idx].batchLotId = e.target.value;
+                                setReleaseForm(updated);
+                              }}
+                              className="h-8 w-full rounded border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {releaseForm.length > 0 && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-2 text-xs">
+                    <p className="font-semibold text-slate-700">Release Summary:</p>
+                    <div className="space-y-1 text-[10px] text-slate-600">
+                      {releaseForm.map(item => (
+                        <div key={item.id} className="flex justify-between">
+                          <span>{item.name}</span>
+                          <span className="font-mono">{Number(item.releasedQuantity).toFixed(2)} {item.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {action === 'mix' && (
               <div className="space-y-3">
@@ -805,6 +920,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 <span className="text-white text-xs font-semibold">
                   {saving ? 'Saving…' : (
                     <>
+                      {action === 'release' && 'Release Ingredients'}
                       {action === 'mix' && 'Confirm Batch Mix'}
                       {action === 'returns' && 'Submit Returns'}
                       {action === 'complete' && 'Complete Batch'}

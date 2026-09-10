@@ -64,7 +64,6 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   const [form, setForm] = useState({
     productName: '',
     description: '',
-    version: '1',
     expectedYield: '',
     yieldUnit: '',
     finishedSkuId: '',
@@ -98,7 +97,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   const rawMaterials = materials.filter((m) => m.type === 'RAW' || m.type === 'PACKAGING');
 
   const openAdd = () => {
-    setForm({ productName: '', description: '', version: '1', expectedYield: '', yieldUnit: '', finishedSkuId: '' });
+    setForm({ productName: '', description: '', expectedYield: '', yieldUnit: '', finishedSkuId: '' });
     setIngredients([{ ...emptyIngredient }]);
     setError('');
     setShowModal(true);
@@ -145,7 +144,6 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       await axiosClient.post('/production/boms', {
         productName: form.productName,
         description: form.description || null,
-        version: Number(form.version) || 1,
         expectedYield: Number(form.expectedYield),
         yieldUnit: form.yieldUnit,
         finishedSkuId: form.finishedSkuId,
@@ -209,7 +207,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Bill of Materials</h2>
-          <p className="text-[#737373] text-xs">Version-controlled recipes with % / absolute ingredients and expected yield.</p>
+          <p className="text-[#737373] text-xs">Ingredient recipes with % / absolute quantities and expected yield.</p>
         </div>
         <button onClick={openAdd} className="btn-3d px-4 h-9">
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
@@ -403,10 +401,6 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                 <input value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} placeholder="e.g. Cocoa Butter Body Balm" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Version</label>
-                  <input value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} type="number" min={1} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-                </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished SKU *</label>
                   <select value={form.finishedSkuId} onChange={(e) => setForm({ ...form, finishedSkuId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
