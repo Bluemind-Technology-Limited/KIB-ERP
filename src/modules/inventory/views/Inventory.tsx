@@ -677,6 +677,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* Delete Stock Item Confirmation Modal */}
       {deletingEntryId && (
         <ConfirmationModal
+          type="delete"
           isOpen={!!deletingEntryId}
           title="Delete Stock Entry"
           message="Are you sure you want to delete this stock entry? This action cannot be undone."
@@ -696,6 +697,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* Delete Ledger Entry Confirmation Modal */}
       {deletingEntryId && (
         <ConfirmationModal
+          type="delete"
           isOpen={!!deletingEntryId}
           title="Delete Ledger Entry"
           message="Are you sure you want to delete this inventory transaction? This action cannot be undone and will revert the stock count."

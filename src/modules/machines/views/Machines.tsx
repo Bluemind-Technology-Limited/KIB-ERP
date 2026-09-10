@@ -27,7 +27,7 @@ interface MasterData {
   code: string;
 }
 
-export default function Machines({ searchQuery = '' }: { searchQuery?: string }) {
+export default function Machines({ searchQuery = '' }: { searchQuery?: string } = { searchQuery: '' }) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [categories, setCategories] = useState<MasterData[]>([]);
   const [departments, setDepartments] = useState<MasterData[]>([]);

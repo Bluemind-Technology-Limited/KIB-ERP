@@ -427,6 +427,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
       {/* Delete Confirmation Modal */}
       {deletingUser && (
         <ConfirmationModal
+          type="delete"
           isOpen={!!deletingUser}
           title="Delete User"
           message={`Are you sure you want to delete ${deletingUser.fullName}? This action cannot be undone.`}

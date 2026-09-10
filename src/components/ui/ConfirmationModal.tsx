@@ -6,6 +6,7 @@ type ConfirmationType = 'delete' | 'create' | 'update' | 'submit' | 'action';
 interface ConfirmationModalProps {
   type: ConfirmationType;
   title: string;
+  message?: string;
   description?: string;
   isOpen?: boolean;
   onConfirm: () => void;
@@ -35,7 +36,8 @@ const getIcon = (type: ConfirmationType) => {
 export function ConfirmationModal({
   type,
   title,
-  description = 'Are you sure you want to proceed?',
+  message,
+  description,
   onConfirm,
   onCancel,
   isLoading = false,
@@ -43,6 +45,7 @@ export function ConfirmationModal({
   cancelText = 'Cancel',
 }: ConfirmationModalProps) {
   const { Icon, bgClass, iconClass, buttonClass } = getIcon(type);
+  const displayMessage = message || description || 'Are you sure you want to proceed?';
 
   const defaultConfirmText = {
     delete: 'Delete',
@@ -64,7 +67,7 @@ export function ConfirmationModal({
           </div>
           <div>
             <h3 className="text-sm font-bold text-[#171717]">{title}</h3>
-            <p className="text-xs text-slate-500 mt-1">{description}</p>
+            <p className="text-xs text-slate-500 mt-1">{displayMessage}</p>
           </div>
         </div>
 

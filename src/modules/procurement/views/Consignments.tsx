@@ -30,6 +30,7 @@ interface WarehouseBin {
   id: string;
   binCode: string;
   capacity?: number | null;
+  warehouseId: string;
 }
 
 interface ConsignmentItem {
@@ -222,7 +223,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
 
   const openDistributionModal = (consignment: Consignment) => {
     setSelectedConsignmentForDistribution(consignment);
-    const bins = warehouseBins.filter((b) => b.warehouseId === consignment.warehouseId);
+    const bins = warehouseBins.filter((b) => b.warehouseId === consignment.warehouse.id);
     setDistributions(
       consignment.items.map((item) => ({
         itemId: item.id,
@@ -580,7 +581,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                         >
                           <option value="">Select bin…</option>
                           {warehouseBins
-                            .filter((b) => b.warehouseId === selectedConsignmentForDistribution.warehouseId)
+                            .filter((b) => b.warehouseId === selectedConsignmentForDistribution.warehouse.id)
                             .map((b) => (
                               <option key={b.id} value={b.id}>{b.binCode}</option>
                             ))}

@@ -278,7 +278,7 @@ export default function App() {
       case 'admin-audit':
         return (
           <RoleGuard userRole={user.role} viewId="admin-audit">
-            <AuditTrail searchQuery={searchQuery} />
+            <AuditTrail />
           </RoleGuard>
         );
       case 'reports':
