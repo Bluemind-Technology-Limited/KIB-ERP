@@ -7,11 +7,13 @@ interface ConfirmationModalProps {
   type: ConfirmationType;
   title: string;
   description?: string;
+  isOpen?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
   confirmText?: string;
   cancelText?: string;
+  isDangerous?: boolean;
 }
 
 const getIcon = (type: ConfirmationType) => {
