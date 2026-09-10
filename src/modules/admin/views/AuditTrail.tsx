@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, Clock, User, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import { BarChart3, Clock, User, ChevronDown, ChevronRight } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -56,7 +56,7 @@ const entityTypeColors: Record<string, string> = {
   'bom': 'bg-pink-50 text-pink-700 border-pink-200',
 };
 
-export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string }) {
+export default function AuditTrail() {
   const [activeTab, setActiveTab] = useState<'timeline' | 'user-activity' | 'metrics'>('metrics');
   const [entityTimelines, setEntityTimelines] = useState<EntityTimeline[]>([]);
   const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
@@ -71,15 +71,45 @@ export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string 
   const load = async () => {
     setLoading(true);
     try {
-      const [systemRes, approvalRes, prodRes] = await Promise.all([
+      const [systemRes, approvalRes, prodRes, userActRes] = await Promise.all([
         axiosClient.get<{ activities: EntityTimeline[] }>('/audits/system-activity?limit=100'),
         axiosClient.get<{ metrics: ApprovalMetrics }>('/audits/metrics/approval-velocity'),
         axiosClient.get<{ metrics: ProductionMetrics }>('/audits/metrics/production'),
+        axiosClient.get<{ activities: Array<any> }>('/audits/user-activities?limit=50'),
       ]);
       
       setEntityTimelines(systemRes.data.activities || []);
       setApprovalMetrics(approvalRes.data.metrics);
       setProductionMetrics(prodRes.data.metrics);
+      
+      // Aggregate user activities
+      const userMap = new Map<string, UserActivity>();
+      for (const activity of userActRes.data.activities || []) {
+        if (!userMap.has(activity.userId)) {
+          userMap.set(activity.userId, {
+            userId: activity.userId,
+            userName: activity.userName,
+            actionsCount: 0,
+            lastAction: activity.timestamp,
+            days: [],
+          });
+        }
+        const user = userMap.get(activity.userId)!;
+        user.actionsCount++;
+        user.lastAction = activity.timestamp;
+        
+        // Group by day
+        const dateStr = new Date(activity.timestamp).toISOString().split('T')[0];
+        let dayEntry = user.days.find(d => d.date === dateStr);
+        if (!dayEntry) {
+          dayEntry = { date: dateStr, actionCount: 0, actions: [] };
+          user.days.push(dayEntry);
+        }
+        dayEntry.actionCount++;
+        dayEntry.actions.push(activity.activityType);
+      }
+      
+      setUserActivities(Array.from(userMap.values()));
       setError('');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load audit trail');

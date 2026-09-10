@@ -66,14 +66,32 @@ interface Consignment {
   receivedBy?: { fullName: string };
   items: ConsignmentItem[];
   distributions?: ConsignmentDistribution[];
+  qualityApproval?: {
+    id: string;
+    status: string;
+    totalItems: number;
+    passedItems: number;
+    failedItems: number;
+  };
 }
 
 const consignmentStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200',
   RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
+  QUALITY_PENDING: 'bg-orange-50 text-orange-700 border-orange-200',
+  QUALITY_APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   DISTRIBUTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   CANCELLED: 'bg-slate-100 text-slate-500 border-slate-200',
+};
+
+const qualityStatusBadge: Record<string, string> = {
+  PENDING: 'bg-orange-100 text-orange-700 border-orange-200',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200',
+  PASSED: 'bg-green-100 text-green-700 border-green-200',
+  FAILED: 'bg-rose-100 text-rose-700 border-rose-200',
+  APPROVED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  REJECTED: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
 const emptyItem = { materialId: '', quantity: '' };
@@ -351,6 +369,11 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${consignmentStatusBadge[csn.status]}`}>
                       {csn.status}
                     </span>
+                    {csn.qualityApproval && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${qualityStatusBadge[csn.qualityApproval.status]}`}>
+                        QA: {csn.qualityApproval.status}
+                      </span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -404,7 +427,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                           </span>
                         </button>
                       )}
-                      {csn.status === 'RECEIVED' && undistributedItems.length > 0 && (
+                      {csn.status === 'QUALITY_APPROVED' && undistributedItems.length > 0 && (
                         <button
                           onClick={() => openDistributionModal(csn)}
                           className="btn-3d px-3 h-7"
@@ -413,6 +436,11 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                             <Boxes className="w-3 h-3" /> Distribute to Bins
                           </span>
                         </button>
+                      )}
+                      {csn.status === 'QUALITY_PENDING' && undistributedItems.length > 0 && (
+                        <div className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg">
+                          <span className="text-[10px] font-semibold text-orange-700">⏳ Awaiting QA Approval</span>
+                        </div>
                       )}
                     </div>
                   </div>

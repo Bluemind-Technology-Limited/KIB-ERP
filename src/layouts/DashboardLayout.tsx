@@ -88,6 +88,8 @@ export default function DashboardLayout({
         return { parent: 'Production', current: 'Production Orders' };
       case 'prod-trace':
         return { parent: 'Production', current: 'Traceability' };
+      case 'machines':
+        return { parent: 'Assets', current: 'Machines & Assets' };
       case 'qa-inspections':
         return { parent: 'Quality Assurance', current: 'Inspections' };
       case 'alerts-notifications':

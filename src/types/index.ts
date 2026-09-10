@@ -4,8 +4,11 @@ export type UserRole =
   | 'EXECUTIVE_ADMIN'
   | 'STORE_OFFICER'
   | 'PRODUCTION_MANAGER'
+  | 'PRODUCTION_SUPERVISOR'
   | 'PROCUREMENT_OFFICER'
-  | 'QA_INSPECTOR';
+  | 'QA_INSPECTOR'
+  | 'OPERATOR'
+  | 'TECHNICIAN';
 
 // User shape mirrors the Prisma User returned by GET /auth/me (camelCase).
 export interface User {

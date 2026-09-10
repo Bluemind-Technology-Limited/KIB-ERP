@@ -195,7 +195,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     }
   };
 
-  const filtered = boms.filter(
+  const filtered = (boms || []).filter(
     (b) =>
       b.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (b.versions[0]?.finishedSku?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())

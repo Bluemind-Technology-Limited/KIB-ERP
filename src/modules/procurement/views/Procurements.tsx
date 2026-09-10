@@ -332,6 +332,11 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   {['PARTIAL', 'RECEIVED'].includes(p.status) && (
                     <button onClick={() => handleStatusChange(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
                   )}
+                  {p.status === 'CLOSED' && (
+                    <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))

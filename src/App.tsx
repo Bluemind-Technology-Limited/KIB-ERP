@@ -21,6 +21,8 @@ import BOM from './modules/production/views/BOM';
 import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
 import Traceability from './modules/production/views/Traceability';
+import SupervisorDashboard from './modules/production/supervisor/SupervisorDashboard';
+import Machines from './modules/machines/views/Machines';
 import Inspections from './modules/qa/views/Inspections';
 import Notifications from './modules/alerts/views/Notifications';
 import AuditTrail from './modules/admin/views/AuditTrail';
@@ -48,6 +50,8 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Plans' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
+  'prod-supervisor': { path: '/production/supervisor', parent: 'Production', label: 'Production Supervisor' },
+  'machines': { path: '/machines', parent: 'Assets', label: 'Machines & Assets' },
   'qa-inspections': { path: '/quality/inspections', parent: 'Quality Assurance', label: 'Inspections' },
   'alerts-notifications': { path: '/alerts/notifications', parent: 'Alerts & Reports', label: 'Notifications' },
   'admin-audit': { path: '/admin/audit', parent: 'Alerts & Reports', label: 'Audit Trail' },
@@ -245,6 +249,18 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="prod-trace">
             <Traceability searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'prod-supervisor':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-supervisor">
+            <SupervisorDashboard />
+          </RoleGuard>
+        );
+      case 'machines':
+        return (
+          <RoleGuard userRole={user.role} viewId="machines">
+            <Machines searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'qa-inspections':

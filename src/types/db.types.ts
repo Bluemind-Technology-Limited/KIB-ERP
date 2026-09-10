@@ -10,8 +10,11 @@ export interface DbUserTable {
     | 'EXECUTIVE_ADMIN'
     | 'STORE_OFFICER'
     | 'PRODUCTION_MANAGER'
+    | 'PRODUCTION_SUPERVISOR'
     | 'PROCUREMENT_OFFICER'
-    | 'QA_INSPECTOR';
+    | 'QA_INSPECTOR'
+    | 'OPERATOR'
+    | 'TECHNICIAN';
   is_active: boolean;
   phone_number?: string;
   created_at: string;

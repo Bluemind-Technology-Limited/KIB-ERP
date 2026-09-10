@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PackageCheck, Plus } from 'lucide-react';
+import { PackageCheck, Plus, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -28,6 +28,8 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   ]);
   const [submitConfirmation, setSubmitConfirmation] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ grnId: string; grnNumber: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -87,6 +89,22 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
     } catch (err: any) { setError(err?.response?.data?.error || 'Receive failed'); setSaving(false); }
   };
 
+  const handleDelete = async () => {
+    if (!deleteConfirmation) return;
+    setDeleting(true);
+    try {
+      await axiosClient.delete(`/grn/${deleteConfirmation.grnId}`);
+      setDeleteConfirmation(null);
+      setError('');
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to delete GRN');
+      setDeleteConfirmation(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filtered = grns.filter((g) =>
     g.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (g.po?.supplier?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -125,6 +143,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   <th className="px-4 py-3 font-semibold">Items</th>
                   <th className="px-4 py-3 font-semibold">Received</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,6 +173,15 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${grnStatusBadge[g.status] || grnStatusBadge.PENDING_QA}`}>{g.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => setDeleteConfirmation({ grnId: g.id, grnNumber: g.number })}
+                        className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
+                        title="Delete GRN"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -245,6 +273,18 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
           onCancel={() => setSubmitConfirmation(false)}
           isLoading={saving}
           confirmText="Post Receipt"
+        />
+      )}
+
+      {deleteConfirmation && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete GRN"
+          description={`Delete GRN ${deleteConfirmation.grnNumber}? This will remove all items and inspection records. This action cannot be undone.`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteConfirmation(null)}
+          isLoading={deleting}
+          confirmText="Delete"
         />
       )}
     </div>

@@ -112,6 +112,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const [actionForm, setActionForm] = useState({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
   const [mixForm, setMixForm] = useState({ mixUnits: '' });
   const [releaseForm, setReleaseForm] = useState<Array<{ id: string; name: string; projectedQuantity: number; releasedQuantity: number; batchLotId: string; unit: string }>>([]);
+  const [returnsForm, setReturnsForm] = useState<Array<{ id: string; name: string; returnedQuantity: number; releasedQuantity: number; unit: string }>>([]);
 
   const load = async () => {
     setLoading(true);

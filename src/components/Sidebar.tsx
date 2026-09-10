@@ -25,6 +25,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     procurement: true,
     inventory: true,
     production: true,
+    assets: false,
     qa: true,
     alerts: true,
   });
@@ -78,10 +79,19 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       title: 'Production',
       icon: FlaskConical,
       items: [
+        { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
         { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
         { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'prod-trace', name: 'Traceability', icon: Network },
+      ],
+    },
+    {
+      id: 'assets',
+      title: 'Assets',
+      icon: Boxes,
+      items: [
+        { id: 'machines', name: 'Machines & Assets', icon: Boxes },
       ],
     },
     {
@@ -118,9 +128,11 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
+    { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
     { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'prod-trace', name: 'Traceability', icon: Network },
+    { id: 'machines', name: 'Machines & Assets', icon: Boxes },
     { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
     { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
     { id: 'reports', name: 'Reports', icon: BarChart3 },
