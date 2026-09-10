@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, Loader, Trash2 } from 'lucide-react';
-import { axiosClient } from '../../../lib/axiosClient';
-import { Skeleton } from '../../../components/ui/Skeleton';
-import { EmptyState } from '../../../components/ui/EmptyState';
+import { axiosClient } from '../../lib/axiosClient';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 interface PendingConsignment {
   id: string;

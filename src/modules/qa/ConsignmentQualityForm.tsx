@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Loader, ChevronDown } from 'lucide-react';
-import { axiosClient } from '../../../lib/axiosClient';
-import { Skeleton } from '../../../components/ui/Skeleton';
-import { Modal } from '../../../components/ui/Modal';
+import { axiosClient } from '../../lib/axiosClient';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { Modal } from '../../components/ui/Modal';
 
 interface CheckItem {
   id: string;

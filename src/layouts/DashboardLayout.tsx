@@ -83,7 +83,7 @@ export default function DashboardLayout({
       case 'inv-finished':
         return { parent: 'Inventory', current: 'Finished Goods' };
       case 'prod-boms':
-        return { parent: 'Production', current: 'Bill of Materials' };
+        return { parent: 'Production', current: 'Batch Formulation' };
       case 'prod-orders':
         return { parent: 'Production', current: 'Production Orders' };
       case 'prod-trace':

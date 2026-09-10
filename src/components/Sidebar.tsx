@@ -80,7 +80,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: FlaskConical,
       items: [
         { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
-        { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
+        { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
         { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'prod-trace', name: 'Traceability', icon: Network },
@@ -127,7 +127,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
     { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
-    { id: 'prod-boms', name: 'Bill of Materials', icon: FlaskConical },
+    { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
     { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
     { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },

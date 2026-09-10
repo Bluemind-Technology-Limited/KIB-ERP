@@ -1,5 +1,5 @@
 import { AlertCircle, X } from 'lucide-react';
-import { Modal } from '../../../components/ui/Modal';
+import { Modal } from '../../components/ui/Modal';
 
 interface FailedItem {
   id: string;

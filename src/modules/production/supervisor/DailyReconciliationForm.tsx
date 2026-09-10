@@ -13,7 +13,7 @@ interface ReconciliationItem {
   unit: string;
 }
 
-export default function DailyReconciliationForm({ onClose }: { onClose?: () => void }) {
+export default function DailyReconciliationForm({ onClose = () => {} }: { onClose?: () => void }) {
   const { planId } = useParams<{ planId: string }>();
   const [items, setItems] = useState<ReconciliationItem[]>([]);
   const [loading, setLoading] = useState(true);

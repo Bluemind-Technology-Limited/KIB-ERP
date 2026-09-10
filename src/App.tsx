@@ -46,7 +46,7 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'inv-daily-prod': { path: '/inventory/daily-production', parent: 'Inventory', label: 'Daily Production' },
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
   'inv-finished': { path: '/inventory/finished-goods', parent: 'Inventory', label: 'Finished Goods' },
-  'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Bill of Materials' },
+  'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Batch Formulation' },
   'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Plans' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },

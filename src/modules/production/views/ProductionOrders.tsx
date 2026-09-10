@@ -588,7 +588,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {bomOptions.length === 0 && (
                     <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      No approved BOMs yet — approve a BOM version in the Bill of Materials screen first.
+                      No approved BOMs yet — approve a BOM version in the Batch Formulation screen first.
                     </p>
                   )}
                   {bomOptions.length > 0 && filteredBomOptions.length === 0 && (

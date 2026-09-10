@@ -206,12 +206,12 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Bill of Materials</h2>
+          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Batch Formulation</h2>
           <p className="text-[#737373] text-xs">Ingredient recipes with % / absolute quantities and expected yield.</p>
         </div>
         <button onClick={openAdd} className="btn-3d px-4 h-9">
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
-            <Plus className="w-3.5 h-3.5" /> New BOM
+            <Plus className="w-3.5 h-3.5" /> New
           </span>
         </button>
       </div>
@@ -389,7 +389,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-4 h-4 text-[#EA4335]" />
-                <h3 className="text-sm font-bold text-[#171717]">New BOM</h3>
+                <h3 className="text-sm font-bold text-[#171717]">New Batch Formulation</h3>
               </div>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
@@ -505,7 +505,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
               <button type="submit" disabled={saving} className="btn-3d px-4 h-9">
-                <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Create BOM'}</span>
+                <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Create'}</span>
               </button>
             </div>
           </form>
@@ -516,8 +516,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {createConfirmation && (
         <ConfirmationModal
           type="create"
-          title="Create BOM"
-          description="Create a new Bill of Materials with the specified ingredients and expected yield."
+          title="Create Batch Formulation"
+          description="Create a new Batch Formulation with the specified ingredients and expected yield."
           onConfirm={confirmCreate}
           onCancel={() => setCreateConfirmation(false)}
           isLoading={saving}
