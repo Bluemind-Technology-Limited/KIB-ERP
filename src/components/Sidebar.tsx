@@ -20,6 +20,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   // Keep track of expanded module accordion sections for the expanded sidebar
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    admin: false,
     masterdata: true,
     procurement: true,
     inventory: true,
@@ -34,6 +35,14 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   // Nav Groups hierarchy
   const navGroups = [
+    {
+      id: 'admin',
+      title: 'Administration',
+      icon: ShieldCheck,
+      items: [
+        { id: 'admin-audit', name: 'Audit Trail', icon: BarChart3 },
+      ],
+    },
     {
       id: 'masterdata',
       title: 'Master Data',
@@ -98,6 +107,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
   const allCollapsedItems = [
     { id: 'executive', name: 'Overview', icon: LayoutDashboard },
     { id: 'admin-users', name: 'Manage Users', icon: Users },
+    { id: 'admin-audit', name: 'Audit Trail', icon: BarChart3 },
     { id: 'md-warehouses', name: 'Warehouses', icon: Database },
     { id: 'md-materials', name: 'Materials', icon: Database },
     { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },

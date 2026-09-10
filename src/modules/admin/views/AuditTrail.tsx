@@ -71,15 +71,15 @@ export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string 
   const load = async () => {
     setLoading(true);
     try {
-      const [metricsRes, approvalRes, prodRes] = await Promise.all([
-        axiosClient.get<{ timeline: EntityTimeline[] }>('/audit/system-activity?limit=100'),
-        axiosClient.get<ApprovalMetrics>('/audit/metrics/approval-velocity'),
-        axiosClient.get<ProductionMetrics>('/audit/metrics/production'),
+      const [systemRes, approvalRes, prodRes] = await Promise.all([
+        axiosClient.get<{ activities: EntityTimeline[] }>('/audits/system-activity?limit=100'),
+        axiosClient.get<{ metrics: ApprovalMetrics }>('/audits/metrics/approval-velocity'),
+        axiosClient.get<{ metrics: ProductionMetrics }>('/audits/metrics/production'),
       ]);
       
-      setEntityTimelines(metricsRes.data.timeline || []);
-      setApprovalMetrics(approvalRes.data);
-      setProductionMetrics(prodRes.data);
+      setEntityTimelines(systemRes.data.activities || []);
+      setApprovalMetrics(approvalRes.data.metrics);
+      setProductionMetrics(prodRes.data.metrics);
       setError('');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load audit trail');
@@ -221,12 +221,12 @@ export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string 
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Approval Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-emerald-600">{approvalMetrics.approvalRate.toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{approvalMetrics.totalApprovals} approved</span>
+                    <span className="text-lg font-bold text-emerald-600">{(approvalMetrics?.approvalRate || 0).toFixed(1)}%</span>
+                    <span className="text-[9px] text-slate-400">{approvalMetrics?.totalApprovals || 0} approved</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{ width: `${approvalMetrics.approvalRate}%` }} />
+                  <div className="h-full bg-emerald-500" style={{ width: `${approvalMetrics?.approvalRate || 0}%` }} />
                 </div>
               </div>
 
@@ -234,19 +234,19 @@ export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string 
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Rejection Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-rose-600">{(100 - approvalMetrics.approvalRate).toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{approvalMetrics.totalRejections} rejected</span>
+                    <span className="text-lg font-bold text-rose-600">{(100 - (approvalMetrics?.approvalRate || 0)).toFixed(1)}%</span>
+                    <span className="text-[9px] text-slate-400">{approvalMetrics?.totalRejections || 0} rejected</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-rose-500" style={{ width: `${100 - approvalMetrics.approvalRate}%` }} />
+                  <div className="h-full bg-rose-500" style={{ width: `${100 - (approvalMetrics?.approvalRate || 0)}%` }} />
                 </div>
               </div>
 
               <div className="border-t border-slate-100 pt-3">
                 <p className="text-[10px] font-semibold text-slate-600 mb-2">By Entity Type</p>
                 <div className="space-y-1">
-                  {Object.entries(approvalMetrics.entityCounts).map(([entity, count]) => (
+                  {approvalMetrics?.entityCounts && Object.entries(approvalMetrics.entityCounts).map(([entity, count]) => (
                     <div key={entity} className="flex justify-between text-[9px]">
                       <span className="text-slate-600 capitalize">{entity}:</span>
                       <span className="font-mono text-slate-700">{count}</span>
@@ -266,29 +266,29 @@ export default function AuditTrail({ searchQuery = '' }: { searchQuery?: string 
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Completion Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-[#AA3BFF]">{productionMetrics.completionRate.toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{productionMetrics.totalCompleted} orders</span>
+                    <span className="text-lg font-bold text-[#AA3BFF]">{(productionMetrics?.completionRate || 0).toFixed(1)}%</span>
+                    <span className="text-[9px] text-slate-400">{productionMetrics?.totalCompleted || 0} orders</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#AA3BFF]" style={{ width: `${productionMetrics.completionRate}%` }} />
+                  <div className="h-full bg-[#AA3BFF]" style={{ width: `${productionMetrics?.completionRate || 0}%` }} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                   <p className="text-[9px] text-slate-500">Average Yield</p>
-                  <p className="text-lg font-bold text-slate-700">{productionMetrics.averageYield.toFixed(1)}</p>
+                  <p className="text-lg font-bold text-slate-700">{(productionMetrics?.averageYield || 0).toFixed(1)}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                   <p className="text-[9px] text-slate-500">Avg Waste</p>
-                  <p className="text-lg font-bold text-rose-600">{productionMetrics.averageWaste.toFixed(2)}%</p>
+                  <p className="text-lg font-bold text-rose-600">{(productionMetrics?.averageWaste || 0).toFixed(2)}%</p>
                 </div>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                 <p className="text-[9px] text-slate-500">Average Lead Time</p>
-                <p className="text-sm font-bold text-slate-700">{Math.round(productionMetrics.averageLeadTime)} hours</p>
+                <p className="text-sm font-bold text-slate-700">{Math.round(productionMetrics?.averageLeadTime || 0)} hours</p>
               </div>
             </div>
           )}
