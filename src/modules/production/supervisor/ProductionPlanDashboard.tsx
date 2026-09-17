@@ -29,7 +29,7 @@ export default function ProductionPlanDashboard() {
     const loadPlans = async () => {
       try {
         const status = filter === 'all' ? undefined : filter.toUpperCase().replace('-', '_');
-        const res = await axiosClient.get('/api/supervisor/production-plans', {
+        const res = await axiosClient.get('/supervisor/production-plans', {
           params: { status },
         });
         setPlans(res.data.plans);
