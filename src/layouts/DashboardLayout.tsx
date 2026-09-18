@@ -88,14 +88,26 @@ export default function DashboardLayout({
         return { parent: 'Production', current: 'Production Orders' };
       case 'prod-trace':
         return { parent: 'Production', current: 'Traceability' };
+      case 'prod-issue':
+        return { parent: 'Production', current: 'Stock Issue' };
+      case 'prod-grinding':
+        return { parent: 'Production', current: 'Grinding Station' };
+      case 'prod-finishing':
+        return { parent: 'Production', current: 'Finishing Station' };
       case 'machines':
         return { parent: 'Assets', current: 'Machines & Assets' };
       case 'qa-inspections':
         return { parent: 'Quality Assurance', current: 'Inspections' };
+      case 'qa-consignments':
+        return { parent: 'Quality Assurance', current: 'Consignment QA' };
+      case 'qa-quantity-approvals':
+        return { parent: 'Quality Assurance', current: 'Quantity Approvals' };
       case 'alerts-notifications':
         return { parent: 'Alerts & Reports', current: 'Notifications' };
       case 'reports':
         return { parent: 'Alerts & Reports', current: 'Reports' };
+      case 'reports-inspections':
+        return { parent: 'Alerts & Reports', current: 'Inspection Report' };
       default:
         return { parent: 'Dashboards', current: 'Traffic overview' };
     }

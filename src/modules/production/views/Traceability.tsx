@@ -1,30 +1,55 @@
 import { useState } from 'react';
-import { Network, Search, PackageSearch, Factory, Truck, Boxes, AlertTriangle } from 'lucide-react';
+import {
+  Network,
+  Search,
+  PackageSearch,
+  Factory,
+  Truck,
+  Boxes,
+  AlertTriangle,
+  ArrowDownRight,
+  Cog,
+  ClipboardList,
+  RotateCcw,
+} from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
-interface Material {
+interface BatchMatch {
   id: string;
-  name: string;
-  sku: string;
-  type: string;
-  unitOfMeasure: string;
+  batchNumber: string;
+  status: string;
+  manufacturingDate?: string | null;
+  expiryDate?: string | null;
+  material: { id: string; name: string; sku: string; type: string; unitOfMeasure: string };
+  origin: 'PRODUCTION_ORDER' | 'PRODUCTION_PLAN' | 'INBOUND' | 'UNKNOWN';
 }
 
-interface InboundInfo {
+interface Inbound {
   grnNumber: string;
+  grnStatus: string;
   receivedAt: string;
   quantity: number;
   unitOfMeasure: string;
-  poNumber: string;
+  poNumber: string | null;
   orderDate?: string | null;
+  consignmentNumber: string | null;
+  warehouse?: { id: string; name: string } | null;
   supplier?: { id: string; name: string; contactPerson?: string | null } | null;
+  via: 'PO' | 'CONSIGNMENT' | 'UNKNOWN';
 }
 
-interface RawBatch {
-  batch: { id: string; batchNumber: string; status: string; expiryDate?: string | null; manufacturingDate?: string | null };
-  inbound: InboundInfo | null;
+interface StageInfo {
+  inputQuantity: number;
+  achievedQuantity: number;
+  remainderQuantity: number;
+  unitOfMeasure: string;
+  machineId?: string | null;
+  batchNumber?: string | null;
+  productionDate: string;
+  status: string;
+  remainders: Array<{ materialId: string; quantity: number; unitOfMeasure: string }>;
 }
 
 interface TraceTree {
@@ -34,28 +59,63 @@ interface TraceTree {
     status: string;
     manufacturingDate?: string | null;
     expiryDate?: string | null;
-    material: Material;
+    material: { id: string; name: string; sku: string; type: string; unitOfMeasure: string };
   };
-  inbound: InboundInfo | null;
-  producedBy: {
-    orderNumber: string;
-    targetQuantity: number;
-    actualYield: number | null;
-    completedAt?: string | null;
-    bomId: string;
-    bomProductName: string;
-    bomVersion: number;
-  } | null;
+  origin: BatchMatch['origin'];
+  inbound: Inbound | null;
+  producedBy:
+    | {
+        source: 'PRODUCTION_ORDER' | 'PRODUCTION_PLAN';
+        orderNumber: string | null;
+        planNumber: string | null;
+        planStatus?: string | null;
+        productName: string | null;
+        targetQuantity: number;
+        actualYield: number | null;
+        completedAt?: string | null;
+        bomId: string | null;
+      }
+    | null;
+  stages: { grinding: StageInfo | null; finishing: StageInfo | null };
   ingredients: Array<{
     materialId: string;
-    materialName: string;
-    sku: string;
-    type: string;
+    materialName: string | null;
+    sku: string | null;
+    type: string | null;
     quantity: number;
     unitOfMeasure: string;
     isPercentage: boolean;
-    rawBatches: RawBatch[];
+    source: 'GRINDING_INPUTS' | 'PLAN_ISSUE' | 'PROD_CONSUMPTION' | null;
+    rawBatches: Array<{
+      batch: { id: string; batchNumber: string; status: string; expiryDate?: string | null; manufacturingDate?: string | null };
+      inbound: Inbound | null;
+    }>;
   }>;
+  downstream: {
+    usedInFinishedBatches: Array<{
+      via: 'GRINDING' | 'ORDER_RELEASE';
+      planNumber: string | null;
+      orderNumber?: string | null;
+      productName: string | null;
+      materialName: string | null;
+      sku: string | null;
+      batchLotId: string | null;
+      batchNumber: string | null;
+      quantity: number;
+    }>;
+    movements: Array<{
+      id: string;
+      eventType: string;
+      quantity: number;
+      unitOfMeasure: string;
+      warehouseName: string | null;
+      referenceType: string | null;
+      referenceId: string | null;
+      createdBy: string | null;
+      createdAt: string;
+      notes: string | null;
+    }>;
+  };
 }
 
 const statusBadge: Record<string, string> = {
@@ -65,27 +125,62 @@ const statusBadge: Record<string, string> = {
   EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
+const originLabel: Record<BatchMatch['origin'], string> = {
+  PRODUCTION_ORDER: 'Made by production order',
+  PRODUCTION_PLAN: 'Made by production plan',
+  INBOUND: 'Received from supplier',
+  UNKNOWN: 'Origin unknown',
+};
+
+const sourceLabel: Record<string, string> = {
+  GRINDING_INPUTS: 'Exact ground batches',
+  PLAN_ISSUE: 'Issued to plan (plan-level)',
+  PROD_CONSUMPTION: 'Consumed by order',
+};
+
 export default function Traceability({ searchQuery: _searchQuery = '' }: { searchQuery?: string }) {
-  const [batchNumber, setBatchNumber] = useState('');
-  const [searched, setSearched] = useState('');
+  const [term, setTerm] = useState('');
+  const [matches, setMatches] = useState<BatchMatch[]>([]);
   const [tree, setTree] = useState<TraceTree | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searched, setSearched] = useState('');
 
-  const runTrace = async (value: string) => {
-    const term = value.trim();
-    if (!term) return;
+  const loadTree = async (batchId: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axiosClient.get<{ tree: TraceTree }>(`/traceability/batch/${batchId}`);
+      setTree(res.data.tree);
+    } catch (err: any) {
+      setTree(null);
+      setError(err?.response?.data?.error || 'Failed to build trace');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runSearch = async (value: string) => {
+    const q = value.trim();
+    if (!q) return;
     setLoading(true);
     setError('');
     setTree(null);
-    setSearched(term);
+    setMatches([]);
+    setSearched(q);
     try {
-      const res = await axiosClient.get<{ tree: TraceTree }>('/production/trace', {
-        params: { batchNumber: term },
+      const res = await axiosClient.get<{ matches: BatchMatch[] }>('/traceability/search', {
+        params: { q },
       });
-      setTree(res.data.tree);
+      const found = res.data.matches || [];
+      setMatches(found);
+      if (found.length === 0) {
+        setError(`No batches match "${q}".`);
+      } else if (found.length === 1) {
+        await loadTree(found[0].id);
+      }
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Batch not found. Is the backend running?');
+      setError(err?.response?.data?.error || 'Search failed');
     } finally {
       setLoading(false);
     }
@@ -93,29 +188,31 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    runTrace(batchNumber);
+    runSearch(term);
   };
 
   return (
-    <div className="w-full mx-auto space-y-6">
-      {/* 1. Action Header */}
+    <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Batch Traceability</h2>
-          <p className="text-[#737373] text-xs">Finished batch → production order → ingredients → raw batches → suppliers.</p>
+          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Traceability</h2>
+          <p className="text-[#737373] text-xs">
+            Trace any raw material, ingredient or finished good — upstream to the supplier and downstream to
+            finished goods.
+          </p>
         </div>
         <form onSubmit={submit} className="flex gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
-              value={batchNumber}
-              onChange={(e) => setBatchNumber(e.target.value)}
-              placeholder="Enter batch number…"
-              className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-56 focus:outline-none focus:border-[#EA4335]"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Batch number, material or SKU…"
+              className="h-9 w-64 rounded-lg border border-[#E9E9E9] bg-white pl-9 pr-3 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
             />
           </div>
           <button type="submit" className="btn-3d px-4 h-9">
-            <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
               <Network className="w-3.5 h-3.5" /> Trace
             </span>
           </button>
@@ -123,63 +220,86 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {error}
+        </div>
       )}
 
       {loading && (
         <div className="space-y-4">
-          <div className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-9 h-9 rounded-lg" />
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-16 rounded" />
+          <div className="space-y-3 rounded-xl border border-[#E9E9E9] bg-white p-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+          <div className="space-y-3 rounded-xl border border-[#E9E9E9] bg-white p-4">
+            <Skeleton className="h-3 w-56" />
+            <Skeleton className="h-3 w-72" />
+          </div>
+        </div>
+      )}
+
+      {/* Match list (batch numbers are only unique per material) */}
+      {!loading && matches.length > 1 && (
+        <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {matches.length} matches for “{searched}” — pick one
+            </p>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {matches.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => loadTree(m.id)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#171717]">{m.batchNumber}</p>
+                  <p className="truncate text-[10px] text-slate-400">
+                    {m.material?.name} · <span className="font-mono">{m.material?.sku}</span> ·{' '}
+                    {originLabel[m.origin]}
+                  </p>
                 </div>
-                <Skeleton className="h-2.5 w-48" />
-              </div>
-            </div>
-            <Skeleton className="h-2 w-64" />
-          </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-2">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-9 h-9 rounded-lg" />
-              <div className="space-y-1.5 flex-1">
-                <Skeleton className="h-3 w-56" />
-                <Skeleton className="h-2 w-72" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3">
-            <Skeleton className="h-3 w-40" />
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Skeleton className="w-6 h-6 rounded" />
-                <Skeleton className="h-2 w-40" />
-                <Skeleton className="h-2 w-16" />
-              </div>
+                <span
+                  className={`shrink-0 rounded border px-2 py-0.5 text-[9px] font-bold ${
+                    statusBadge[m.status] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                  }`}
+                >
+                  {m.status}
+                </span>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* 2. Trace Tree */}
       {tree && !loading && (
         <div className="space-y-4">
-          {/* Root: the batch */}
-          <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
+          {/* Root */}
+          <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
-                  <PackageSearch className="w-4 h-4 text-[#EA4335]" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EA4335]/10">
+                  <PackageSearch className="h-4 w-4 text-[#EA4335]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-[#171717]">{tree.batch.batchNumber}</p>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[tree.batch.status]}`}>{tree.batch.status}</span>
+                    <span
+                      className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        statusBadge[tree.batch.status] ?? statusBadge.ACTIVE
+                      }`}
+                    >
+                      {tree.batch.status}
+                    </span>
+                    <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                      {originLabel[tree.origin]}
+                    </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    {tree.batch.material.name} · <span className="font-mono">{tree.batch.material.sku}</span>
+                    {tree.batch.material.name} ·{' '}
+                    <span className="font-mono">{tree.batch.material.sku}</span> · {tree.batch.material.type}
                   </p>
                 </div>
               </div>
@@ -192,119 +312,262 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Inbound (raw batch received from supplier) */}
-            {tree.inbound && (
-              <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <Truck className="w-3 h-3" /> Inbound Receipt
-                </p>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-[11px] text-slate-600">
-                  <span>GRN <b className="font-mono">{tree.inbound.grnNumber}</b></span>
+          {/* ---- UPSTREAM ---- */}
+          <SectionTitle icon={<ArrowDownRight className="h-3 w-3 rotate-180" />} label="Upstream — where it came from" />
+
+          {tree.inbound && (
+            <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+              <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                <Truck className="h-3 w-3" /> Inbound receipt ·{' '}
+                {tree.inbound.via === 'CONSIGNMENT' ? 'via Consignment' : tree.inbound.via === 'PO' ? 'via Purchase Order' : ''}
+              </p>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-slate-600">
+                <span>GRN <b className="font-mono">{tree.inbound.grnNumber}</b></span>
+                {tree.inbound.poNumber && (
                   <span>PO <b className="font-mono">{tree.inbound.poNumber}</b></span>
-                  <span>Supplier <b>{tree.inbound.supplier?.name ?? '—'}</b></span>
-                  <span>Qty <b>{tree.inbound.quantity} {tree.inbound.unitOfMeasure}</b></span>
-                  <span>Received <b>{new Date(tree.inbound.receivedAt).toLocaleDateString()}</b></span>
+                )}
+                {tree.inbound.consignmentNumber && (
+                  <span>Consignment <b className="font-mono">{tree.inbound.consignmentNumber}</b></span>
+                )}
+                <span>Supplier <b>{tree.inbound.supplier?.name ?? '—'}</b></span>
+                <span>Qty <b>{tree.inbound.quantity} {tree.inbound.unitOfMeasure}</b></span>
+                <span>Received <b>{new Date(tree.inbound.receivedAt).toLocaleDateString()}</b></span>
+              </div>
+            </div>
+          )}
+
+          {tree.producedBy && (
+            <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50">
+                  <Factory className="h-4 w-4 text-amber-600" />
                 </div>
+                <div>
+                  <p className="text-xs font-bold text-[#171717]">
+                    {tree.producedBy.source === 'PRODUCTION_PLAN'
+                      ? `Produced by plan ${tree.producedBy.planNumber}`
+                      : `Produced by order ${tree.producedBy.orderNumber}`}
+                    {tree.producedBy.productName && (
+                      <span className="ml-2 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                        {tree.producedBy.productName}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Required {tree.producedBy.targetQuantity} · Achieved {tree.producedBy.actualYield ?? '—'}
+                    {tree.producedBy.completedAt && (
+                      <> · Completed {new Date(tree.producedBy.completedAt).toLocaleDateString()}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stages */}
+          {(tree.stages.grinding || tree.stages.finishing) && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {tree.stages.grinding && <StageCard title="Grinding" icon={<Cog className="h-3.5 w-3.5" />} stage={tree.stages.grinding} />}
+              {tree.stages.finishing && <StageCard title="Finishing" icon={<ClipboardList className="h-3.5 w-3.5" />} stage={tree.stages.finishing} />}
+            </div>
+          )}
+
+          {/* Ingredients */}
+          {tree.ingredients.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <Boxes className="h-3 w-3" /> Ingredients &amp; raw batches
+                </p>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {tree.ingredients.map((ing) => (
+                  <div key={ing.materialId} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">{ing.materialName ?? ing.materialId}</p>
+                        <p className="text-[9px] font-mono text-slate-400">{ing.sku ?? ''}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] font-mono text-slate-500">
+                          {ing.quantity}{ing.isPercentage ? '%' : ''} {ing.unitOfMeasure}
+                        </span>
+                        {ing.source && (
+                          <p className="text-[9px] text-slate-400">{sourceLabel[ing.source]}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1.5 border-l-2 border-slate-100 pl-3">
+                      {ing.rawBatches.length === 0 && (
+                        <p className="text-[10px] text-slate-400">No batch-lot consumption traced.</p>
+                      )}
+                      {ing.rawBatches.map((rb) => (
+                        <div key={rb.batch.id} className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold text-slate-600">{rb.batch.batchNumber}</span>
+                            <span
+                              className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                                statusBadge[rb.batch.status] ?? statusBadge.ACTIVE
+                              }`}
+                            >
+                              {rb.batch.status}
+                            </span>
+                            {rb.batch.expiryDate && (
+                              <span className="text-[9px] text-slate-400">
+                                exp {new Date(rb.batch.expiryDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          {rb.inbound ? (
+                            <p className="mt-0.5 text-[10px] text-slate-400">
+                              ← {rb.inbound.via === 'CONSIGNMENT' ? 'Consignment' : 'GRN'}{' '}
+                              <b className="font-mono">{rb.inbound.consignmentNumber ?? rb.inbound.grnNumber}</b>
+                              {rb.inbound.poNumber && <> · PO <b className="font-mono">{rb.inbound.poNumber}</b></>} ·{' '}
+                              {rb.inbound.supplier?.name ?? '—'}
+                            </p>
+                          ) : (
+                            <p className="mt-0.5 text-[10px] text-slate-400">← no inbound GRN traced</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ---- DOWNSTREAM ---- */}
+          <SectionTitle icon={<ArrowDownRight className="h-3 w-3" />} label="Downstream — where it went" />
+
+          <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <Factory className="h-3 w-3" /> Used in finished batches
+              </p>
+            </div>
+            {tree.downstream.usedInFinishedBatches.length === 0 ? (
+              <p className="px-4 py-3 text-[11px] text-slate-400">
+                Not consumed by any finished batch yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {tree.downstream.usedInFinishedBatches.map((d, idx) => (
+                  <div key={`${d.batchLotId}-${idx}`} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">{d.batchNumber ?? '—'}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {d.materialName ?? '—'}
+                        {d.productName ? ` · ${d.productName}` : ''}
+                        {d.planNumber ? ` · plan ${d.planNumber}` : ''}
+                        {d.orderNumber ? ` · order ${d.orderNumber}` : ''}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-mono text-slate-500">{d.quantity}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400">
+                        {d.via === 'GRINDING' ? 'grinding input' : 'order release'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Production lineage */}
-          {tree.producedBy ? (
-            <div className="space-y-3">
-              <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-                    <Factory className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#171717]">
-                      Produced by {tree.producedBy.orderNumber}
-                      <span className="ml-2 text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
-                        BOM v{tree.producedBy.bomVersion} — {tree.producedBy.bomProductName}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Target {tree.producedBy.targetQuantity} · Actual {tree.producedBy.actualYield ?? '—'}
-                      {tree.producedBy.completedAt && (
-                        <> · Completed {new Date(tree.producedBy.completedAt).toLocaleDateString()}</>
-                      )}
-                    </p>
-                  </div>
-                </div>
+          {/* Movements */}
+          {tree.downstream.movements.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <RotateCcw className="h-3 w-3" /> Stock movements
+                </p>
               </div>
-
-              {/* Ingredient branches */}
-              <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <Boxes className="w-3 h-3" /> Ingredient Batches Consumed
-                  </p>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {tree.ingredients.map((ing) => (
-                    <div key={ing.materialId} className="px-4 py-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-slate-700">{ing.materialName}</p>
-                          <p className="text-[9px] font-mono text-slate-400">{ing.sku}</p>
-                        </div>
-                        <span className="text-[11px] font-mono text-slate-500">
-                          {ing.quantity}{ing.isPercentage ? '%' : ''} {ing.unitOfMeasure}
-                        </span>
-                      </div>
-                      <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-slate-100">
-                        {ing.rawBatches.length === 0 && (
-                          <p className="text-[10px] text-slate-400">No batch-lot consumption traced.</p>
-                        )}
-                        {ing.rawBatches.map((rb) => (
-                          <div key={rb.batch.id} className="rounded-lg bg-slate-50/70 border border-slate-100 px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono font-bold text-slate-600">{rb.batch.batchNumber}</span>
-                              <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${statusBadge[rb.batch.status]}`}>{rb.batch.status}</span>
-                              {rb.batch.expiryDate && (
-                                <span className="text-[9px] text-slate-400">exp {new Date(rb.batch.expiryDate).toLocaleDateString()}</span>
-                              )}
-                            </div>
-                            {rb.inbound ? (
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                ← GRN <b className="font-mono">{rb.inbound.grnNumber}</b> · PO <b className="font-mono">{rb.inbound.poNumber}</b> ·{' '}
-                                {rb.inbound.supplier?.name ?? '—'}
-                              </p>
-                            ) : (
-                              <p className="text-[10px] text-slate-400 mt-0.5">← no inbound GRN traced</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-2 font-semibold">Date</th>
+                      <th className="px-4 py-2 font-semibold">Event</th>
+                      <th className="px-4 py-2 font-semibold">Qty</th>
+                      <th className="px-4 py-2 font-semibold">Warehouse</th>
+                      <th className="px-4 py-2 font-semibold">Reference</th>
+                      <th className="px-4 py-2 font-semibold">By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tree.downstream.movements.map((m) => (
+                      <tr key={m.id} className="border-b border-slate-50">
+                        <td className="px-4 py-2 text-[10px] text-slate-500">
+                          {new Date(m.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-2 text-[10px] font-semibold text-slate-600">{m.eventType}</td>
+                        <td className="px-4 py-2 text-[10px] font-mono text-slate-600">
+                          {m.quantity} {m.unitOfMeasure}
+                        </td>
+                        <td className="px-4 py-2 text-[10px] text-slate-500">{m.warehouseName ?? '—'}</td>
+                        <td className="px-4 py-2 text-[10px] text-slate-500">
+                          {m.referenceType ?? '—'}
+                        </td>
+                        <td className="px-4 py-2 text-[10px] text-slate-500">{m.createdBy ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ) : (
-            !tree.inbound && (
-              <div className="bg-white border border-[#E9E9E9] rounded-xl py-10 text-center text-[11px] text-slate-400 flex flex-col items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                This batch has no linked production order or inbound receipt — it may be a manually entered batch.
-              </div>
-            )
           )}
         </div>
       )}
 
-      {searched && !tree && !loading && !error && (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl">
-          <EmptyState title={`No trace data for "${searched}".`} hint="Check the batch number and try again." />
+      {!searched && !tree && !loading && !error && (
+        <div className="rounded-xl border border-[#E9E9E9] bg-white">
+          <EmptyState
+            title="No batch selected."
+            hint="Search any batch number, material name or SKU to trace it end to end."
+          />
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* 3. Initial state — nothing searched yet */}
-      {!searched && !tree && !loading && !error && (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl">
-          <EmptyState title="No batch selected." hint="Enter a finished batch number above and hit Trace to see its full lineage." />
-        </div>
+function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 px-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      {icon}
+      {label}
+    </div>
+  );
+}
+
+function StageCard({
+  title,
+  icon,
+  stage,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  stage: StageInfo;
+}) {
+  return (
+    <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+      <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+        {icon} {title} · {stage.status}
+      </p>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-600">
+        <span>In <b>{stage.inputQuantity}</b></span>
+        <span>Out <b>{stage.achievedQuantity}</b></span>
+        <span>Remainder <b>{stage.remainderQuantity}</b></span>
+        {stage.batchNumber && <span>Batch <b className="font-mono">{stage.batchNumber}</b></span>}
+        <span>{new Date(stage.productionDate).toLocaleDateString()}</span>
+      </div>
+      {stage.remainders.length > 0 && (
+        <p className="mt-2 text-[10px] text-slate-400">
+          Returned to store: {stage.remainders.map((r) => `${r.quantity} ${r.unitOfMeasure}`).join(', ')}
+        </p>
       )}
     </div>
   );

@@ -22,11 +22,18 @@ import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
 import Traceability from './modules/production/views/Traceability';
 import SupervisorDashboard from './modules/production/supervisor/SupervisorDashboard';
+import StockIssue from './modules/production/line/StockIssue';
+import GrindingStation from './modules/production/line/GrindingStation';
+import FinishingStation from './modules/production/line/FinishingStation';
 import Machines from './modules/machines/views/Machines';
 import Inspections from './modules/qa/views/Inspections';
+import ConsignmentQA from './modules/qa/ConsignmentQA';
+import QuantityApprovals from './modules/qa/QuantityApprovals';
 import Notifications from './modules/alerts/views/Notifications';
 import AuditTrail from './modules/admin/views/AuditTrail';
 import Reports from './modules/reports/views/Reports';
+import InspectionReport from './modules/reports/views/InspectionReport';
+import CostManagementDashboard from './modules/costManagement/views/CostManagementDashboard';
 
 /**
  * URL routes for every dashboard page. Keys are the view ids used by the
@@ -51,11 +58,18 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
   'prod-supervisor': { path: '/production/supervisor', parent: 'Production', label: 'Production Supervisor' },
+  'prod-issue': { path: '/production/stock-issue', parent: 'Production', label: 'Stock Issue' },
+  'prod-grinding': { path: '/production/grinding', parent: 'Production', label: 'Grinding Station' },
+  'prod-finishing': { path: '/production/finishing', parent: 'Production', label: 'Finishing Station' },
   'machines': { path: '/machines', parent: 'Assets', label: 'Machines & Assets' },
   'qa-inspections': { path: '/quality/inspections', parent: 'Quality Assurance', label: 'Inspections' },
+  'qa-consignments': { path: '/quality/consignment-checks', parent: 'Quality Assurance', label: 'Consignment QA' },
+  'qa-quantity-approvals': { path: '/quality/quantity-approvals', parent: 'Quality Assurance', label: 'Quantity Approvals' },
   'alerts-notifications': { path: '/alerts/notifications', parent: 'Alerts & Reports', label: 'Notifications' },
   'admin-audit': { path: '/admin/audit', parent: 'Alerts & Reports', label: 'Audit Trail' },
   reports: { path: '/reports', parent: 'Alerts & Reports', label: 'Reports' },
+  'reports-inspections': { path: '/reports/inspections', parent: 'Alerts & Reports', label: 'Inspection Report' },
+  'cost-management': { path: '/cost-management', parent: 'Finance', label: 'Cost Management' },
 };
 
 const PATH_TO_VIEW: Record<string, string> = Object.fromEntries(
@@ -257,6 +271,24 @@ export default function App() {
             <SupervisorDashboard />
           </RoleGuard>
         );
+      case 'prod-issue':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-issue">
+            <StockIssue />
+          </RoleGuard>
+        );
+      case 'prod-grinding':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-grinding">
+            <GrindingStation />
+          </RoleGuard>
+        );
+      case 'prod-finishing':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-finishing">
+            <FinishingStation />
+          </RoleGuard>
+        );
       case 'machines':
         return (
           <RoleGuard userRole={user.role} viewId="machines">
@@ -267,6 +299,18 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="qa-inspections">
             <Inspections searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'qa-consignments':
+        return (
+          <RoleGuard userRole={user.role} viewId="qa-consignments">
+            <ConsignmentQA />
+          </RoleGuard>
+        );
+      case 'qa-quantity-approvals':
+        return (
+          <RoleGuard userRole={user.role} viewId="qa-quantity-approvals">
+            <QuantityApprovals />
           </RoleGuard>
         );
       case 'alerts-notifications':
@@ -285,6 +329,18 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="reports">
             <Reports searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'reports-inspections':
+        return (
+          <RoleGuard userRole={user.role} viewId="reports-inspections">
+            <InspectionReport />
+          </RoleGuard>
+        );
+      case 'cost-management':
+        return (
+          <RoleGuard userRole={user.role} viewId="cost-management">
+            <CostManagementDashboard />
           </RoleGuard>
         );
       default:

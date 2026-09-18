@@ -11,8 +11,10 @@ export interface DbUserTable {
     | 'STORE_OFFICER'
     | 'PRODUCTION_MANAGER'
     | 'PRODUCTION_SUPERVISOR'
+    | 'GRINDING_SUPERVISOR'
     | 'PROCUREMENT_OFFICER'
-    | 'QA_INSPECTOR'
+    | 'QC'
+    | 'HEAD_OF_QC'
     | 'OPERATOR'
     | 'TECHNICIAN';
   is_active: boolean;

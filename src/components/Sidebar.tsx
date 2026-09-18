@@ -80,6 +80,9 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: FlaskConical,
       items: [
         { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
+        { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
+        { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
+        { id: 'prod-finishing', name: 'Finishing Station', icon: ClipboardList },
         { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
         { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
@@ -100,6 +103,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: ShieldCheck,
       items: [
         { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
+        { id: 'qa-consignments', name: 'Consignment QA', icon: ShieldCheck },
+        { id: 'qa-quantity-approvals', name: 'Quantity Approvals', icon: ClipboardList },
       ],
     },
     {
@@ -109,6 +114,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       items: [
         { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
         { id: 'reports', name: 'Reports', icon: BarChart3 },
+        { id: 'reports-inspections', name: 'Inspection Report', icon: BarChart3 },
       ],
     },
   ];
@@ -129,13 +135,19 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
     { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
+    { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
+    { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
+    { id: 'prod-finishing', name: 'Finishing Station', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
     { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'prod-trace', name: 'Traceability', icon: Network },
     { id: 'machines', name: 'Machines & Assets', icon: Boxes },
     { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
+    { id: 'qa-consignments', name: 'Consignment QA', icon: ShieldCheck },
+    { id: 'qa-quantity-approvals', name: 'Quantity Approvals', icon: ClipboardList },
     { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
     { id: 'reports', name: 'Reports', icon: BarChart3 },
+    { id: 'reports-inspections', name: 'Inspection Report', icon: BarChart3 },
   ];
 
   const allowedViews = user ? rolePermissions[user.role] : [];

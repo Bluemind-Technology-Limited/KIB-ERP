@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Truck, Plus, ChevronDown, ChevronRight, CheckCircle2, Trash2, Boxes } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Truck, Plus, ChevronDown, ChevronRight, CheckCircle2, Trash2, Boxes, ShieldCheck } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useAuthStore } from '../../../stores/useAuthStore';
+import { rolePermissions } from '../../../components/routing/RoleGuard';
 
 interface Material {
   id: string;
@@ -73,6 +76,14 @@ interface Consignment {
     totalItems: number;
     passedItems: number;
     failedItems: number;
+    checkItems?: {
+      id: string;
+      consignmentItemId: string;
+      checkType: string;
+      status: string;
+      result?: string | null;
+      remarks?: string | null;
+    }[];
   };
 }
 
@@ -98,6 +109,9 @@ const qualityStatusBadge: Record<string, string> = {
 const emptyItem = { materialId: '', quantity: '' };
 
 export default function Consignments({ searchQuery = '' }: { searchQuery?: string }) {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canOpenQA = !!user && (rolePermissions[user.role]?.includes('qa-consignments') ?? false);
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -395,23 +409,51 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                     <div className="space-y-2">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Items in Consignment</div>
                       <div className="space-y-2">
-                        {csn.items.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-slate-100 p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1">
-                                <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
-                                <p className="text-[10px] text-slate-400 mt-1">
-                                  Total: <b>{item.quantity}</b> {item.unitOfMeasure} • Distributed: <b>{item.distributedQty}</b>
-                                </p>
-                              </div>
-                              {item.quantity > item.distributedQty && (
-                                <div className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                                  {Number(item.quantity - item.distributedQty).toFixed(2)} pending
+                        {csn.items.map((item) => {
+                          const checks = (csn.qualityApproval?.checkItems ?? []).filter(
+                            (check) => check.consignmentItemId === item.id
+                          );
+                          const hasFail = checks.some((check) => check.result === 'FAIL');
+                          const allDone =
+                            checks.length > 0 &&
+                            checks.every((check) => check.result === 'PASS' || check.result === 'FAIL');
+                          const qaBadge = hasFail
+                            ? 'bg-rose-50 text-rose-600 border-rose-200'
+                            : allDone
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-100 text-slate-500 border-slate-200';
+                          const qaLabel = hasFail ? 'QA FAIL' : allDone ? 'QA PASS' : 'QA PENDING';
+
+                          return (
+                            <div key={item.id} className="rounded-lg border border-slate-100 p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1">
+                                  <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">
+                                    Total: <b>{item.quantity}</b> {item.unitOfMeasure} • Distributed: <b>{item.distributedQty}</b>
+                                  </p>
+                                  {checks.length > 0 && (
+                                    <p className="text-[9px] text-slate-400 mt-1">
+                                      {checks
+                                        .map((check) => `${check.checkType.replace(/_/g, ' ')}: ${check.result ?? 'PENDING'}`)
+                                        .join(' · ')}
+                                    </p>
+                                  )}
                                 </div>
-                              )}
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${qaBadge}`}>
+                                    {qaLabel}
+                                  </span>
+                                  {item.quantity > item.distributedQty && (
+                                    <div className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                                      {Number(item.quantity - item.distributedQty).toFixed(2)} pending
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -443,6 +485,15 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                           <span className="text-[10px] font-semibold text-orange-700">⏳ Awaiting QA Approval</span>
                         </div>
                       )}
+                      {canOpenQA &&
+                        ['RECEIVED', 'QUALITY_PENDING', 'QUALITY_APPROVED'].includes(csn.status) && (
+                          <button
+                            onClick={() => navigate(`/quality/consignment-checks?consignment=${csn.id}`)}
+                            className="flex items-center gap-1 px-3 h-7 rounded-lg border border-[#AA3BFF]/30 text-[#AA3BFF] text-[10px] font-semibold hover:bg-[#AA3BFF]/5"
+                          >
+                            <ShieldCheck className="w-3 h-3" /> Open QA Checks
+                          </button>
+                        )}
                     </div>
                   </div>
                 )}

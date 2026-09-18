@@ -313,9 +313,12 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                   <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="EXECUTIVE_ADMIN">Executive Admin</option>
                   <option value="PRODUCTION_MANAGER">Production Manager</option>
-                  <option value="STORE_OFFICER">Store Officer</option>
+                  <option value="PRODUCTION_SUPERVISOR">Production Supervisor</option>
+                  <option value="GRINDING_SUPERVISOR">Grinding Supervisor</option>
+                  <option value="STORE_OFFICER">Store Officer (Stock Manager)</option>
                   <option value="PROCUREMENT_OFFICER">Procurement Officer</option>
-                  <option value="QA_INSPECTOR">QA Inspector</option>
+                  <option value="QC">QC</option>
+                  <option value="HEAD_OF_QC">Head of QC</option>
                 </select>
               </div>
 
@@ -396,9 +399,12 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                   <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="EXECUTIVE_ADMIN">Executive Admin</option>
                   <option value="PRODUCTION_MANAGER">Production Manager</option>
-                  <option value="STORE_OFFICER">Store Officer</option>
+                  <option value="PRODUCTION_SUPERVISOR">Production Supervisor</option>
+                  <option value="GRINDING_SUPERVISOR">Grinding Supervisor</option>
+                  <option value="STORE_OFFICER">Store Officer (Stock Manager)</option>
                   <option value="PROCUREMENT_OFFICER">Procurement Officer</option>
-                  <option value="QA_INSPECTOR">QA Inspector</option>
+                  <option value="QC">QC</option>
+                  <option value="HEAD_OF_QC">Head of QC</option>
                 </select>
               </div>
 
