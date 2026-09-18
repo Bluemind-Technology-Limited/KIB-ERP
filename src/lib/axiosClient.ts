@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAccessToken } from './supabase';
+import { normalizeAndToastRejection, toastSuccessFor } from './responseFeedback';
 
 // Axios client pointing at the KIB ERP backend (backend/App, Express + TS).
 // baseURL: VITE_API_URL may be set to the backend origin (http://localhost:3002)
@@ -21,4 +22,17 @@ axiosClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Success feedback (mutating requests) + normalised error feedback, so no raw
+// backend text ever reaches the UI. See lib/responseFeedback.ts.
+axiosClient.interceptors.response.use(
+  (response) => {
+    toastSuccessFor(response);
+    return response;
+  },
+  (error) => {
+    normalizeAndToastRejection(error);
+    return Promise.reject(error);
+  }
 );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { useCostManagementStore } from '../../../stores/useCostManagementStore';
 import type { EntityType, CostChangeRequest } from '../../../types/costManagement';
+import { toast } from '../../../stores/useToastStore';
 
 interface CostEditModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function CostEditModal({
     e.preventDefault();
 
     if (!formData.newValue || !formData.reason) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 

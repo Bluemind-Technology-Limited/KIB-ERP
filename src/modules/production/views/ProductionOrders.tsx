@@ -17,7 +17,7 @@ interface BomIngredientOption {
 interface BomVersionOption {
   id: string;
   bomId: string;
-  version: number;
+  version?: number;
   expectedYield: number;
   yieldUnit: string;
   status: string;
@@ -41,8 +41,8 @@ interface ProductionOrder {
   scheduledStart?: string | null;
   actualEnd?: string | null;
   createdAt: string;
-  bomVersion?: {
-    bom?: { productName: string };
+  bom?: {
+    productName: string;
     finishedSku?: { name: string; sku: string } | null;
   } | null;
   machine?: { name: string; code: string } | null;
@@ -121,35 +121,39 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     try {
       const [orderRes, bomRes, machineRes, shiftRes, whRes, matRes] = await Promise.all([
         axiosClient.get<{ productionOrders: ProductionOrder[] }>('/production/production-orders'),
-        axiosClient.get<{ boms: any[] }>('/production/boms'),
+        axiosClient.get<{ batchFormulations: any[] }>('/production/batch-formulations'),
         axiosClient.get<{ machines: Machine[] }>('/production/machines'),
         axiosClient.get<{ shifts: Shift[] }>('/production/shifts'),
         axiosClient.get<{ warehouses: Warehouse[] }>('/master-data/warehouses'),
         axiosClient.get<{ materials: MaterialOption[] }>('/master-data/materials'),
       ]);
       setOrders(orderRes.data.productionOrders);
+      // Batch formulations are flat (no versions). Only ACTIVE ones are usable:
+      // the backend rejects anything else when creating an order.
       setBomOptions(
-        bomRes.data.boms.flatMap((bom) =>
-          (bom.versions ?? [])
-            .filter((v: any) => v.status === 'APPROVED' || v.status === 'ACTIVE')
-            .map((v: any) => ({
-              id: v.id,
-              bomId: bom.id,
-              version: v.version,
-              expectedYield: Number(v.expectedYield),
-              yieldUnit: v.yieldUnit,
-              status: v.status,
-              productName: bom.productName,
-              finishedSku: v.finishedSku ?? null,
-              ingredients: (v.ingredients ?? []).map((ing: any) => ({
-                id: ing.id,
-                quantity: Number(ing.quantity),
-                unitOfMeasure: ing.unitOfMeasure,
-                isPercentage: ing.isPercentage,
-                material: { id: ing.material.id, name: ing.material.name, sku: ing.material.sku, unitOfMeasure: ing.material.unitOfMeasure },
-              })),
-            }))
-        )
+        (bomRes.data.batchFormulations ?? [])
+          .filter((bom: any) => bom.status === 'ACTIVE')
+          .map((bom: any) => ({
+            id: bom.id,
+            bomId: bom.id,
+            expectedYield: Number(bom.expectedYield),
+            yieldUnit: bom.yieldUnit,
+            status: bom.status,
+            productName: bom.productName,
+            finishedSku: bom.finishedSku ?? null,
+            ingredients: (bom.ingredients ?? []).map((ing: any) => ({
+              id: ing.id,
+              quantity: Number(ing.quantity),
+              unitOfMeasure: ing.unitOfMeasure,
+              isPercentage: ing.isPercentage,
+              material: {
+                id: ing.material.id,
+                name: ing.material.name,
+                sku: ing.material.sku,
+                unitOfMeasure: ing.material.unitOfMeasure,
+              },
+            })),
+          }))
       );
       setMachines(machineRes.data.machines);
       setShifts(shiftRes.data.shifts);
@@ -157,7 +161,16 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       setMaterials(matRes.data.materials);
       setError('');
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to load production orders. Is the backend running?');
+      const apiMessage = err?.response?.data?.error;
+      if (apiMessage) {
+        setError(apiMessage);
+      } else if (err?.response) {
+        setError(`Failed to load production orders (HTTP ${err.response.status}).`);
+      } else if (err instanceof TypeError) {
+        setError(`Failed to load production orders: unexpected data from the server (${err.message}).`);
+      } else {
+        setError('Failed to load production orders. Check that the backend is running and reachable.');
+      }
     } finally {
       setLoading(false);
     }
@@ -219,7 +232,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         quantity: Number(wasteForm.quantity),
         unitOfMeasure: wasteForm.unitOfMeasure,
         notes: wasteForm.notes || undefined,
-      });
+      }, { toast: { success: 'Waste logged successfully' } });
       setShowWaste(false);
       setError('');
       load();
@@ -232,7 +245,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
   const createOrder = async () => {
     if (!form.bomVersionId || !form.targetQuantity) {
-      setError('Select a BOM version and enter the target quantity');
+      setError('Select a batch formulation and enter the target quantity');
       return;
     }
     setCreateConfirmation(true);
@@ -242,12 +255,12 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     setSaving(true);
     try {
       await axiosClient.post('/production/production-orders', {
-        bomVersionId: form.bomVersionId,
+        bomId: form.bomVersionId,
         targetQuantity: Number(form.targetQuantity),
         scheduledStart: form.scheduledStart || undefined,
         machineId: form.machineId || undefined,
         shiftId: form.shiftId || undefined,
-      });
+      }, { toast: { success: 'Production order created' } });
       setShowWizard(false);
       setCreateConfirmation(false);
       setError('');
@@ -318,7 +331,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             releasedQuantity: Number(r.releasedQuantity),
             batchLotId: r.batchLotId || null,
           }))
-        });
+        }, { toast: { success: 'Ingredients released successfully' } });
       } else if (action === 'mix') {
         if (!mixForm.mixUnits || Number(mixForm.mixUnits) <= 0) {
           setError('Enter a valid mix units quantity');
@@ -327,7 +340,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         }
         await axiosClient.post(`/production/production-orders/${actingOrder.id}/mix`, {
           mixUnits: Number(mixForm.mixUnits),
-        });
+        }, { toast: { success: 'Batch mix recorded' } });
       } else if (action === 'returns') {
         if (!actionForm.warehouseId) {
           setError('Select the warehouse to return raw materials to');
@@ -340,7 +353,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             id: r.id,
             returnedQuantity: Number(r.returnedQuantity)
           }))
-        });
+        }, { toast: { success: 'Returns submitted successfully' } });
       } else if (action === 'complete') {
         if (!actionForm.warehouseId || !actionForm.batchNumber || !actionForm.actualYield || !actionForm.finishedGoodsExpiryDate) {
           setError('Batch number, receiving warehouse, actual yield, and expiry date are required');
@@ -352,7 +365,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
           warehouseId: actionForm.warehouseId,
           actualYield: Number(actionForm.actualYield),
           finishedGoodsExpiryDate: actionForm.finishedGoodsExpiryDate,
-        });
+        }, { toast: { success: 'Batch completed successfully' } });
       }
       setActingOrder(null);
       setAction(null);
@@ -368,7 +381,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const filtered = orders.filter(
     (o) =>
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (o.bomVersion?.finishedSku?.name ?? o.bomVersion?.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      (o.bom?.finishedSku?.name ?? o.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const deleteProductionOrder = async (id: string) => {
@@ -379,7 +392,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     if (!deleteConfirmation) return;
     setIsDeleting(true);
     try {
-      await axiosClient.delete(`/production/production-orders/${deleteConfirmation}`);
+      await axiosClient.delete(`/production/production-orders/${deleteConfirmation}`, {
+        toast: { success: 'Production order deleted' },
+      });
       setDeleteConfirmation(null);
       load();
     } catch (err: any) {
@@ -453,8 +468,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-700">{o.bomVersion?.finishedSku?.name ?? o.bomVersion?.bom?.productName ?? '—'}</p>
-                      <p className="text-[9px] text-slate-400">{o.bomVersion?.finishedSku?.sku ?? ''}</p>
+                      <p className="text-xs font-semibold text-slate-700">{o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}</p>
+                      <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{Number(o.targetQuantity)}</td>
                     <td className="px-4 py-3">
@@ -599,7 +614,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {bomOptions.length === 0 && (
                     <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      No approved BOMs yet — approve a BOM version in the Batch Formulation screen first.
+                      No active batch formulations yet — set a formulation's status to ACTIVE in the Batch Formulation screen first.
                     </p>
                   )}
                   {bomOptions.length > 0 && filteredBomOptions.length === 0 && (
@@ -619,7 +634,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                           <div>
                             <p className="text-xs font-bold text-slate-700">{b.productName}</p>
                             <p className="text-[10px] text-slate-400">
-                              v{b.version} · {b.finishedSku?.name ?? ''} · Yield {b.expectedYield} {b.yieldUnit}
+                              {b.finishedSku?.name ?? ''} · Yield {b.expectedYield} {b.yieldUnit}
                             </p>
                           </div>
                           {selected ? (
@@ -645,7 +660,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       <p className="text-[11px] font-bold text-slate-700">{selectedBom.productName}</p>
                       <button type="button" onClick={() => { setStep(1); }} className="text-[9px] font-bold uppercase tracking-wider text-[#EA4335] hover:underline">Change</button>
                     </div>
-                    <p className="text-[10px] text-slate-400">v{selectedBom.version} · Yield {selectedBom.expectedYield} {selectedBom.yieldUnit}</p>
+                    <p className="text-[10px] text-slate-400">Yield {selectedBom.expectedYield} {selectedBom.yieldUnit}</p>
                   </div>
                 )}
                 <div className="space-y-3">
@@ -708,7 +723,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 </button>
               ) : <span />}
               {step === 1 ? (
-                <button onClick={() => form.bomVersionId ? setStep(2) : setError('Select a BOM version first')} className="btn-3d px-4 h-9">
+                <button onClick={() => form.bomVersionId ? setStep(2) : setError('Select a batch formulation first')} className="btn-3d px-4 h-9">
                   <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
                     Next <ChevronRight className="w-3.5 h-3.5" />
                   </span>
@@ -741,7 +756,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
             <p className="text-[11px] text-slate-500">
               <span className="font-mono font-bold text-slate-700">{actingOrder.orderNumber}</span> —{' '}
-              {actingOrder.bomVersion?.finishedSku?.name ?? actingOrder.bomVersion?.bom?.productName ?? ''}
+              {actingOrder.bom?.finishedSku?.name ?? actingOrder.bom?.productName ?? ''}
             </p>
 
             {action === 'release' && (
@@ -1016,7 +1031,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         <ConfirmationModal
           type="create"
           title="Create Production Order"
-          description="Create a new production order with the specified BOM version and target quantity."
+          description="Create a new production order with the specified batch formulation and target quantity."
           onConfirm={confirmCreateOrder}
           onCancel={() => setCreateConfirmation(false)}
           isLoading={saving}

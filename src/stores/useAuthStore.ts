@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { type User } from '../types';
 import { supabase } from '../lib/supabase';
 import { axiosClient } from '../lib/axiosClient';
+import { GENERIC_ERROR_MESSAGE } from '../lib/httpMessages';
 
 interface AuthState {
   user: User | null;
@@ -38,6 +39,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       try {
         const res = await axiosClient.get<{ user: User }>('/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
+          // The sign-in screen reports its own outcome — suppress the global toast.
+          toast: false,
         });
         appUser = res.data.user;
       } catch (err: any) {
@@ -49,11 +52,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             message: 'Signed in with Supabase, but no app profile was found. Run the backend seed script (pnpm db:seed).',
           };
         }
-        // Anything else is a network / server problem — surface the real cause.
-        return {
-          success: false,
-          message: `Could not reach the backend at ${axiosClient.defaults.baseURL}. ${err?.message || 'Network error'}`,
-        };
+        // Anything else is a network / server problem — never surface internals.
+        return { success: false, message: GENERIC_ERROR_MESSAGE };
       }
 
       set({
@@ -65,7 +65,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('kib_auth_token', token ?? '');
       return { success: true };
     } catch (err: any) {
-      return { success: false, message: err?.message || 'Login failed' };
+      // Supabase owns the user-facing auth copy here (e.g. "Invalid login
+      // credentials"), so pass its message through and fall back to the generic
+      // sentence when it has nothing useful to say.
+      const message = typeof err?.message === 'string' && err.message.trim() ? err.message : GENERIC_ERROR_MESSAGE;
+      return { success: false, message };
     }
   },
 

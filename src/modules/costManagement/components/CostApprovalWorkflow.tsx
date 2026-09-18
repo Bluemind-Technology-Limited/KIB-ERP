@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCostManagementStore } from '../../../stores/useCostManagementStore';
 import { Modal } from '../../../components/ui/Modal';
+import { toast } from '../../../stores/useToastStore';
 
 export default function CostApprovalWorkflow() {
   const {
@@ -36,7 +37,7 @@ export default function CostApprovalWorkflow() {
 
   const handleReject = async (auditId: string) => {
     if (!rejectionReason.trim()) {
-      alert('Please provide a rejection reason');
+      toast.error('Please provide a rejection reason');
       return;
     }
 

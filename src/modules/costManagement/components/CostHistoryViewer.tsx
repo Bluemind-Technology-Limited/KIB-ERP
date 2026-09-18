@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCostManagementStore } from '../../../stores/useCostManagementStore';
 import type { EntityType } from '../../../types/costManagement';
+import { toast } from '../../../stores/useToastStore';
 
 export default function CostHistoryViewer() {
   const {
@@ -20,7 +21,7 @@ export default function CostHistoryViewer() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!entityId.trim()) {
-      alert('Please enter an entity ID');
+      toast.error('Please enter an entity ID');
       return;
     }
     await fetchCostHistory(entityType, entityId);

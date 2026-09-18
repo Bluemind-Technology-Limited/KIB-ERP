@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/ui/NotificationBell';
 import { useAuthStore } from '../stores/useAuthStore';
+import { toast } from '../stores/useToastStore';
 
 import { 
   ChevronRight, User as UserIcon, Menu, X, LogOut, Settings, Search 
@@ -207,7 +208,7 @@ export default function DashboardLayout({
 
 
                       <button 
-                        onClick={() => { setIsProfileOpen(false); alert('Settings clicked'); }}
+                        onClick={() => { setIsProfileOpen(false); toast.info('Account settings are not available yet'); }}
                         className="w-full flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-md transition-colors text-left font-medium cursor-pointer"
                       >
                         <Settings className="w-3.5 h-3.5 text-slate-500" />
