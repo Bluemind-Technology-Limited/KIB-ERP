@@ -115,6 +115,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
         { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
         { id: 'reports', name: 'Reports', icon: BarChart3 },
         { id: 'reports-inspections', name: 'Inspection Report', icon: BarChart3 },
+        { id: 'reports-audit', name: 'Audit & Report', icon: BarChart3 },
       ],
     },
   ];
@@ -148,6 +149,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
     { id: 'reports', name: 'Reports', icon: BarChart3 },
     { id: 'reports-inspections', name: 'Inspection Report', icon: BarChart3 },
+    { id: 'reports-audit', name: 'Audit & Report', icon: BarChart3 },
   ];
 
   const allowedViews = user ? rolePermissions[user.role] : [];

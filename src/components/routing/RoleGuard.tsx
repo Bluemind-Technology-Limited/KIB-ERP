@@ -33,6 +33,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'admin-audit',
     'reports',
     'reports-inspections',
+    'reports-audit',
     'cost-management',
   ],
   EXECUTIVE_ADMIN: [
@@ -63,6 +64,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'admin-audit',
     'reports',
     'reports-inspections',
+    'reports-audit',
     'cost-management',
   ],
   STORE_OFFICER: [
@@ -97,6 +99,8 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'machines',
     'qa-inspections',
     'alerts-notifications',
+    'reports',
+    'reports-audit',
     'cost-management',
   ],
   PROCUREMENT_OFFICER: [

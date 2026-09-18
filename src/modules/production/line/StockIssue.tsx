@@ -42,6 +42,8 @@ interface StockRow {
   materialId: string;
   batchLotId: string | null;
   batchNumber: string | null;
+  manufacturingDate?: string | null;
+  expiryDate?: string | null;
   warehouseId: string;
   quantity: number;
   unitOfMeasure: string;
@@ -55,6 +57,16 @@ const statusBadge: Record<string, string> = {
 
 function apiError(err: any, fallback: string) {
   return err?.response?.data?.error || err?.message || fallback;
+}
+
+/** FIFO: oldest manufactured first, then soonest to expire (unknowns last). */
+function fifoSort(a: StockRow, b: StockRow) {
+  const aMfg = a.manufacturingDate ? new Date(a.manufacturingDate).getTime() : Infinity;
+  const bMfg = b.manufacturingDate ? new Date(b.manufacturingDate).getTime() : Infinity;
+  if (aMfg !== bMfg) return aMfg - bMfg;
+  const aExp = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+  const bExp = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+  return aExp - bExp;
 }
 
 export default function StockIssue() {
@@ -92,11 +104,55 @@ export default function StockIssue() {
   const batchesFor = useMemo(
     () =>
       (materialId: string, whId: string): StockRow[] =>
-        stock.filter(
-          (s) => s.materialId === materialId && s.warehouseId === whId && Number(s.quantity) > 0
-        ),
+        stock
+          .filter(
+            (s) => s.materialId === materialId && s.warehouseId === whId && Number(s.quantity) > 0
+          )
+          .sort(fifoSort),
     [stock]
   );
+
+  const availableFor = useMemo(
+    () =>
+      (materialId: string, whId: string): number =>
+        stock
+          .filter((s) => s.materialId === materialId && s.warehouseId === whId)
+          .reduce((sum, s) => sum + Number(s.quantity), 0),
+    [stock]
+  );
+
+  const expandedPlan = useMemo(
+    () => plans.find((p) => p.id === expandedId) ?? null,
+    [plans, expandedId]
+  );
+
+  // Buffer memory: when a warehouse is picked, default every line to the oldest
+  // available batch so existing stock is consumed before anything newer.
+  useEffect(() => {
+    if (!warehouseId || !expandedPlan) return;
+    setLines((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const agg of expandedPlan.aggregatedIngredients) {
+        if (agg.status === 'RELEASED') continue;
+        const line = next[agg.id];
+        if (!line || line.batchLotId) continue;
+        const batches = stock
+          .filter(
+            (s) =>
+              s.materialId === agg.materialId &&
+              s.warehouseId === warehouseId &&
+              Number(s.quantity) > 0
+          )
+          .sort(fifoSort);
+        if (batches[0]?.batchLotId) {
+          next[agg.id] = { ...line, batchLotId: batches[0].batchLotId };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [warehouseId, stock, expandedPlan]);
 
   const openPlan = async (plan: Plan) => {
     if (expandedId === plan.id) {
@@ -280,6 +336,7 @@ export default function StockIssue() {
                             <th className="px-3 py-2 font-semibold">Ingredient</th>
                             <th className="px-3 py-2 font-semibold">Required</th>
                             <th className="px-3 py-2 font-semibold">Issued</th>
+                            <th className="px-3 py-2 font-semibold">Available</th>
                             <th className="px-3 py-2 font-semibold">Issue now</th>
                             <th className="px-3 py-2 font-semibold">Batch lot</th>
                           </tr>
@@ -299,6 +356,22 @@ export default function StockIssue() {
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-500">
                                   {agg.issuedQuantity ?? 0}
+                                </td>
+                                <td className="px-3 py-2 text-[11px] text-slate-500">
+                                  {warehouseId ? (
+                                    <span
+                                      className={
+                                        availableFor(agg.materialId, warehouseId) <
+                                        Number(agg.totalQuantity) - Number(agg.issuedQuantity ?? 0)
+                                          ? 'font-semibold text-amber-600'
+                                          : 'text-slate-500'
+                                      }
+                                    >
+                                      {availableFor(agg.materialId, warehouseId)}
+                                    </span>
+                                  ) : (
+                                    '—'
+                                  )}
                                 </td>
                                 <td className="px-3 py-2">
                                   <input

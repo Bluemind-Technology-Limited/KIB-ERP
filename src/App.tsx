@@ -33,6 +33,7 @@ import Notifications from './modules/alerts/views/Notifications';
 import AuditTrail from './modules/admin/views/AuditTrail';
 import Reports from './modules/reports/views/Reports';
 import InspectionReport from './modules/reports/views/InspectionReport';
+import AuditReport from './modules/reports/views/AuditReport';
 import CostManagementDashboard from './modules/costManagement/views/CostManagementDashboard';
 
 /**
@@ -69,6 +70,7 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'admin-audit': { path: '/admin/audit', parent: 'Alerts & Reports', label: 'Audit Trail' },
   reports: { path: '/reports', parent: 'Alerts & Reports', label: 'Reports' },
   'reports-inspections': { path: '/reports/inspections', parent: 'Alerts & Reports', label: 'Inspection Report' },
+  'reports-audit': { path: '/reports/audit', parent: 'Alerts & Reports', label: 'Audit & Report' },
   'cost-management': { path: '/cost-management', parent: 'Finance', label: 'Cost Management' },
 };
 
@@ -335,6 +337,12 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="reports-inspections">
             <InspectionReport />
+          </RoleGuard>
+        );
+      case 'reports-audit':
+        return (
+          <RoleGuard userRole={user.role} viewId="reports-audit">
+            <AuditReport />
           </RoleGuard>
         );
       case 'cost-management':

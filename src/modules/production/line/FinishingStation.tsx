@@ -12,6 +12,7 @@ interface PlanItem {
   grindingRecord?: { achievedQuantity: string | number } | null;
   finishingRecord?: { achievedQuantity: string | number; batchNumber?: string | null } | null;
   groundQuantity: number;
+  carryoverAvailable?: number;
 }
 
 interface Plan {
@@ -25,6 +26,7 @@ interface Plan {
 interface FormState {
   achievedQuantity: string;
   remainderQuantity: string;
+  carryoverUsedQuantity: string;
   warehouseId: string;
   batchNumber: string;
   expiryDate: string;
@@ -80,6 +82,7 @@ export default function FinishingStation() {
       next[item.id] = {
         achievedQuantity: String(item.targetQuantity ?? ''),
         remainderQuantity: '',
+        carryoverUsedQuantity: '',
         warehouseId: '',
         batchNumber: '',
         expiryDate: '',
@@ -112,6 +115,7 @@ export default function FinishingStation() {
       await axiosClient.post(`/production-line/plans/${plan.id}/items/${item.id}/finishing`, {
         achievedQuantity: Number(form.achievedQuantity),
         remainderQuantity: form.remainderQuantity ? Number(form.remainderQuantity) : 0,
+        carryoverUsedQuantity: form.carryoverUsedQuantity ? Number(form.carryoverUsedQuantity) : 0,
         warehouseId: form.warehouseId,
         batchNumber: form.batchNumber,
         expiryDate: form.expiryDate || undefined,
@@ -220,6 +224,28 @@ export default function FinishingStation() {
                               </span>
                             </div>
                           </div>
+
+                          {Number(item.carryoverAvailable ?? 0) > 0 && (
+                            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-3 py-2">
+                              <span className="text-[10px] font-semibold text-[#AA3BFF]">
+                                Unfinished from previous batches: {item.carryoverAvailable}
+                              </span>
+                              <label className="flex items-center gap-2 text-[10px] text-slate-600">
+                                Use now
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={form.carryoverUsedQuantity}
+                                  onChange={(e) =>
+                                    update(item.id, { carryoverUsedQuantity: e.target.value })
+                                  }
+                                  placeholder="0"
+                                  className="h-7 w-24 rounded border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#AA3BFF]"
+                                />
+                              </label>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                             <div className="space-y-1">

@@ -108,6 +108,8 @@ export default function DashboardLayout({
         return { parent: 'Alerts & Reports', current: 'Reports' };
       case 'reports-inspections':
         return { parent: 'Alerts & Reports', current: 'Inspection Report' };
+      case 'reports-audit':
+        return { parent: 'Alerts & Reports', current: 'Audit & Report' };
       default:
         return { parent: 'Dashboards', current: 'Traffic overview' };
     }
