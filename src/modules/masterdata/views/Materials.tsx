@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, Search, Pencil, QrCode, Trash2 } from 'lucide-react';
+import { Package, Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import DatePicker from '../../../components/ui/DatePicker';
 
 interface Material {
   id: string;
@@ -55,11 +54,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     category: '',
     unitOfMeasure: '',
     traceabilityCode: '',
-    barcode: '',
-    defaultExpiryDate: '',
     requiresLot: true,
-    nafdacUrl: '',
-    msdsUrl: '',
     supplierIds: [] as string[],
   });
 
@@ -100,7 +95,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
   const openAddWithType = (type: 'RAW' | 'FINISHED') => {
     setEditing(null);
     setLockedType(type);
-    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', barcode: '', defaultExpiryDate: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [], traceabilityCode: '' });
+    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', requiresLot: true, supplierIds: [], traceabilityCode: '' });
     setShowModal(true);
   };
 
@@ -114,11 +109,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       category: m.category ?? '',
       unitOfMeasure: m.unitOfMeasure,
       traceabilityCode: m.traceabilityCode ?? '',
-      barcode: m.barcode ?? '',
-      defaultExpiryDate: m.defaultExpiryDate ?? '',
       requiresLot: m.requiresLot,
-      nafdacUrl: (m.attachments?.find((a) => a.kind === 'NAFDAC')?.url) ?? '',
-      msdsUrl: (m.attachments?.find((a) => a.kind === 'MSDS')?.url) ?? '',
       supplierIds: (m.suppliers ?? []).map((s) => s.supplier.id),
     });
     setShowModal(true);
@@ -138,26 +129,13 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
   };
 
   const confirmSave = async () => {
-    const attachments = [
-      form.nafdacUrl ? { kind: 'NAFDAC', url: form.nafdacUrl, name: 'NAFDAC Certificate' } : null,
-      form.msdsUrl ? { kind: 'MSDS', url: form.msdsUrl, name: 'Material Safety Data Sheet' } : null,
-    ].filter(Boolean);
-
     setSaving(true);
     try {
       if (editing) {
-        await axiosClient.patch(`/master-data/materials/${editing.id}`, {
-          ...form,
-          defaultExpiryDate: form.defaultExpiryDate || null,
-          attachments,
-        });
+        await axiosClient.patch(`/master-data/materials/${editing.id}`, { ...form });
         setUpdateConfirmation(false);
       } else {
-        await axiosClient.post('/master-data/materials', {
-          ...form,
-          defaultExpiryDate: form.defaultExpiryDate || null,
-          attachments,
-        });
+        await axiosClient.post('/master-data/materials', { ...form });
         setCreateConfirmation(false);
       }
       setShowModal(false);
@@ -195,7 +173,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
   const filtered = materials.filter((m) =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.barcode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+    (m.traceabilityCode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -204,7 +182,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Material Master</h2>
-          <p className="text-[#737373] text-xs">Raw, Packaging and Finished materials with barcodes, attachments & expiry parameters.</p>
+          <p className="text-[#737373] text-xs">Raw, Packaging and Finished materials with their traceability codes and suppliers.</p>
         </div>
         <div className="flex gap-2">
           <div className="relative">
@@ -274,9 +252,9 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                         </div>
                         <div>
                           <p className="text-xs font-bold text-[#171717] leading-none">{m.name}</p>
-                          {m.barcode && (
-                            <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1">
-                              <QrCode className="w-2.5 h-2.5" /> {m.barcode}
+                          {m.traceabilityCode && (
+                            <p className="text-[9px] text-slate-400 mt-0.5">
+                              code <span className="font-mono">{m.traceabilityCode}</span>
                             </p>
                           )}
                         </div>
@@ -304,9 +282,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     <td className="px-4 py-3 text-xs text-slate-600">{m.unitOfMeasure}</td>
                     <td className="px-4 py-3">
                       {m.requiresLot ? (
-                        <span className="text-[10px] text-slate-500">
-                          {m.defaultExpiryDate ? new Date(m.defaultExpiryDate).toLocaleDateString() : 'No expiry set'}
-                        </span>
+                        <span className="text-[10px] text-slate-500">Lot tracked</span>
                       ) : (
                         <span className="text-[10px] text-slate-400">No lot</span>
                       )}
@@ -380,33 +356,11 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure *</label>
                 <input value={form.unitOfMeasure} onChange={(e) => setForm({ ...form, unitOfMeasure: e.target.value })} placeholder="kg / liters / units" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Barcode</label>
-                <input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Default Expiry Date</label>
-                <DatePicker
-                  label=""
-                  value={form.defaultExpiryDate}
-                  onChange={(date) => setForm({ ...form, defaultExpiryDate: date })}
-                  minDate={new Date().toISOString().split('T')[0]}
-                  placeholder="Select expiry date"
-                />
-              </div>
               <div className="space-y-1 flex items-end">
                 <label className="flex items-center gap-2 h-9 text-xs text-slate-600 cursor-pointer">
                   <input type="checkbox" checked={form.requiresLot} onChange={(e) => setForm({ ...form, requiresLot: e.target.checked })} className="accent-[#EA4335]" />
                   Batch/Lot tracking
                 </label>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">NAFDAC Certificate URL</label>
-                <input value={form.nafdacUrl} onChange={(e) => setForm({ ...form, nafdacUrl: e.target.value })} placeholder="https://…" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">MSDS URL</label>
-                <input value={form.msdsUrl} onChange={(e) => setForm({ ...form, msdsUrl: e.target.value })} placeholder="https://…" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
             </div>
 

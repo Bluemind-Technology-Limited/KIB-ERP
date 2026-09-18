@@ -225,7 +225,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
       )}
 
       {/* 2. BOM List */}

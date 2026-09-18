@@ -106,7 +106,10 @@ interface TraceTree {
         /** SOP KIB/QCA/010 — present on lots created since lot coding was added. */
         lotCode?: string | null;
         origin?: string | null;
+        setNumber?: number | null;
+        vendorCode?: string | null;
         supplierBatchNumber?: string | null;
+        supplier?: { id: string; name: string; vendorCode?: string | null } | null;
       };
       inbound: Inbound | null;
     }>;
@@ -435,6 +438,11 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                             <span className="text-[10px] font-mono font-bold text-slate-600">
                               {rb.batch.lotCode ?? rb.batch.batchNumber}
                             </span>
+                            {rb.batch.setNumber != null && (
+                              <span className="text-[9px] text-slate-400">
+                                set <b className="font-mono">{rb.batch.setNumber}</b>
+                              </span>
+                            )}
                             {rb.batch.supplierBatchNumber && (
                               <span className="text-[9px] text-slate-400">
                                 sup. batch <b className="font-mono">{rb.batch.supplierBatchNumber}</b>
@@ -459,6 +467,11 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                               <b className="font-mono">{rb.inbound.consignmentNumber ?? rb.inbound.grnNumber}</b>
                               {rb.inbound.poNumber && <> · PO <b className="font-mono">{rb.inbound.poNumber}</b></>} ·{' '}
                               {rb.inbound.supplier?.name ?? '—'}
+                            </p>
+                          ) : rb.batch.supplier ? (
+                            <p className="mt-0.5 text-[10px] text-slate-400">
+                              ← {rb.batch.supplier.name}
+                              {rb.batch.vendorCode && <> · vendor <b className="font-mono">{rb.batch.vendorCode}</b></>}
                             </p>
                           ) : (
                             <p className="mt-0.5 text-[10px] text-slate-400">← no inbound GRN traced</p>

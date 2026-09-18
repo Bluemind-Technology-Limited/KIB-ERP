@@ -250,7 +250,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
         ))}
       </div>
 
-      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
+      {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
 
       {/* 3a. New Requisition modal */}
       {showReqForm && (

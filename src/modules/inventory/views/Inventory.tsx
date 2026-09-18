@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Trash2, Edit2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -47,9 +47,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // add stock modal
-  const [showAddStock, setShowAddStock] = useState(false);
-  const [addStockForm, setAddStockForm] = useState({ name: '', minQuantity: '', unitOfMeasure: 'units' });
   // transfer modal
   const [showTransfer, setShowTransfer] = useState(false);
   const [tr, setTr] = useState({ materialId: '', quantity: '', fromWarehouseId: '', toWarehouseId: '', unitOfMeasure: '' });
@@ -58,7 +55,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
   const [adj, setAdj] = useState({ materialId: '', quantity: '', warehouseId: '', unitOfMeasure: '', reason: '', operation: 'add' });
 
   // confirmation states
-  const [addStockConfirmation, setAddStockConfirmation] = useState(false);
   const [transferConfirmation, setTransferConfirmation] = useState(false);
   const [adjustConfirmation, setAdjustConfirmation] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -94,35 +90,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
   };
 
   useEffect(() => { load(); }, []);
-
-  const doAddStock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addStockForm.name) { setError('Product name is required'); return; }
-    setAddStockConfirmation(true);
-  };
-
-  const confirmAddStock = async () => {
-    setSaving(true);
-    try {
-      await axiosClient.post('/inventory/stock', {
-        name: addStockForm.name,
-        minQuantity: addStockForm.minQuantity ? Number(addStockForm.minQuantity) : 0,
-        unitOfMeasure: addStockForm.unitOfMeasure || 'units'
-      });
-      setShowAddStock(false);
-      setAddStockForm({ name: '', minQuantity: '', unitOfMeasure: 'units' });
-      setAddStockConfirmation(false);
-      setError('');
-      setSuccess('Stock item added successfully.');
-      setTimeout(() => setSuccess(''), 3000);
-      load();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to add stock item');
-      setAddStockConfirmation(false);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const doTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,11 +200,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           <p className="text-[#737373] text-xs">Derived stock — SUM of all ledger transactions per material/batch/location. No mutable stock columns.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowAddStock(true)} className="btn-3d px-4 h-9 shrink-0 bg-emerald-600 border-emerald-700 hover:bg-emerald-500">
-            <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
-              <Plus className="w-3.5 h-3.5 shrink-0" /> Add Stock
-            </span>
-          </button>
           <button onClick={() => setShowTransfer(true)} className="btn-3d px-4 h-9 shrink-0">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
               <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" /> Transfer
@@ -428,58 +390,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
         )}
       </div>
 
-      {/* Add Stock Modal */}
-      {showAddStock && (
-        <Modal onClose={() => setShowAddStock(false)}>
-          <form onSubmit={doAddStock} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
-                <Boxes className="w-4 h-4 text-[#EA4335]" />
-                <h3 className="text-sm font-bold">Add New Stock Item</h3>
-              </div>
-              <button type="button" onClick={() => setShowAddStock(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <p className="text-[11px] text-slate-500">Register a new product directly in the inventory stock list. An ID/SKU will be generated automatically.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product Name *</label>
-                <input 
-                  value={addStockForm.name} 
-                  onChange={(e) => setAddStockForm({ ...addStockForm, name: e.target.value })} 
-                  placeholder="e.g. Tomato Concentrate" 
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" 
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Min Quantity (Alert Limit)</label>
-                <input 
-                  value={addStockForm.minQuantity} 
-                  onChange={(e) => setAddStockForm({ ...addStockForm, minQuantity: e.target.value })} 
-                  type="number" 
-                  placeholder="e.g. 50" 
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" 
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure *</label>
-                <input 
-                  value={addStockForm.unitOfMeasure} 
-                  onChange={(e) => setAddStockForm({ ...addStockForm, unitOfMeasure: e.target.value })} 
-                  placeholder="e.g. kg / bags" 
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" 
-                  required
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => setShowAddStock(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button type="submit" className="btn-3d px-4 h-9 bg-emerald-600 border-emerald-700 hover:bg-emerald-500"><span className="text-white text-xs font-semibold whitespace-nowrap">Add to Stock</span></button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
       {/* 4. Transfer modal */}
       {showTransfer && (
         <Modal onClose={() => setShowTransfer(false)}>
@@ -560,18 +470,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
             </div>
           </form>
         </Modal>
-      )}
-
-      {/* Add Stock Confirmation Modal */}
-      {addStockConfirmation && (
-        <ConfirmationModal
-          type="create"
-          title="Add Stock Item"
-          description="Register this new product in the inventory stock list."
-          onConfirm={confirmAddStock}
-          onCancel={() => setAddStockConfirmation(false)}
-          isLoading={saving}
-        />
       )}
 
       {/* Transfer Confirmation Modal */}
