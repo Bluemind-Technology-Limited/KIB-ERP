@@ -8,7 +8,6 @@ interface EfficiencyRow {
   orderNumber: string;
   productName: string;
   sku: string;
-  bomVersion: number;
   status: string;
   targetQuantity: number;
   actualYield: number | null;
@@ -93,7 +92,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
         r.orderNumber,
         r.productName,
         r.sku,
-        r.bomVersion,
+        r.productName,
         r.status,
         r.targetQuantity,
         r.actualYield ?? '',
@@ -221,7 +220,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                       <td className="px-4 py-3 text-[11px] font-mono font-bold text-slate-600">{r.orderNumber}</td>
                       <td className="px-4 py-3">
                         <p className="text-xs font-semibold text-slate-700">{r.productName}</p>
-                        <p className="text-[9px] font-mono text-slate-400">{r.sku} · BOM v{r.bomVersion}</p>
+                        <p className="text-[9px] font-mono text-slate-400">{r.sku}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[r.status]}`}>{r.status}</span>

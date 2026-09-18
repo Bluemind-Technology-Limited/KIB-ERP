@@ -15,8 +15,8 @@ interface ProductionOrder {
   createdAt: string;
   planLinked?: boolean;
   planNumber?: string | null;
-  bomVersion?: {
-    bom?: { productName: string };
+  bom?: {
+    productName: string;
     finishedSku?: { name: string; sku: string } | null;
   } | null;
   machine?: { name: string; code: string } | null;
@@ -154,7 +154,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
   const filtered = orders.filter(
     (o) =>
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (o.bomVersion?.finishedSku?.name ?? o.bomVersion?.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      (o.bom?.finishedSku?.name ?? o.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -204,8 +204,8 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-700">{o.bomVersion?.finishedSku?.name ?? o.bomVersion?.bom?.productName ?? '—'}</p>
-                      <p className="text-[9px] text-slate-400">{o.bomVersion?.finishedSku?.sku ?? ''}</p>
+                      <p className="text-xs font-semibold text-slate-700">{o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}</p>
+                      <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{Number(o.targetQuantity).toFixed(2)}</td>
                     <td className="px-4 py-3">
@@ -254,7 +254,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
 
             <p className="text-[11px] text-slate-500">
               <span className="font-mono font-bold text-slate-700">{actingOrder.orderNumber}</span> —{' '}
-              {actingOrder.bomVersion?.finishedSku?.name ?? actingOrder.bomVersion?.bom?.productName ?? ''}
+              {actingOrder.bom?.finishedSku?.name ?? actingOrder.bom?.productName ?? ''}
             </p>
 
             <div className="space-y-4">

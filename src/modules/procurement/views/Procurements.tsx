@@ -6,7 +6,14 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
-interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
+interface MaterialOption {
+  id: string;
+  name: string;
+  sku: string;
+  unitOfMeasure: string;
+  /** Which suppliers this material can be bought from (Master Data → Materials). */
+  suppliers?: Array<{ supplier: { id: string; name: string } }>;
+}
 interface SupplierOption { id: string; name: string; vendorCode?: string }
 
 const poStatusBadge: Record<string, string> = {
@@ -31,8 +38,8 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const [statusConfirmation, setStatusConfirmation] = useState<{ id: string; status: string } | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // PO form
-  const [poSupplierId, setPoSupplierId] = useState('');
+  // PO form. The supplier is not chosen here — it is derived from the materials
+  // on the order, since a material already knows who supplies it.
   const [poRequisitionId, setPoRequisitionId] = useState('');
   const [poNotes, setPoNotes] = useState('');
   const [poExpected, setPoExpected] = useState('');
@@ -40,11 +47,27 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     materialId: string;
     materialName: string;
     sku: string;
+    supplierId: string;
     quantity: string;
     originalQuantity?: number;
     unitOfMeasure: string;
     unitCost: string;
   }>>([]);
+
+  /** The suppliers a given material can be bought from. */
+  const suppliersForMaterial = (materialId: string) =>
+    (materials.find((m) => m.id === materialId)?.suppliers ?? []).map((s) => s.supplier);
+
+  /**
+   * A purchase order is raised against exactly one supplier, so the supplier is
+   * derived from the items. When a material has more than one supplier the row
+   * asks which one, and if items disagree the order has to be split.
+   */
+  const chosenSupplierIds = [
+    ...new Set(poItems.filter((it) => it.materialId && it.supplierId).map((it) => it.supplierId)),
+  ];
+  const resolvedSupplierId = chosenSupplierIds.length === 1 ? chosenSupplierIds[0] : '';
+  const resolvedSupplier = suppliers.find((s) => s.id === resolvedSupplierId) ?? null;
 
   const loadAll = async () => {
     setLoading(true);
@@ -77,22 +100,52 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
   const createPo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!poSupplierId) { setError('Select a supplier'); return; }
     if (poItems.length === 0) { setError('At least one item is required'); return; }
+
+    const missingMaterial = poItems.find((it) => !it.materialId);
+    if (missingMaterial) { setError('Every item needs a material'); return; }
+
+    // A material with no supplier linked cannot drive the order's supplier.
+    const unsupplied = poItems.find((it) => suppliersForMaterial(it.materialId).length === 0);
+    if (unsupplied) {
+      setError(
+        `"${unsupplied.materialName}" has no supplier. Add one in Master Data → Materials before raising this PO.`
+      );
+      return;
+    }
+
+    const unchosen = poItems.find((it) => !it.supplierId);
+    if (unchosen) {
+      setError(`Choose which supplier "${unchosen.materialName}" is being bought from.`);
+      return;
+    }
+
+    if (chosenSupplierIds.length > 1) {
+      const names = chosenSupplierIds
+        .map((id) => suppliers.find((s) => s.id === id)?.name ?? id)
+        .join(', ');
+      setError(
+        `All items on a purchase order must come from the same supplier — this one has ${chosenSupplierIds.length} (${names}). Split it into separate purchase orders.`
+      );
+      return;
+    }
+
     setCreatePoConfirmation(true);
   };
 
   const confirmCreatePo = async () => {
-    const supplier = suppliers.find((s) => s.id === poSupplierId);
+    const supplier = resolvedSupplier;
     if (!supplier?.vendorCode?.trim()) {
-      setError(`Supplier "${supplier?.name ?? poSupplierId}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`);
+      setError(
+        `Supplier "${supplier?.name ?? 'The selected supplier'}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`
+      );
       setCreatePoConfirmation(false);
       return;
     }
     setSaving(true);
     try {
-      const body: any = { 
-        supplierId: poSupplierId, 
+      const body: any = {
+        supplierId: resolvedSupplierId,
         notes: poNotes,
         items: poItems.map((it) => ({
           materialId: it.materialId,
@@ -103,14 +156,16 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       };
       if (poRequisitionId) body.requisitionId = poRequisitionId;
       if (poExpected) body.expectedDelivery = new Date(poExpected).toISOString();
-      await axiosClient.post('/procurement/purchase-orders', body);
+      await axiosClient.post('/procurement/purchase-orders', body, {
+        toast: { success: `Purchase order raised with ${supplier.name}` },
+      });
       setShowPoForm(false);
       setCreatePoConfirmation(false);
-      setPoSupplierId(''); setPoRequisitionId(''); setPoNotes(''); setPoExpected(''); setPoItems([]);
+      setPoRequisitionId(''); setPoNotes(''); setPoExpected(''); setPoItems([]);
       loadAll();
-    } catch (err: any) { 
-      setError(err?.response?.data?.error || 'Failed to create PO'); 
-      setCreatePoConfirmation(false); 
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to create PO');
+      setCreatePoConfirmation(false);
     }
     finally { setSaving(false); }
   };
@@ -192,12 +247,27 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
             </div>
 
             <div className="space-y-3">
+              {/* Supplier is derived from the materials on the order. */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier *</label>
-                <select value={poSupplierId} onChange={(e) => setPoSupplierId(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                  <option value="">Select supplier…</option>
-                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 text-xs">
+                  {resolvedSupplier ? (
+                    <>
+                      <span className="font-semibold text-slate-700">{resolvedSupplier.name}</span>
+                      {resolvedSupplier.vendorCode && (
+                        <span className="font-mono text-[10px] text-slate-400">
+                          code {resolvedSupplier.vendorCode}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-slate-400">
+                      {chosenSupplierIds.length > 1
+                        ? 'Items have different suppliers — split into separate POs'
+                        : 'Filled in from the items below'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Items List */}
@@ -220,12 +290,47 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                           <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
                           <select
                             value={item.materialId}
-                            onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, materialName: materials.find((m) => m.id === e.target.value)?.name || '', sku: materials.find((m) => m.id === e.target.value)?.sku || '', unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
+                            onChange={(e) => {
+                              const materialId = e.target.value;
+                              const m = materials.find((x) => x.id === materialId);
+                              const options = m?.suppliers ?? [];
+                              // Auto-fill when the material only has one supplier;
+                              // otherwise the row asks which one.
+                              const supplierId = options.length === 1 ? options[0].supplier.id : '';
+                              setPoItems(poItems.map((r, i) => i === idx ? { ...r, materialId, materialName: m?.name || '', sku: m?.sku || '', unitOfMeasure: m?.unitOfMeasure || '', supplierId } : r));
+                            }}
                             className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                           >
                             <option value="">Select material…</option>
                             {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
                           </select>
+                        </div>
+
+                        {/* Supplier for this material */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
+                          {!item.materialId ? (
+                            <p className="text-[10px] text-slate-400 italic">Pick a material first.</p>
+                          ) : suppliersForMaterial(item.materialId).length === 0 ? (
+                            <p className="text-[10px] text-amber-600">
+                              No supplier linked to this material — add one in Master Data → Materials.
+                            </p>
+                          ) : suppliersForMaterial(item.materialId).length === 1 ? (
+                            <p className="text-[10px] text-slate-600">
+                              {suppliersForMaterial(item.materialId)[0].name}
+                            </p>
+                          ) : (
+                            <select
+                              value={item.supplierId}
+                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, supplierId: e.target.value } : r))}
+                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                            >
+                              <option value="">Which supplier…</option>
+                              {suppliersForMaterial(item.materialId).map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
@@ -261,7 +366,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   </div>
                 )}
 
-                <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+                <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', supplierId: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                   <Plus className="w-3.5 h-3.5" /> Add Item
                 </button>
               </div>

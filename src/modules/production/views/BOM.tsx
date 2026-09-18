@@ -23,22 +23,19 @@ interface BomIngredient {
   material: Material;
 }
 
-interface BomVersion {
-  id: string;
-  version: number;
-  description?: string | null;
-  expectedYield: number;
-  yieldUnit: string;
-  status: string;
-  finishedSku?: { id: string; name: string; sku: string } | null;
-  ingredients: BomIngredient[];
-}
-
-interface Bom {
+/**
+ * Batch formulations are flat — versioning was removed, so the formulation
+ * itself carries the status, yield and finished SKU.
+ */
+interface BatchFormulation {
   id: string;
   productName: string;
   description?: string | null;
-  versions: BomVersion[];
+  status: string;
+  expectedYield?: number | null;
+  yieldUnit?: string | null;
+  finishedSku?: { id: string; name: string; sku: string } | null;
+  ingredients: BomIngredient[];
 }
 
 const versionStatusBadge: Record<string, string> = {
@@ -51,7 +48,7 @@ const versionStatusBadge: Record<string, string> = {
 const emptyIngredient = { materialId: '', quantity: '', unitOfMeasure: '', isPercentage: false };
 
 export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
-  const [boms, setBoms] = useState<Bom[]>([]);
+  const [boms, setBoms] = useState<BatchFormulation[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -75,10 +72,10 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     setLoading(true);
     try {
       const [bomRes, matRes] = await Promise.all([
-        axiosClient.get<{ boms: Bom[] }>('/production/boms'),
+        axiosClient.get<{ batchFormulations: BatchFormulation[] }>('/production/batch-formulations'),
         axiosClient.get<{ materials: Material[] }>('/master-data/materials'),
       ]);
-      setBoms(bomRes.data.boms);
+      setBoms(bomRes.data.batchFormulations ?? []);
       setMaterials(matRes.data.materials);
       setError('');
     } catch (err: any) {
@@ -149,7 +146,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     }
     setSaving(true);
     try {
-      await axiosClient.post('/production/boms', {
+      await axiosClient.post('/production/batch-formulations', {
         productName: form.productName,
         description: form.description || null,
         expectedYield: Number(form.expectedYield),
@@ -174,13 +171,28 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     }
   };
 
-  const setVersionStatus = async (bomId: string, version: number, status: string) => {
+  /** DRAFT -> ACTIVE. */
+  const approveFormulation = async (bomId: string) => {
     try {
-      await axiosClient.patch(`/production/boms/${bomId}/versions/${version}/status`, { status });
+      await axiosClient.post(`/production/batch-formulations/${bomId}/approve`, {}, {
+        toast: { success: 'Formulation approved and set active' },
+      });
       setError('');
       load();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to update BOM status');
+    } catch {
+      // toast handled globally
+    }
+  };
+
+  const archiveFormulation = async (bomId: string) => {
+    try {
+      await axiosClient.post(`/production/batch-formulations/${bomId}/archive`, {}, {
+        toast: { success: 'Formulation archived' },
+      });
+      setError('');
+      load();
+    } catch {
+      // toast handled globally
     }
   };
 
@@ -192,7 +204,9 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     if (!deleteConfirmation) return;
     setIsDeleting(true);
     try {
-      await axiosClient.delete(`/production/boms/${deleteConfirmation.bomId}`);
+      await axiosClient.delete(`/production/batch-formulations/${deleteConfirmation.bomId}`, {
+        toast: { success: 'Formulation deleted' },
+      });
       setDeleteConfirmation(null);
       load();
     } catch (err: any) {
@@ -206,7 +220,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   const filtered = (boms || []).filter(
     (b) =>
       b.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.versions[0]?.finishedSku?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      (b.finishedSku?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -257,7 +271,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
         ) : (
           filtered.map((bom) => {
             const isOpen = !!expanded[bom.id];
-            const currentVersion = bom.versions[0];
+            const bomIngredients = bom.ingredients ?? [];
+            const ingCount = bomIngredients.length;
             return (
               <div key={bom.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
                 <button
@@ -271,18 +286,18 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     <div className="flex-1">
                       <p className="text-xs font-bold text-[#171717]">{bom.productName}</p>
                       <p className="text-[10px] text-slate-400">
-                        {currentVersion?.finishedSku?.name ?? '—'} · Yield {currentVersion?.expectedYield ?? '—'} {currentVersion?.yieldUnit ?? ''} · {currentVersion?.ingredients.length ?? 0} ingredients
+                        {bom.finishedSku?.name ?? '—'} · Yield {bom.expectedYield ?? '—'} {bom.yieldUnit ?? ''} · {ingCount} ingredients
                       </p>
-                      {!isOpen && currentVersion?.ingredients && (
+                      {!isOpen && ingCount > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
-                          {currentVersion.ingredients.slice(0, 3).map((ing) => (
+                          {bomIngredients.slice(0, 3).map((ing) => (
                             <span key={ing.id} className="text-[9px] text-slate-500 bg-slate-100/50 px-1.5 py-0.5 rounded">
                               {ing.material.name} {ing.isPercentage ? `${ing.quantity}%` : `${ing.quantity} ${ing.unitOfMeasure}`}
                             </span>
                           ))}
-                          {(currentVersion.ingredients.length ?? 0) > 3 && (
+                          {ingCount > 3 && (
                             <span className="text-[9px] text-slate-400 px-1.5 py-0.5">
-                              +{(currentVersion.ingredients.length ?? 0) - 3} more
+                              +{ingCount - 3} more
                             </span>
                           )}
                         </div>
@@ -290,8 +305,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[currentVersion?.status ?? 'DRAFT']}`}>
-                      v{currentVersion?.version ?? '—'} · {currentVersion?.status ?? 'DRAFT'}
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
+                      {bom.status}
                     </span>
                     <button
                       onClick={(e) => {
@@ -299,7 +314,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                         deleteBom(bom.id);
                       }}
                       className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
-                      title="Delete BOM"
+                      title="Delete formulation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -309,44 +324,42 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
 
                 {isOpen && (
                   <div className="border-t border-slate-100 px-4 py-4 space-y-4">
-                    {bom.versions && bom.versions.length > 0 ? (
-                      bom.versions.map((v) => (
-                      <div key={v.id} className="rounded-lg border border-slate-100 p-3 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <FileCog className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-[11px] font-bold text-slate-700">
-                              Version {v.version} — {v.finishedSku?.name ?? '—'}
-                            </span>
-                            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[v.status]}`}>{v.status}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-400">
-                              Yield: <b className="text-slate-600">{v.expectedYield}</b> {v.yieldUnit}
-                            </span>
-                            {v.status === 'DRAFT' && (
-                              <button
-                                onClick={() => setVersionStatus(bom.id, v.version, 'APPROVED')}
-                                className="btn-3d px-3 h-7"
-                              >
-                                <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                                  <CheckCircle2 className="w-3 h-3" /> Approve
-                                </span>
-                              </button>
-                            )}
-                            {v.status === 'APPROVED' && (
-                              <button
-                                onClick={() => setVersionStatus(bom.id, v.version, 'ACTIVE')}
-                                className="btn-3d px-3 h-7"
-                              >
-                                <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                                  <CheckCircle2 className="w-3 h-3" /> Set Active
-                                </span>
-                              </button>
-                            )}
-                          </div>
+                    <div className="rounded-lg border border-slate-100 p-3 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <FileCog className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-[11px] font-bold text-slate-700">
+                            {bom.finishedSku?.name ?? '—'}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
+                            {bom.status}
+                          </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400">
+                            Yield: <b className="text-slate-600">{bom.expectedYield}</b> {bom.yieldUnit}
+                          </span>
+                          {bom.status === 'DRAFT' && (
+                            <button onClick={() => approveFormulation(bom.id)} className="btn-3d px-3 h-7">
+                              <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                                <CheckCircle2 className="w-3 h-3" /> Approve
+                              </span>
+                            </button>
+                          )}
+                          {bom.status === 'ACTIVE' && (
+                            <button
+                              onClick={() => archiveFormulation(bom.id)}
+                              className="h-7 px-3 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              Archive
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
+                      {ingCount === 0 ? (
+                        <p className="text-[10px] text-slate-400">No ingredients on this formulation.</p>
+                      ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-left">
                             <thead>
@@ -358,7 +371,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                               </tr>
                             </thead>
                             <tbody>
-                              {v.ingredients.map((ing) => (
+                              {bomIngredients.map((ing) => (
                                 <tr key={ing.id} className="border-b border-slate-50">
                                   <td className="px-2 py-2 text-[11px] font-semibold text-slate-700">{ing.material.name}</td>
                                   <td className="px-2 py-2">
@@ -375,13 +388,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    ))
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-[10px] text-slate-400">No versions available</p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -536,8 +544,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {deleteConfirmation && (
         <ConfirmationModal
           type="delete"
-          title="Delete BOM"
-          description="This BOM and all its versions will be permanently deleted. This action cannot be undone."
+          title="Delete Formulation"
+          description="This batch formulation will be permanently deleted, along with its ingredients. This action cannot be undone."
           onConfirm={confirmDelete}
           onCancel={() => setDeleteConfirmation(null)}
           isLoading={isDeleting}
