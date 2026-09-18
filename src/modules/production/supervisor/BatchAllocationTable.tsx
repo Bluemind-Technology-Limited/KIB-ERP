@@ -1,74 +1,62 @@
 import { useEffect, useState } from 'react';
 import { Play, CheckCircle2, Loader } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
-import { Skeleton } from '../../../components/ui/Skeleton';
 
-interface Allocation {
+export interface Allocation {
   id: string;
-  batchNumber?: string;
-  productionOrder: any;
-  machine: any;
+  batchNumber?: string | null;
+  machineId?: string | null;
+  productionOrderId?: string;
   status: string;
-  scheduledStartTime?: string;
-  scheduledEndTime?: string;
-  actualStartTime?: string;
-  actualEndTime?: string;
+  scheduledStartTime?: string | null;
+  scheduledEndTime?: string | null;
+  actualStartTime?: string | null;
+  actualEndTime?: string | null;
+  planItem?: { bom?: { finishedSku?: { name?: string } | null; productName?: string } | null } | null;
+  productionOrder?: { orderNumber?: string } | null;
 }
 
-export default function BatchAllocationTable({ planId }: { planId: string }) {
-  const [allocations, setAllocations] = useState<Allocation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [startingIds, setStartingIds] = useState<Set<string>>(new Set());
-  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+/**
+ * Allocations come from the plan payload rather than a dedicated endpoint, and
+ * `BatchMachineAllocation` stores `machineId` with no Prisma relation — so machine
+ * names are resolved from the machine list.
+ */
+export default function BatchAllocationTable({
+  allocations,
+  onChanged,
+}: {
+  allocations: Allocation[];
+  onChanged?: () => void;
+}) {
+  const [machineNames, setMachineNames] = useState<Record<string, string>>({});
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const loadAllocations = async () => {
+    const loadMachines = async () => {
       try {
-        const res = await axiosClient.get(`/api/supervisor/production-plans/${planId}/allocations`);
-        setAllocations(res.data.allocations || []);
-      } catch (err) {
-        console.error('Failed to load allocations:', err);
-      } finally {
-        setLoading(false);
+        const res = await axiosClient.get<{ machines: Array<{ id: string; name: string }> }>(
+          '/production/machines'
+        );
+        const map: Record<string, string> = {};
+        for (const m of res.data.machines ?? []) map[m.id] = m.name;
+        setMachineNames(map);
+      } catch {
+        // Machine names are cosmetic here — the table still works without them.
       }
     };
-    loadAllocations();
-  }, [planId]);
+    loadMachines();
+  }, []);
 
-  const handleStart = async (id: string) => {
-    setStartingIds((prev) => new Set([...prev, id]));
+  const run = async (id: string, path: string, body?: unknown) => {
+    setBusyIds((prev) => new Set([...prev, id]));
     try {
-      await axiosClient.post(`/api/supervisor/batch-allocations/${id}/start`);
-      // Reload allocations
-      const res = await axiosClient.get(`/api/supervisor/production-plans/${planId}/allocations`);
-      setAllocations(res.data.allocations || []);
-    } catch (err: any) {
-      console.error('Failed to start batch:', err);
+      await axiosClient.post(path, body);
+      onChanged?.();
     } finally {
-      setStartingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-    }
-  };
-
-  const handleComplete = async (id: string, batchNumber: string) => {
-    setCompletingIds((prev) => new Set([...prev, id]));
-    try {
-      await axiosClient.post(`/api/supervisor/batch-allocations/${id}/complete`, {
-        batchNumber,
-      });
-      // Reload allocations
-      const res = await axiosClient.get(`/api/supervisor/production-plans/${planId}/allocations`);
-      setAllocations(res.data.allocations || []);
-    } catch (err: any) {
-      console.error('Failed to complete batch:', err);
-    } finally {
-      setCompletingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
+      setBusyIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
       });
     }
   };
@@ -88,9 +76,8 @@ export default function BatchAllocationTable({ planId }: { planId: string }) {
     }
   };
 
-  if (loading) {
-    return <Skeleton className="h-80 w-full" />;
-  }
+  const productName = (alloc: Allocation) =>
+    alloc.planItem?.bom?.finishedSku?.name ?? alloc.planItem?.bom?.productName ?? 'Unknown';
 
   return (
     <div className="bg-white border border-[#E9E9E9] rounded-xl p-4 overflow-x-auto">
@@ -98,7 +85,7 @@ export default function BatchAllocationTable({ planId }: { planId: string }) {
 
       {allocations.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-xs text-slate-500">No allocations yet. Click &quot;Add Allocation&quot; to get started.</p>
+          <p className="text-xs text-slate-500">No allocations yet for this plan.</p>
         </div>
       ) : (
         <table className="w-full text-xs">
@@ -121,17 +108,20 @@ export default function BatchAllocationTable({ planId }: { planId: string }) {
                   </span>
                 </td>
                 <td className="py-3 px-3">
-                  <span className="text-slate-700">
-                    {alloc.productionOrder.bom.finishedSku?.name || 'Unknown'}
-                  </span>
+                  <span className="text-slate-700">{productName(alloc)}</span>
                 </td>
                 <td className="py-3 px-3">
-                  <span className="font-semibold text-slate-700">{alloc.machine.name}</span>
+                  <span className="font-semibold text-slate-700">
+                    {alloc.machineId ? machineNames[alloc.machineId] ?? '—' : '—'}
+                  </span>
                 </td>
                 <td className="py-3 px-3">
                   {alloc.scheduledStartTime ? (
                     <div className="text-[9px] text-slate-600">
-                      <div>{new Date(alloc.scheduledStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      {new Date(alloc.scheduledStartTime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
                   ) : (
                     <span className="text-slate-400">—</span>
@@ -144,14 +134,14 @@ export default function BatchAllocationTable({ planId }: { planId: string }) {
                 </td>
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
-                    {alloc.status === 'ALLOCATED' && (
+                    {(alloc.status === 'ALLOCATED' || alloc.status === 'SCHEDULED') && (
                       <button
-                        onClick={() => handleStart(alloc.id)}
-                        disabled={startingIds.has(alloc.id)}
+                        onClick={() => run(alloc.id, `/supervisor/batch-allocations/${alloc.id}/start`)}
+                        disabled={busyIds.has(alloc.id)}
                         className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
                         title="Start production"
                       >
-                        {startingIds.has(alloc.id) ? (
+                        {busyIds.has(alloc.id) ? (
                           <Loader className="w-3 h-3 animate-spin" />
                         ) : (
                           <Play className="w-3 h-3" />
@@ -160,12 +150,16 @@ export default function BatchAllocationTable({ planId }: { planId: string }) {
                     )}
                     {alloc.status === 'IN_PROGRESS' && (
                       <button
-                        onClick={() => handleComplete(alloc.id, alloc.batchNumber || `BATCH-${Date.now()}`)}
-                        disabled={completingIds.has(alloc.id)}
+                        onClick={() =>
+                          run(alloc.id, `/supervisor/batch-allocations/${alloc.id}/complete`, {
+                            batchNumber: alloc.batchNumber || `BATCH-${Date.now()}`,
+                          })
+                        }
+                        disabled={busyIds.has(alloc.id)}
                         className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
                         title="Complete production"
                       >
-                        {completingIds.has(alloc.id) ? (
+                        {busyIds.has(alloc.id) ? (
                           <Loader className="w-3 h-3 animate-spin" />
                         ) : (
                           <CheckCircle2 className="w-3 h-3" />

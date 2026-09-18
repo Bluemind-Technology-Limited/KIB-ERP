@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import PlanDetailView from './PlanDetailView';
 
 interface Plan {
   id: string;
@@ -24,6 +25,7 @@ export default function ProductionPlanDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'in-progress' | 'completed'>('all');
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -61,6 +63,10 @@ export default function ProductionPlanDashboard() {
     if (variance < -5) return 'text-amber-600';
     return 'text-green-600';
   };
+
+  if (selectedPlanId) {
+    return <PlanDetailView planId={selectedPlanId} onBack={() => setSelectedPlanId(null)} />;
+  }
 
   if (error) {
     return (
@@ -134,12 +140,12 @@ export default function ProductionPlanDashboard() {
                     Scheduled: {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : 'TBD'}
                   </p>
                 </div>
-                <a
-                  href={`/production/supervisor/plans/${plan.id}`}
+                <button
+                  onClick={() => setSelectedPlanId(plan.id)}
                   className="px-3 py-1.5 text-xs font-medium text-[#AA3BFF] hover:bg-[#AA3BFF] hover:text-white rounded border border-[#AA3BFF] transition-colors"
                 >
                   View →
-                </a>
+                </button>
               </div>
 
               {/* Stats */}

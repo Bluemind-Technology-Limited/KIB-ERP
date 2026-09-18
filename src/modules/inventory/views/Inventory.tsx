@@ -130,14 +130,14 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
     setSaving(true);
     try {
       const signedQuantity = adj.operation === 'add' ? Number(adj.quantity) : -Number(adj.quantity);
-      const res = await axiosClient.post('/inventory/stock/adjustment', {
+      await axiosClient.post('/inventory/stock/adjustment', {
         materialId: adj.materialId, quantity: signedQuantity,
         unitOfMeasure: materials.find((m) => m.id === adj.materialId)?.unitOfMeasure || 'units',
         warehouseId: adj.warehouseId, reason: adj.reason,
       });
       setShowAdjust(false);
       setError('');
-      setSuccess(res.data.requiresApproval ? 'Adjustment posted (flagged for approval).' : 'Adjustment posted successfully.');
+      setSuccess('Adjustment posted successfully.');
       setTimeout(() => setSuccess(''), 3000);
       setAdj({ materialId: '', quantity: '', warehouseId: '', unitOfMeasure: '', reason: '', operation: 'add' });
       setAdjustConfirmation(false);
