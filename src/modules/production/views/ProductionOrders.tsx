@@ -56,6 +56,8 @@ interface ProductionOrder {
   ingredientsReleasedBy?: { fullName?: string } | null;
   yieldLoggedAt?: string | null;
   yieldLoggedBy?: { fullName?: string } | null;
+  planLinked?: boolean;
+  planNumber?: string | null;
   productionIngredients?: Array<{
     id: string;
     materialId: string;
@@ -491,11 +493,20 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       {o.status === 'SCHEDULED' && (
                         <>
-                          <button onClick={() => openAction(o, 'release')} className="btn-3d px-3 h-7">
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <CheckCircle2 className="w-3 h-3" /> Release Ingredients
+                          {o.planLinked ? (
+                            <span
+                              className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                              title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
+                            >
+                              <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
                             </span>
-                          </button>
+                          ) : (
+                            <button onClick={() => openAction(o, 'release')} className="btn-3d px-3 h-7">
+                              <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                                <CheckCircle2 className="w-3 h-3" /> Release Ingredients
+                              </span>
+                            </button>
+                          )}
                           <button onClick={() => deleteProductionOrder(o.id)} className="h-7 px-2.5 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold flex items-center gap-1 bg-white hover:bg-rose-50 transition-colors">
                             <Trash2 className="w-3 h-3" /> Delete
                           </button>

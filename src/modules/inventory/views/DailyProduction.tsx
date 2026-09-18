@@ -13,6 +13,8 @@ interface ProductionOrder {
   status: string;
   scheduledStart?: string | null;
   createdAt: string;
+  planLinked?: boolean;
+  planNumber?: string | null;
   bomVersion?: {
     bom?: { productName: string };
     finishedSku?: { name: string; sku: string } | null;
@@ -219,11 +221,20 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
-                        <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                          <Eye className="w-3.5 h-3.5" /> View Details
+                      {o.planLinked ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                          title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
+                        >
+                          <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
                         </span>
-                      </button>
+                      ) : (
+                        <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
+                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                            <Eye className="w-3.5 h-3.5" /> View Details
+                          </span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
