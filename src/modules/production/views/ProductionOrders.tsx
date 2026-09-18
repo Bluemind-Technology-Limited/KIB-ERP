@@ -495,43 +495,43 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                         <>
                           {o.planLinked ? (
                             <span
-                              className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
                               title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
                             >
-                              <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
+                              <ClipboardList className="w-3 h-3 shrink-0" /> Issue via Stock Issue
                             </span>
                           ) : (
-                            <button onClick={() => openAction(o, 'release')} className="btn-3d px-3 h-7">
-                              <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                                <CheckCircle2 className="w-3 h-3" /> Release Ingredients
+                            <button onClick={() => openAction(o, 'release')} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
+                              <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" /> Release Ingredients
                               </span>
                             </button>
                           )}
-                          <button onClick={() => deleteProductionOrder(o.id)} className="h-7 px-2.5 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold flex items-center gap-1 bg-white hover:bg-rose-50 transition-colors">
-                            <Trash2 className="w-3 h-3" /> Delete
+                          <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50">
+                            <Trash2 className="w-3 h-3 shrink-0" /> Delete
                           </button>
                         </>
                       )}
                       {o.status === 'RELEASED' && (
                         <>
-                          <button onClick={() => openAction(o, 'mix')} className="btn-3d px-3 h-7 bg-amber-600 border-amber-700 hover:bg-amber-500">
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <Factory className="w-3.5 h-3.5" /> Mix
+                          <button onClick={() => openAction(o, 'mix')} className="btn-3d h-7 shrink-0 whitespace-nowrap border-amber-700 bg-amber-600 px-3 hover:bg-amber-500">
+                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
+                              <Factory className="w-3.5 h-3.5 shrink-0" /> Mix
                             </span>
                           </button>
-                          <button onClick={() => openAction(o, 'returns')} className="h-7 px-2.5 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors">
+                          <button onClick={() => openAction(o, 'returns')} className="h-7 shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50">
                             Returns
                           </button>
                         </>
                       )}
                       {o.status === 'PROCESSING' && (
                         <>
-                          <button onClick={() => openAction(o, 'complete')} className="btn-3d px-3 h-7">
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                          <button onClick={() => openAction(o, 'complete')} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
+                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Complete
                             </span>
                           </button>
-                          <button onClick={() => openAction(o, 'returns')} className="h-7 px-2.5 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors">
+                          <button onClick={() => openAction(o, 'returns')} className="h-7 shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50">
                             Returns
                           </button>
                         </>

@@ -28,7 +28,7 @@ export default function SupervisorDashboard() {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const res = await axiosClient.get('/api/supervisor/dashboard');
+        const res = await axiosClient.get('/supervisor/dashboard');
         setDashboardData(res.data);
       } catch (err: any) {
         // Log error but don't store

@@ -255,9 +255,17 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
           {filtered.map((w) => (
             <div key={w.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
               {/* Warehouse row */}
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setExpanded({ ...expanded, [w.id]: !expanded[w.id] })}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpanded({ ...expanded, [w.id]: !expanded[w.id] });
+                  }
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   {expanded[w.id] ? (
@@ -289,7 +297,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              </button>
+              </div>
 
               {/* Zones */}
               {expanded[w.id] && (
@@ -330,9 +338,17 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
 
                   {w.zones.map((z) => (
                     <div key={z.id} className="rounded-lg border border-slate-200 bg-white">
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setExpandedZone({ ...expandedZone, [z.id]: !expandedZone[z.id] })}
-                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 text-left"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setExpandedZone({ ...expandedZone, [z.id]: !expandedZone[z.id] });
+                          }
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           {expandedZone[z.id] ? (
@@ -357,7 +373,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </button>
+                      </div>
 
                       {expandedZone[z.id] && (
                         <div className="border-t border-slate-100 px-3 py-2 space-y-2">
