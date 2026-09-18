@@ -14,6 +14,8 @@ interface Material {
   type: 'RAW' | 'PACKAGING' | 'FINISHED';
   category?: string | null;
   unitOfMeasure: string;
+  /** SOP KIB/QCA/010 — numeric ingredient code used in the lot code (e.g. "1"). */
+  traceabilityCode?: string | null;
   barcode?: string | null;
   defaultExpiryDate?: string | null;
   requiresLot: boolean;
@@ -52,6 +54,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     type: 'RAW',
     category: '',
     unitOfMeasure: '',
+    traceabilityCode: '',
     barcode: '',
     defaultExpiryDate: '',
     requiresLot: true,
@@ -97,7 +100,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
   const openAddWithType = (type: 'RAW' | 'FINISHED') => {
     setEditing(null);
     setLockedType(type);
-    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', barcode: '', defaultExpiryDate: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [] });
+    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', barcode: '', defaultExpiryDate: '', requiresLot: true, nafdacUrl: '', msdsUrl: '', supplierIds: [], traceabilityCode: '' });
     setShowModal(true);
   };
 
@@ -110,6 +113,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       type: m.type,
       category: m.category ?? '',
       unitOfMeasure: m.unitOfMeasure,
+      traceabilityCode: m.traceabilityCode ?? '',
       barcode: m.barcode ?? '',
       defaultExpiryDate: m.defaultExpiryDate ?? '',
       requiresLot: m.requiresLot,
@@ -362,6 +366,11 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     </>
                   )}
                 </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Traceability Code</label>
+                <input value={form.traceabilityCode} onChange={(e) => setForm({ ...form, traceabilityCode: e.target.value })} placeholder="e.g. 1" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <p className="text-[9px] text-slate-400">Ingredient code used in lot codes (SOP KIB/QCA/010). Optional.</p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Category</label>

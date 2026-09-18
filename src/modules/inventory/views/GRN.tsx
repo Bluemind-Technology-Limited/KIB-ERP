@@ -14,6 +14,40 @@ const grnStatusBadge: Record<string, string> = {
   REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
 };
 
+/** SOP KIB/QCA/010 — what still has to be filled in before a lot code can be built. */
+const MISSING_LABELS: Record<string, string> = {
+  vendorCode: 'a vendor code on the supplier',
+  ingredientCode: 'a traceability code on the material',
+  setNumber: 'a set number',
+  yearCode: 'the year',
+};
+
+interface GrnLine {
+  materialId: string;
+  materialName: string;
+  batchNumber: string;
+  quantity: string;
+  unitOfMeasure: string;
+  expiryDate: string;
+  warehouseId: string;
+  setNumber: string;
+  supplierBatchNumber: string;
+}
+
+interface LotPreviewItem {
+  materialId: string;
+  materialName: string;
+  materialSku: string;
+  setNumber: number;
+  lotCode: string | null;
+  missing: string[];
+}
+
+const emptyLine = (): GrnLine => ({
+  materialId: '', materialName: '', batchNumber: '', quantity: '', unitOfMeasure: '',
+  expiryDate: '', warehouseId: '', setNumber: '', supplierBatchNumber: '',
+});
+
 export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   const [grns, setGrns] = useState<GrnData[]>([]);
   const [pos, setPos] = useState<any[]>([]);
@@ -23,9 +57,9 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [poId, setPoId] = useState('');
   const [grnNotes, setGrnNotes] = useState('');
-  const [lines, setLines] = useState<{ materialId: string; batchNumber: string; quantity: string; unitOfMeasure: string; expiryDate: string; warehouseId: string }[]>([
-    { materialId: '', batchNumber: '', quantity: '', unitOfMeasure: '', expiryDate: '', warehouseId: '' },
-  ]);
+  const [lines, setLines] = useState<GrnLine[]>([emptyLine()]);
+  const [lotPreviews, setLotPreviews] = useState<Record<string, LotPreviewItem>>({});
+  const [supplierName, setSupplierName] = useState('');
   const [submitConfirmation, setSubmitConfirmation] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ grnId: string; grnNumber: string } | null>(null);
@@ -52,38 +86,78 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
 
   useEffect(() => { load(); }, []);
 
-  const selectPo = (id: string) => {
+  const selectPo = async (id: string) => {
     setPoId(id);
+    setLotPreviews({});
+    setSupplierName('');
+
+    if (!id) {
+      setLines([emptyLine()]);
+      return;
+    }
+
     const po = pos.find((p) => p.id === id);
-    if (po?.items) {
-      setLines(po.items.map((i: any) => ({
-        materialId: i.materialId,
-        batchNumber: '',
-        quantity: String(Number(i.quantity) - Number(i.receivedQty || 0)),
-        unitOfMeasure: i.unitOfMeasure,
-        expiryDate: '',
-        warehouseId: '',
-      })));
+    setSupplierName(po?.supplier?.name ?? '');
+
+    const base: GrnLine[] = (po?.items ?? []).map((i: any) => ({
+      ...emptyLine(),
+      materialId: i.materialId,
+      quantity: String(Number(i.quantity) - Number(i.receivedQty || 0)),
+      unitOfMeasure: i.unitOfMeasure,
+    }));
+    setLines(base);
+
+    // Lot codes come from the server so the UI never reimplements the format.
+    try {
+      const res = await axiosClient.get<{ items: LotPreviewItem[] }>('/grn/lot-preview', {
+        params: { poId: id },
+      });
+      const map: Record<string, LotPreviewItem> = {};
+      for (const item of res.data.items) map[item.materialId] = item;
+      setLotPreviews(map);
+      setLines(
+        base.map((l) => ({
+          ...l,
+          setNumber: map[l.materialId] ? String(map[l.materialId].setNumber) : '',
+        }))
+      );
+    } catch {
+      // Leave the preview blank — the server still builds the code on submit.
     }
   };
 
+  /** A line is postable when it has a material, a quantity, a warehouse and
+   *  either a generated lot code or a manually typed batch number. */
+  const lineIsComplete = (l: GrnLine) =>
+    Boolean(l.materialId && l.quantity && l.warehouseId && (l.batchNumber || lotPreviews[l.materialId]?.lotCode));
+
+  const buildItems = () =>
+    lines.filter(lineIsComplete).map((l) => ({
+      materialId: l.materialId,
+      quantity: Number(l.quantity),
+      unitOfMeasure: l.unitOfMeasure,
+      batchNumber: l.batchNumber || undefined,
+      expiryDate: l.expiryDate || undefined,
+      warehouseId: l.warehouseId,
+      setNumber: l.setNumber === '' ? undefined : Number(l.setNumber),
+      supplierBatchNumber: l.supplierBatchNumber || undefined,
+    }));
+
   const receive = async (e: React.FormEvent) => {
     e.preventDefault();
-    const items = lines
-      .filter((l) => l.materialId && l.batchNumber && l.quantity && l.warehouseId)
-      .map((l) => ({ ...l, quantity: Number(l.quantity) }));
-    if (items.length === 0) { setError('Complete at least one line (batch, qty, warehouse)'); return; }
+    if (!poId) { setError('Select a purchase order first'); return; }
+    if (buildItems().length === 0) { setError('Complete at least one line (qty, warehouse)'); return; }
     setSubmitConfirmation(true);
   };
 
   const confirmReceive = async () => {
     setSaving(true);
     try {
-      await axiosClient.post('/grn', { poId, notes: grnNotes, items: lines
-        .filter((l) => l.materialId && l.batchNumber && l.quantity && l.warehouseId)
-        .map((l) => ({ ...l, quantity: Number(l.quantity) })) });
+      await axiosClient.post('/grn', { poId, notes: grnNotes, items: buildItems() }, {
+        toast: { success: 'Goods received and posted to stock' },
+      });
       setShowForm(false);
-      setPoId(''); setGrnNotes(''); setLines([{ materialId: '', batchNumber: '', quantity: '', unitOfMeasure: '', expiryDate: '', warehouseId: '' }]);
+      setPoId(''); setGrnNotes(''); setLines([emptyLine()]); setLotPreviews({}); setSupplierName('');
       setSubmitConfirmation(false);
       load();
     } catch (err: any) { setError(err?.response?.data?.error || 'Receive failed'); setSaving(false); }
@@ -219,40 +293,91 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
               />
             </div>
 
-            {lines.map((line, idx) => (
-              <div key={idx} className="space-y-2 rounded-lg border border-slate-100 p-2">
-                <span className="block text-[11px] font-semibold text-slate-600">{line.materialId ? pos.flatMap((p: any) => p.items ?? []).find((i: any) => i.materialId === line.materialId)?.material?.name : 'Material'}</span>
-                <input
-                  value={line.batchNumber}
-                  onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, batchNumber: e.target.value } : l))}
-                  placeholder="Batch #"
-                  className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                />
-                <input
-                  value={line.quantity}
-                  onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))}
-                  placeholder="Qty"
-                  type="number"
-                  className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                />
-                <input
-                  value={line.expiryDate}
-                  onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, expiryDate: e.target.value } : l))}
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                  required
-                />
-                <select
-                  value={line.warehouseId}
-                  onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, warehouseId: e.target.value } : l))}
-                  className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                >
-                  <option value="">Warehouse…</option>
-                  {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </div>
-            ))}
+            {lines.map((line, idx) => {
+              const preview = lotPreviews[line.materialId];
+              return (
+                <div key={idx} className="space-y-2 rounded-lg border border-slate-100 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="block truncate text-[11px] font-semibold text-slate-600">
+                        {preview?.materialName || line.materialName || 'Material'}
+                      </span>
+                      {preview?.materialSku && (
+                        <span className="block text-[9px] font-mono text-slate-400">{preview.materialSku}</span>
+                      )}
+                    </div>
+                    {supplierName && (
+                      <span className="shrink-0 text-right text-[9px] text-slate-400">{supplierName}</span>
+                    )}
+                  </div>
+
+                  {/* Lot code — always shown beside the ingredient and supplier names it belongs to. */}
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Lot Code</span>
+                    {preview?.lotCode ? (
+                      <span className="block font-mono text-xs font-bold text-[#171717]">{preview.lotCode}</span>
+                    ) : (
+                      <span className="block text-[10px] text-amber-600">
+                        {preview?.missing?.length
+                          ? `Add ${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')} to generate a lot code`
+                          : 'Select a purchase order to generate a lot code'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={line.setNumber}
+                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, setNumber: e.target.value } : l))}
+                      placeholder="Set no."
+                      type="number"
+                      min={1}
+                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                    />
+                    <input
+                      value={line.supplierBatchNumber}
+                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, supplierBatchNumber: e.target.value } : l))}
+                      placeholder="Supplier batch #"
+                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                    />
+                  </div>
+
+                  {/* Only needed while the master-data codes are still missing. */}
+                  {!preview?.lotCode && (
+                    <input
+                      value={line.batchNumber}
+                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, batchNumber: e.target.value } : l))}
+                      placeholder="Batch # (until codes are set)"
+                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                    />
+                  )}
+
+                  <input
+                    value={line.quantity}
+                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))}
+                    placeholder="Qty"
+                    type="number"
+                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                  />
+                  <input
+                    value={line.expiryDate}
+                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, expiryDate: e.target.value } : l))}
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                    required
+                  />
+                  <select
+                    value={line.warehouseId}
+                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, warehouseId: e.target.value } : l))}
+                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                  >
+                    <option value="">Warehouse…</option>
+                    {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+              );
+            })}
 
             <div className="flex justify-between items-center">
               <button type="button" onClick={() => setShowForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>

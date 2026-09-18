@@ -7,7 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
-interface SupplierOption { id: string; name: string }
+interface SupplierOption { id: string; name: string; vendorCode?: string }
 
 const reqStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -154,6 +154,12 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
   };
 
   const confirmCreatePo = async () => {
+    const supplier = suppliers.find((s) => s.id === poSupplierId);
+    if (!supplier?.vendorCode?.trim()) {
+      setError(`Supplier "${supplier?.name ?? poSupplierId}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`);
+      setCreatePoConfirmation(false);
+      return;
+    }
     setSaving(true);
     try {
       const body: any = { 

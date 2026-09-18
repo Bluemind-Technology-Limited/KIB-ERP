@@ -12,6 +12,7 @@ interface Material {
   sku: string;
   type: 'RAW' | 'PACKAGING' | 'FINISHED';
   unitOfMeasure: string;
+  traceabilityCode?: string;
 }
 
 interface BomIngredient {
@@ -139,6 +140,13 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
 
   const confirmCreate = async () => {
     const validIngredients = ingredients.filter((ing) => ing.materialId && ing.quantity);
+    const missingCode = validIngredients.find((ing) => !materials.find((m) => m.id === ing.materialId)?.traceabilityCode?.trim());
+    if (missingCode) {
+      const mat = materials.find((m) => m.id === missingCode.materialId);
+      setError(`Ingredient "${mat?.name ?? missingCode.materialId}" has no traceability code. Add it in Master Data → Materials before saving this formulation.`);
+      setCreateConfirmation(false);
+      return;
+    }
     setSaving(true);
     try {
       await axiosClient.post('/production/boms', {

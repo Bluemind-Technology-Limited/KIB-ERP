@@ -14,6 +14,8 @@ interface Supplier {
   phone?: string | null;
   address?: string | null;
   taxId?: string | null;
+  /** SOP KIB/QCA/010 — alphabetic vendor code used in the lot code (e.g. "A"). */
+  vendorCode?: string | null;
   status: string;
 }
 
@@ -28,7 +30,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
-  const [form, setForm] = useState({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '' });
+  const [form, setForm] = useState({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '', vendorCode: '' });
   const [createConfirmation, setCreateConfirmation] = useState(false);
   const [updateConfirmation, setUpdateConfirmation] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -54,13 +56,13 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '' });
+    setForm({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '', vendorCode: '' });
     setShowModal(true);
   };
 
   const openEdit = (s: Supplier) => {
     setEditing(s);
-    setForm({ name: s.name, contactPerson: s.contactPerson ?? '', email: s.email ?? '', phone: s.phone ?? '', address: s.address ?? '', taxId: s.taxId ?? '' });
+    setForm({ name: s.name, contactPerson: s.contactPerson ?? '', email: s.email ?? '', phone: s.phone ?? '', address: s.address ?? '', taxId: s.taxId ?? '', vendorCode: s.vendorCode ?? '' });
     setShowModal(true);
   };
 
@@ -242,6 +244,11 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tax ID</label>
                 <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vendor Code</label>
+                <input value={form.vendorCode} onChange={(e) => setForm({ ...form, vendorCode: e.target.value })} placeholder="e.g. A" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <p className="text-[9px] text-slate-400">Used in lot codes (SOP KIB/QCA/010). Optional.</p>
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Address</label>

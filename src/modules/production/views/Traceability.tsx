@@ -24,6 +24,16 @@ interface BatchMatch {
   expiryDate?: string | null;
   material: { id: string; name: string; sku: string; type: string; unitOfMeasure: string };
   origin: 'PRODUCTION_ORDER' | 'PRODUCTION_PLAN' | 'INBOUND' | 'UNKNOWN';
+  /** Stored lot origin (SOP KIB/QCA/010): INBOUND receipt or FINISHED batch. */
+  batchOrigin?: string;
+  // Lot code parts — shown alongside the ingredient and supplier names.
+  lotCode?: string | null;
+  setNumber?: number | null;
+  vendorCode?: string | null;
+  ingredientCode?: string | null;
+  yearCode?: string | null;
+  supplierBatchNumber?: string | null;
+  supplier?: { id: string; name: string; vendorCode?: string | null } | null;
 }
 
 interface Inbound {
@@ -87,7 +97,17 @@ interface TraceTree {
     isPercentage: boolean;
     source: 'GRINDING_INPUTS' | 'PLAN_ISSUE' | 'PROD_CONSUMPTION' | null;
     rawBatches: Array<{
-      batch: { id: string; batchNumber: string; status: string; expiryDate?: string | null; manufacturingDate?: string | null };
+      batch: {
+        id: string;
+        batchNumber: string;
+        status: string;
+        expiryDate?: string | null;
+        manufacturingDate?: string | null;
+        /** SOP KIB/QCA/010 — present on lots created since lot coding was added. */
+        lotCode?: string | null;
+        origin?: string | null;
+        supplierBatchNumber?: string | null;
+      };
       inbound: Inbound | null;
     }>;
   }>;
@@ -207,7 +227,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="Batch number, material or SKU…"
+              placeholder="Lot code (A-1-1-26), batch number, ingredient or supplier…"
               className="h-9 w-64 rounded-lg border border-[#E9E9E9] bg-white pl-9 pr-3 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
             />
           </div>
@@ -255,10 +275,16 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                 className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#171717]">{m.batchNumber}</p>
+                  {/* The code leads, with the ingredient and supplier named beside it. */}
+                  <p className="font-mono text-xs font-bold text-[#171717]">
+                    {m.lotCode ?? m.batchNumber}
+                  </p>
+                  <p className="truncate text-[10px] text-slate-500">
+                    {m.material?.name} · <span className="font-mono">{m.material?.sku}</span>
+                  </p>
                   <p className="truncate text-[10px] text-slate-400">
-                    {m.material?.name} · <span className="font-mono">{m.material?.sku}</span> ·{' '}
-                    {originLabel[m.origin]}
+                    {m.supplier?.name ? `from ${m.supplier.name}` : originLabel[m.origin]}
+                    {m.lotCode && ` · ${originLabel[m.origin]}`}
                   </p>
                 </div>
                 <span
@@ -406,7 +432,14 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                       {ing.rawBatches.map((rb) => (
                         <div key={rb.batch.id} className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono font-bold text-slate-600">{rb.batch.batchNumber}</span>
+                            <span className="text-[10px] font-mono font-bold text-slate-600">
+                              {rb.batch.lotCode ?? rb.batch.batchNumber}
+                            </span>
+                            {rb.batch.supplierBatchNumber && (
+                              <span className="text-[9px] text-slate-400">
+                                sup. batch <b className="font-mono">{rb.batch.supplierBatchNumber}</b>
+                              </span>
+                            )}
                             <span
                               className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                                 statusBadge[rb.batch.status] ?? statusBadge.ACTIVE
