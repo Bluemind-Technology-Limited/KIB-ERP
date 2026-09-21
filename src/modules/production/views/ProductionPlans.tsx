@@ -178,7 +178,15 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
   const schedulePlan = async (planId: string) => {
     setActionInProgress({ planId, action: 'schedule' });
     try {
-      await axiosClient.post(`/production/production-plans/${planId}/schedule`);
+      // The schedule route requires a date. Use the plan's own date when it has
+      // one, otherwise today — the button works straight from the list.
+      const plan = plans.find((p) => p.id === planId) as ProductionPlan | undefined;
+      const scheduledFor = plan?.scheduledFor ? new Date(plan.scheduledFor) : new Date();
+      await axiosClient.post(
+        `/production/production-plans/${planId}/schedule`,
+        { scheduledFor: scheduledFor.toISOString() },
+        { toast: { success: 'Production plan scheduled' } }
+      );
       setError('');
       load();
     } catch (err: any) {
