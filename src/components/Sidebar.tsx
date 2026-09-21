@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, LogOut, ChevronDown, ChevronRight, Database,
   HeartHandshake, ExternalLink, Users, ShoppingCart, Boxes,
@@ -162,9 +163,25 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   const filteredCollapsedItems = allCollapsedItems.filter(item => allowedViews.includes(item.id));
 
+  /**
+   * Collapsed-rail tooltips are portalled to the body.
+   *
+   * They used to be absolutely-positioned children of the icon button, but the
+   * scrolling nav has `overflow-y-auto`, which forces `overflow-x: auto` too and
+   * clipped every tooltip at the rail's edge. Portalling escapes that clip and
+   * lets them sit above the rest of the app.
+   */
+  const [hoveredNav, setHoveredNav] = useState<{ label: string; top: number } | null>(null);
+
+  const showNavTooltip = (label: string, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    setHoveredNav({ label, top: rect.top + rect.height / 2 });
+  };
+
   // --- COLLAPSED VIEW SIDEBAR ---
   if (isCollapsed) {
     return (
+      <>
       <aside className="w-[56px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between items-center font-sans shrink-0 py-3 z-30 relative">
         {/* Absolute Peg Extension Button */}
         <button
@@ -189,6 +206,11 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                 <div key={item.id} className="relative group">
                   <button
                     onClick={() => setActiveTab(item.id)}
+                    onMouseEnter={(e) => showNavTooltip(item.name, e.currentTarget)}
+                    onMouseLeave={() => setHoveredNav(null)}
+                    onFocus={(e) => showNavTooltip(item.name, e.currentTarget)}
+                    onBlur={() => setHoveredNav(null)}
+                    aria-label={item.name}
                     className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
                       isActive 
                         ? 'bg-[#F3F3F3] text-[#171717] font-semibold border border-slate-200/50' 
@@ -197,9 +219,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                   >
                     <Icon className="w-4 h-4 opacity-70 shrink-0" />
                   </button>
-                  <div className="absolute left-[48px] top-1/2 -translate-y-1/2 bg-[#171717] text-white text-[10px] font-semibold px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50 pointer-events-none">
-                    {item.name}
-                  </div>
                 </div>
               );
             })}
@@ -243,6 +262,19 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
         </div>
 
       </aside>
+
+        {/* Rail tooltip — portalled to the body so the scrolling nav cannot clip it. */}
+        {hoveredNav &&
+          createPortal(
+            <div
+              className="pointer-events-none fixed z-9998 whitespace-nowrap rounded bg-[#171717] px-2 py-1 text-[10px] font-semibold text-white shadow-lg"
+              style={{ left: 64, top: hoveredNav.top, transform: 'translateY(-50%)' }}
+            >
+              {hoveredNav.label}
+            </div>,
+            document.body
+          )}
+      </>
     );
   }
 
