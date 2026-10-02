@@ -119,10 +119,10 @@ export default function DashboardLayout({
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#171717] flex font-sans">
+    <div className="h-screen overflow-hidden bg-[#FAFAFA] text-[#171717] flex font-sans">
       
       {/* Sidebar - Desktop Layout (Isolated Component) */}
-      <div className={`hidden md:block sticky top-0 h-screen shrink-0 z-30 transition-all duration-200 ${isSidebarCollapsed ? 'w-[56px]' : 'w-[260px]'}`}>
+      <div className={`hidden md:block h-full shrink-0 z-30 transition-all duration-200 ${isSidebarCollapsed ? 'w-[56px]' : 'w-[260px]'}`}>
         <Sidebar 
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
@@ -133,7 +133,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Main Panel */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         
         {/* Sticky Dashboard Header (58px height, does not scroll with page) */}
         <header className="h-[58px] bg-[#FBFBFB] border-b border-[#D9D9D9]/80 px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
@@ -268,7 +268,7 @@ export default function DashboardLayout({
         )}
 
         {/* Scrollable Page Container */}
-        <main className="flex-grow overflow-y-auto p-6 md:p-8 bg-[#FAFAFA]">
+        <main className="flex-1 min-h-0 overflow-y-auto kib-scroll p-6 md:p-8 bg-[#FAFAFA]">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
