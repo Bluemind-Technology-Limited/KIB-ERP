@@ -89,6 +89,8 @@ export default function DashboardLayout({
         return { parent: 'Production', current: 'Batch Formulation' };
       case 'prod-orders':
         return { parent: 'Production', current: 'Production Orders' };
+      case 'prod-daily-records':
+        return { parent: 'Production', current: 'Daily Records' };
       case 'prod-trace':
         return { parent: 'Production', current: 'Traceability' };
       case 'prod-issue':
@@ -101,8 +103,6 @@ export default function DashboardLayout({
         return { parent: 'Assets', current: 'Machines & Assets' };
       case 'qa-inspections':
         return { parent: 'Quality Assurance', current: 'Inspections' };
-      case 'qa-consignments':
-        return { parent: 'Quality Assurance', current: 'Consignment QA' };
       case 'qa-quantity-approvals':
         return { parent: 'Quality Assurance', current: 'Quantity Approvals' };
       case 'alerts-notifications':

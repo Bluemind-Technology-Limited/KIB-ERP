@@ -29,7 +29,6 @@ import GrindingStation from './modules/production/line/GrindingStation';
 import FinishingStation from './modules/production/line/FinishingStation';
 import Machines from './modules/machines/views/Machines';
 import Inspections from './modules/qa/views/Inspections';
-import ConsignmentQA from './modules/qa/ConsignmentQA';
 import QuantityApprovals from './modules/qa/QuantityApprovals';
 import Notifications from './modules/alerts/views/Notifications';
 import AuditTrail from './modules/admin/views/AuditTrail';
@@ -68,7 +67,6 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'prod-finishing': { path: '/production/finishing', parent: 'Production', label: 'Production Station' },
   'machines': { path: '/machines', parent: 'Assets', label: 'Machines & Assets' },
   'qa-inspections': { path: '/quality/inspections', parent: 'Quality Assurance', label: 'Inspections' },
-  'qa-consignments': { path: '/quality/consignment-checks', parent: 'Quality Assurance', label: 'Consignment QA' },
   'qa-quantity-approvals': { path: '/quality/quantity-approvals', parent: 'Quality Assurance', label: 'Quantity Approvals' },
   'alerts-notifications': { path: '/alerts/notifications', parent: 'Alerts & Reports', label: 'Notifications' },
   'admin-audit': { path: '/admin/audit', parent: 'Alerts & Reports', label: 'Audit Trail' },
@@ -317,12 +315,6 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="qa-inspections">
             <Inspections searchQuery={searchQuery} />
-          </RoleGuard>
-        );
-      case 'qa-consignments':
-        return (
-          <RoleGuard userRole={user.role} viewId="qa-consignments">
-            <ConsignmentQA />
           </RoleGuard>
         );
       case 'qa-quantity-approvals':

@@ -210,7 +210,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                         <td className="px-4 py-3 text-[11px] text-slate-600">{achievedSummary}</td>
                         <td className="px-4 py-3">
                           <span className="text-[10px] font-semibold text-amber-600">
-                            {qty(day.wip.quantity)} · {money(day.wip.value)}
+                            {day.wip.lines.length} line(s) · {money(day.wip.value)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right text-[9px] text-slate-400">Expand</td>
@@ -239,7 +239,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                             </td>
                             <td />
                             <td className="px-4 py-2.5 text-[10px] text-amber-700">
-                              {qty(day.wip.quantity)} · {money(day.wip.value)} carried forward
+                              {day.wip.lines.length} line(s) · {money(day.wip.value)} carried forward
                             </td>
                             <td className="px-4 py-2.5 text-right">
                               <ViewButton label="View WIP" onClick={() => setViewing({ day, arm: 'wip' })} />

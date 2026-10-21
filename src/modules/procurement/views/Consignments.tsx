@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Plus, ChevronDown, ChevronRight, Trash2, Boxes, ShieldCheck } from 'lucide-react';
+import { Truck, Plus, ChevronDown, ChevronRight, Trash2, Boxes } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import { useAuthStore } from '../../../stores/useAuthStore';
-import { rolePermissions } from '../../../components/routing/RoleGuard';
 import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
@@ -131,8 +129,6 @@ const qualityStatusBadge: Record<string, string> = {
 
 export default function Consignments({ searchQuery = '' }: { searchQuery?: string }) {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const canOpenQA = !!user && (rolePermissions[user.role]?.includes('qa-consignments') ?? false);
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [warehouseBins, setWarehouseBins] = useState<WarehouseBin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -432,15 +428,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                           <span className="text-[10px] font-semibold text-orange-700">⏳ Awaiting QA Approval</span>
                         </div>
                       )}
-                      {canOpenQA &&
-                        ['RECEIVED', 'QUALITY_PENDING', 'QUALITY_APPROVED'].includes(csn.status) && (
-                          <button
-                            onClick={() => navigate(`/quality/consignment-checks?consignment=${csn.id}`)}
-                            className="flex items-center gap-1 px-3 h-7 rounded-lg border border-[#AA3BFF]/30 text-[#AA3BFF] text-[10px] font-semibold hover:bg-[#AA3BFF]/5"
-                          >
-                            <ShieldCheck className="w-3 h-3" /> Open QA Checks
-                          </button>
-                        )}
                     </div>
                   </div>
                 )}

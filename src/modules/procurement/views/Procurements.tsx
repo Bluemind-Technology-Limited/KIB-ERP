@@ -42,7 +42,11 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [approvedRequisitions, setApprovedRequisitions] = useState<any[]>([]);
-  const [lpoRequisitionId, setLpoRequisitionId] = useState<string | null>(null);
+  const [lpoPoId, setLpoPoId] = useState<string | null>(null);
+  const [ensuringLpoId, setEnsuringLpoId] = useState<string | null>(null);
+  const [holdTarget, setHoldTarget] = useState<{ poId: string; itemId: string; materialName: string; onHold: boolean } | null>(null);
+  const [holdReason, setHoldReason] = useState('');
+  const [savingHold, setSavingHold] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showPoForm, setShowPoForm] = useState(false);
@@ -144,6 +148,63 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       pos.some((p: any) => p.status === 'DRAFT' || p.status === 'PARTIALLY_RECEIVED')
     );
   });
+
+  /**
+   * LPOs are always issued against the purchase order. If the requisition has
+   * no order yet, create it first, then open the modal on the real order lines.
+   */
+  const openLpoForRequisition = async (requisitionId: string) => {
+    setEnsuringLpoId(requisitionId);
+    setError('');
+    try {
+      const res = await axiosClient.post<{ purchaseOrder: { id: string } }>(
+        `/procurement/requisitions/${requisitionId}/ensure-po`
+      );
+      setLpoPoId(res.data.purchaseOrder.id);
+    } catch (err: any) {
+      const data = err?.response?.data;
+      setError(
+        Array.isArray(data?.issues) && data.issues.length
+          ? data.issues.join(' ')
+          : data?.error || 'Failed to prepare the purchase order'
+      );
+    } finally {
+      setEnsuringLpoId(null);
+    }
+  };
+
+  /** How many lines are still sendable / already sent / on hold. */
+  const lpoState = (po: any) => {
+    const items = po.items ?? [];
+    const sent = items.filter((i: any) => i.lpoSentAt).length;
+    const onHold = items.filter((i: any) => i.onHold).length;
+    const eligible = items.filter(
+      (i: any) => !i.lpoSentAt && !i.onHold && Number(i.receivedQty ?? 0) < Number(i.quantity)
+    ).length;
+    return { total: items.length, sent, onHold, eligible };
+  };
+
+  const confirmHold = async () => {
+    if (!holdTarget) return;
+    setSavingHold(true);
+    setError('');
+    try {
+      await axiosClient.patch(
+        `/procurement/purchase-orders/${holdTarget.poId}/items/${holdTarget.itemId}/hold`,
+        { onHold: holdTarget.onHold, reason: holdTarget.onHold ? holdReason : undefined }
+      );
+      const res = await axiosClient.get<{ purchaseOrders: any[] }>('/procurement/purchase-orders');
+      setPurchaseOrders(res.data.purchaseOrders);
+      const refreshed = res.data.purchaseOrders.find((p: any) => p.id === holdTarget.poId);
+      if (refreshed) setViewingPo(refreshed);
+      setHoldTarget(null);
+      setHoldReason('');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to update the line hold');
+    } finally {
+      setSavingHold(false);
+    }
+  };
 
   /** Internal POs can span suppliers; show a compact label instead of one name. */
   const poSupplierLabel = (po: any) => {
@@ -317,10 +378,12 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                     </p>
                   </div>
                   <button
-                    onClick={() => setLpoRequisitionId(r.id)}
-                    className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 shrink-0"
+                    onClick={() => openLpoForRequisition(r.id)}
+                    disabled={ensuringLpoId === r.id}
+                    className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 shrink-0 disabled:opacity-50"
                   >
-                    <Send className="w-3 h-3" /> {retry ? 'Retry LPO' : 'Generate & Send LPO'}
+                    <Send className="w-3 h-3" />
+                    {ensuringLpoId === r.id ? 'Preparing…' : retry ? 'Continue LPO' : 'Generate & Send LPO'}
                   </button>
                 </div>
               );
@@ -513,6 +576,11 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   </div>
                   <p className="text-[10px] text-slate-400">
                     {poSupplierLabel(p)} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
+                    {(() => {
+                      const state = lpoState(p);
+                      if (!state.sent && !state.onHold) return '';
+                      return ` · LPO ${state.sent}/${state.total}${state.onHold ? ` · ${state.onHold} on hold` : ''}`;
+                    })()}
                   </p>
                   <p className="text-[10px] text-slate-500">
                     {p.items?.map((i: any) => {
@@ -535,6 +603,11 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                 </div>
                 <div className="flex gap-2">
                   <ViewButton onClick={() => setViewingPo(p)} />
+                  {lpoState(p).eligible > 0 && (
+                    <button onClick={() => setLpoPoId(p.id)} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
+                      <Send className="w-3 h-3" /> {lpoState(p).sent > 0 ? 'Send remaining' : 'LPO'}
+                    </button>
+                  )}
                   {p.status === 'DRAFT' && (
                     <>
                       <button onClick={() => handleStatusChange(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
@@ -588,17 +661,60 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                         const received = Number(i.receivedQty ?? 0);
                         const ordered = Number(i.quantity);
                         const outstanding = ordered - received;
+                        const stateLabel = i.lpoSentAt
+                          ? i.lpoNumber ?? 'LPO sent'
+                          : i.onHold
+                          ? 'On hold'
+                          : received >= ordered
+                          ? 'Received'
+                          : 'Not sent';
+                        const stateClass = i.lpoSentAt
+                          ? 'text-emerald-600'
+                          : i.onHold
+                          ? 'text-amber-600'
+                          : received >= ordered
+                          ? 'text-slate-400'
+                          : 'text-slate-500';
                         return (
                           <div key={i.id} className="flex items-center justify-between gap-3 border-b border-slate-50 pb-1 last:border-0">
-                            <span className="truncate">{i.material?.name}</span>
-                            <span className="shrink-0 text-slate-500 text-[10px]">
-                              {received}/{ordered} {i.unitOfMeasure}
-                              {outstanding > 0 ? (
-                                <span className="text-amber-600 font-semibold"> · {outstanding} outstanding</span>
-                              ) : (
-                                <span className="text-emerald-600 font-semibold"> · complete</span>
+                            <div className="min-w-0">
+                              <p className="truncate">{i.material?.name}</p>
+                              <p className={`text-[9px] font-semibold uppercase tracking-wider ${stateClass}`}>
+                                {stateLabel}
+                                {i.onHold && i.holdReason ? ` — ${i.holdReason}` : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="shrink-0 text-slate-500 text-[10px]">
+                                {received}/{ordered} {i.unitOfMeasure}
+                                {outstanding > 0 ? (
+                                  <span className="text-amber-600 font-semibold"> · {outstanding} outstanding</span>
+                                ) : (
+                                  <span className="text-emerald-600 font-semibold"> · complete</span>
+                                )}
+                              </span>
+                              {!i.lpoSentAt && received === 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setHoldTarget({
+                                      poId: viewingPo.id,
+                                      itemId: i.id,
+                                      materialName: i.material?.name ?? 'Item',
+                                      onHold: !i.onHold,
+                                    });
+                                    setHoldReason(i.holdReason ?? '');
+                                  }}
+                                  className={`h-6 px-2 rounded-md border text-[9px] font-semibold ${
+                                    i.onHold
+                                      ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                                      : 'border-amber-200 text-amber-600 hover:bg-amber-50'
+                                  }`}
+                                >
+                                  {i.onHold ? 'Resume' : 'Hold'}
+                                </button>
                               )}
-                            </span>
+                            </div>
                           </div>
                         );
                       })}
@@ -665,18 +781,81 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
         />
       )}
 
-      {lpoRequisitionId && (
+      {lpoPoId && (
         <LpoSendModal
-          requisitionId={lpoRequisitionId}
+          poId={lpoPoId}
           onClose={() => {
-            setLpoRequisitionId(null);
+            setLpoPoId(null);
             loadAll();
           }}
           onSent={() => {
-            setLpoRequisitionId(null);
+            setLpoPoId(null);
             loadAll();
           }}
         />
+      )}
+
+      {holdTarget && (
+        <Modal onClose={() => !savingHold && setHoldTarget(null)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#171717]">
+                  {holdTarget.onHold ? 'Put line on hold' : 'Resume line'}
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-1 truncate">{holdTarget.materialName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHoldTarget(null)}
+                disabled={savingHold}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-500">
+              {holdTarget.onHold
+                ? 'A held line is left out of LPO selection until it is resumed.'
+                : 'This line will be available for LPO selection again.'}
+            </p>
+
+            {holdTarget.onHold && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reason (optional)</label>
+                <textarea
+                  value={holdReason}
+                  onChange={(e) => setHoldReason(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. price under review"
+                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setHoldTarget(null)}
+                disabled={savingHold}
+                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmHold}
+                disabled={savingHold}
+                className="btn-3d px-4 h-9 disabled:opacity-50"
+              >
+                <span className="text-white text-xs font-semibold">
+                  {savingHold ? 'Saving…' : holdTarget.onHold ? 'Put on hold' : 'Resume line'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

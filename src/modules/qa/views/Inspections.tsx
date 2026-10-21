@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, CheckCircle2, XCircle, Search, Paperclip, Upload, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Paperclip,
+  Upload,
+  Trash2,
+  ExternalLink,
+  Loader2,
+  MessageSquare,
+  ClipboardCheck,
+} from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { uploadFileToR2 } from '../../../lib/r2Client';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
@@ -33,6 +46,7 @@ const resultBadge: Record<string, string> = {
   PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   FAILED: 'bg-rose-50 text-rose-600 border-rose-200',
 };
+
 const batchStatusBadge: Record<string, string> = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -49,9 +63,11 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [busyId, setBusyId] = useState<string | null>(null);
   const [docToDelete, setDocToDelete] = useState<Inspection | null>(null);
   const [deletingDoc, setDeletingDoc] = useState(false);
-  /** Batch numbers keyed by inspection id — QA assigns them here, not at receipt. */
-  const [batchInputs, setBatchInputs] = useState<Record<string, string>>({});
   const [viewing, setViewing] = useState<Inspection | null>(null);
+  /** QA review modal — batch number (traceability) + comments for one item. */
+  const [reviewing, setReviewing] = useState<Inspection | null>(null);
+  const [reviewForm, setReviewForm] = useState({ batchNumber: '', notes: '' });
+  const [savingReview, setSavingReview] = useState<'comment' | 'release' | 'reject' | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -72,23 +88,68 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     load();
   }, [filter, resultFilter]);
 
-  const decide = async (inspection: Inspection, action: 'release' | 'reject') => {
-    setBusyId(inspection.id);
+  const openReview = (inspection: Inspection) => {
+    setReviewing(inspection);
+    setReviewForm({
+      batchNumber:
+        inspection.batchLot && !inspection.batchLot.batchNumber.startsWith('PENDING-')
+          ? inspection.batchLot.batchNumber
+          : '',
+      notes: inspection.notes ?? '',
+    });
+    setError('');
+  };
+
+  const closeReview = () => {
+    if (savingReview) return;
+    setReviewing(null);
+  };
+
+  /** Save the inspector's observations without deciding the result yet. */
+  const saveComment = async () => {
+    if (!reviewing) return;
+    setSavingReview('comment');
+    setError('');
     try {
-      await axiosClient.post(`/qa/inspections/${inspection.id}/${action}`, {
-        batchNumber: batchInputs[inspection.id]?.trim() || undefined,
+      await axiosClient.patch(`/qa/inspections/${reviewing.id}/comment`, {
+        notes: reviewForm.notes,
       });
-      setError('');
-      setBatchInputs((prev) => {
-        const next = { ...prev };
-        delete next[inspection.id];
-        return next;
+      await load();
+      const refreshed = (await axiosClient.get<{ inspections: Inspection[] }>('/qa/inspections'))
+        .data.inspections.find((i) => i.id === reviewing.id);
+      if (refreshed) {
+        setReviewing(refreshed);
+        setReviewForm((prev) => ({ ...prev, notes: refreshed.notes ?? '' }));
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to save the comment');
+    } finally {
+      setSavingReview(null);
+    }
+  };
+
+  const decide = async (action: 'release' | 'reject') => {
+    if (!reviewing) return;
+    if (action === 'release') {
+      const lot = reviewing.batchLot;
+      if (lot && lot.batchNumber.startsWith('PENDING-') && !reviewForm.batchNumber.trim()) {
+        setError('Assign a batch number before releasing this item.');
+        return;
+      }
+    }
+    setSavingReview(action);
+    setError('');
+    try {
+      await axiosClient.post(`/qa/inspections/${reviewing.id}/${action}`, {
+        batchNumber: reviewForm.batchNumber.trim() || undefined,
+        notes: reviewForm.notes.trim() || undefined,
       });
-      load();
+      setReviewing(null);
+      await load();
     } catch (err: any) {
       setError(err?.response?.data?.error || `Failed to ${action} batch`);
     } finally {
-      setBusyId(null);
+      setSavingReview(null);
     }
   };
 
@@ -156,8 +217,12 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     (i) =>
       (i.material?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (i.batchLot?.batchNumber ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (i.notes ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (i.referenceLabel ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const pendingBatch = (i: Inspection) =>
+    Boolean(i.batchLot && i.batchLot.batchNumber.startsWith('PENDING-'));
 
   return (
     <div className="w-full mx-auto space-y-6">
@@ -165,7 +230,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">QA Inspections</h2>
-          <PageDescription>Release or reject quarantined batches from GRN receiving and finished production.</PageDescription>
+          <PageDescription>Check received consignment items: attach documents, record comments and assign batch numbers.</PageDescription>
         </div>
         <div className="flex gap-2">
           <div className="relative">
@@ -208,10 +273,10 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">Batch / Ref</th>
                   <th className="px-4 py-3 font-semibold">Type</th>
-                  <th className="px-4 py-3 font-semibold">Inspected By</th>
                   <th className="px-4 py-3 font-semibold">Batch Status</th>
                   <th className="px-4 py-3 font-semibold">Result</th>
                   <th className="px-4 py-3 font-semibold">Review Document</th>
+                  <th className="px-4 py-3 font-semibold">Comments</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -223,43 +288,31 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <ShieldCheck className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#171717] leading-none">{i.material?.name ?? '—'}</p>
-                          <p className="text-[9px] font-mono text-slate-400 mt-0.5">{i.material?.sku ?? ''}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[160px]" title={i.material?.name ?? ''}>
+                            {i.material?.name ?? '—'}
+                          </p>
+                          <p className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[160px]">{i.material?.sku ?? ''}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {i.result === 'PENDING' && i.batchLot ? (
-                        <input
-                          value={
-                            batchInputs[i.id] ??
-                            (i.batchLot.batchNumber.startsWith('PENDING-') ? '' : i.batchLot.batchNumber)
-                          }
-                          onChange={(e) =>
-                            setBatchInputs((prev) => ({ ...prev, [i.id]: e.target.value }))
-                          }
-                          placeholder="Assign batch #"
-                          title="Batch number is assigned by QA"
-                          className="h-7 w-36 rounded-md border border-[#E9E9E9] px-2 text-[10px] font-mono focus:outline-none focus:border-[#EA4335]"
-                        />
-                      ) : (
-                        <span className="text-[10px] font-mono text-slate-500">{i.batchLot?.batchNumber ?? '—'}</span>
-                      )}
-                      {i.referenceLabel && (
-                        <p className="text-[9px] text-slate-400">Ref: {i.referenceLabel}</p>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono ${pendingBatch(i) ? 'text-amber-600' : 'text-slate-600'}`}>
+                          {i.batchLot?.batchNumber ?? '—'}
+                        </span>
+                        {pendingBatch(i) && i.result === 'PENDING' && (
+                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                            Assign
+                          </span>
+                        )}
+                      </div>
+                      {i.referenceLabel && <p className="text-[9px] text-slate-400">Ref: {i.referenceLabel}</p>}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-sky-50 text-sky-700 border-sky-200">
                         {i.inspectionType}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-slate-500">
-                      {i.inspector?.fullName ?? '—'}
-                      {i.inspectedAt && (
-                        <p className="text-[9px] text-slate-400">{new Date(i.inspectedAt).toLocaleDateString()}</p>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${batchStatusBadge[i.batchLot?.status ?? ''] ?? batchStatusBadge.ACTIVE}`}>
@@ -277,7 +330,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                             target="_blank"
                             rel="noreferrer"
                             title={i.reviewDocumentName ?? 'Open review document'}
-                            className="inline-flex items-center gap-1 max-w-[150px] text-[10px] font-semibold text-[#171717] hover:text-[#EA4335]"
+                            className="inline-flex items-center gap-1 max-w-[130px] text-[10px] font-semibold text-[#171717] hover:text-[#EA4335]"
                           >
                             <Paperclip className="w-3 h-3 shrink-0" />
                             <span className="truncate">{i.reviewDocumentName ?? 'Document'}</span>
@@ -328,30 +381,28 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         </label>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {i.notes ? (
+                        <span
+                          className="inline-flex items-start gap-1 max-w-[180px] text-[10px] text-slate-600"
+                          title={i.notes}
+                        >
+                          <MessageSquare className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{i.notes}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <ViewButton onClick={() => setViewing(i)} />
                         {i.result === 'PENDING' && (
-                          <>
-                            <button
-                              onClick={() => decide(i, 'release')}
-                              disabled={busyId === i.id}
-                              className="btn-3d px-3 h-7"
-                            >
-                              <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                                <CheckCircle2 className="w-3 h-3" /> Release
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => decide(i, 'reject')}
-                              disabled={busyId === i.id}
-                              className="px-3 h-7 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold hover:bg-rose-50"
-                            >
-                              <span className="flex items-center gap-1">
-                                <XCircle className="w-3 h-3" /> Reject
-                              </span>
-                            </button>
-                          </>
+                          <button onClick={() => openReview(i)} className="btn-3d px-3 h-7">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <ClipboardCheck className="w-3 h-3" /> Review
+                            </span>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -363,6 +414,127 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
         )}
       </div>
 
+      {/* 3. QA review — batch number + comments, then release/reject */}
+      {reviewing && (
+        <Modal onClose={closeReview}>
+          <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#171717] truncate">{reviewing.material?.name ?? 'Inspection'}</h3>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {reviewing.material?.sku ?? ''} · {reviewing.inspectionType}
+                  {reviewing.referenceLabel ? ` · ${reviewing.referenceLabel}` : ''}
+                </p>
+              </div>
+              <button type="button" onClick={closeReview} disabled={!!savingReview} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
+            )}
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Batch Status</p>
+                <p className="text-[11px] text-[#171717]">{reviewing.batchLot?.status ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Current Batch Ref</p>
+                <p className={`text-[11px] font-mono ${pendingBatch(reviewing) ? 'text-amber-600' : 'text-[#171717]'}`}>
+                  {reviewing.batchLot?.batchNumber ?? '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Batch Number {pendingBatch(reviewing) ? '*' : ''}
+              </label>
+              <input
+                value={reviewForm.batchNumber}
+                onChange={(e) => setReviewForm({ ...reviewForm, batchNumber: e.target.value })}
+                placeholder="e.g. A-1-6-26"
+                className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
+              />
+              <p className="text-[9px] text-slate-400">
+                Assigned by QA for traceability — this replaces the provisional lot reference.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QA Comments</label>
+              <textarea
+                value={reviewForm.notes}
+                onChange={(e) => setReviewForm({ ...reviewForm, notes: e.target.value })}
+                rows={3}
+                placeholder="Observations, test results, reasons…"
+                className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Review document</p>
+                {reviewing.reviewDocumentUrl ? (
+                  <a
+                    href={reviewing.reviewDocumentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#171717] hover:text-[#EA4335] truncate"
+                  >
+                    <Paperclip className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{reviewing.reviewDocumentName ?? 'Document'}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                ) : (
+                  <p className="text-[10px] text-slate-400">No document attached — upload it from the table.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={closeReview}
+                disabled={!!savingReview}
+                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveComment}
+                disabled={!!savingReview}
+                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {savingReview === 'comment' ? 'Saving…' : 'Save comment'}
+              </button>
+              <button
+                type="button"
+                onClick={() => decide('reject')}
+                disabled={!!savingReview}
+                className="h-9 px-4 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+              >
+                <span className="flex items-center gap-1.5">
+                  <XCircle className="w-3.5 h-3.5" /> {savingReview === 'reject' ? 'Rejecting…' : 'Reject'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => decide('release')}
+                disabled={!!savingReview}
+                className="btn-3d px-4 h-9 disabled:opacity-50"
+              >
+                <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {savingReview === 'release' ? 'Releasing…' : 'Release'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 4. Details */}
       {viewing && (
         <DetailsModal
           title={viewing.material?.name ?? 'Inspection'}
@@ -410,7 +582,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     '—'
                   ),
                 },
-                { label: 'Notes', wide: true, value: viewing.notes ?? '—' },
+                { label: 'QA comments', wide: true, value: viewing.notes ?? '—' },
               ],
             },
           ]}

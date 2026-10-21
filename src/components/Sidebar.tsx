@@ -107,7 +107,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: ShieldCheck,
       items: [
         { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
-        { id: 'qa-consignments', name: 'Consignment QA', icon: ShieldCheck },
         { id: 'qa-quantity-approvals', name: 'Quantity Approvals', icon: ClipboardList },
       ],
     },
@@ -150,7 +149,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'prod-trace', name: 'Traceability', icon: Network },
     { id: 'machines', name: 'Machines & Assets', icon: Boxes },
     { id: 'qa-inspections', name: 'Inspections', icon: ShieldCheck },
-    { id: 'qa-consignments', name: 'Consignment QA', icon: ShieldCheck },
     { id: 'qa-quantity-approvals', name: 'Quantity Approvals', icon: ClipboardList },
     { id: 'alerts-notifications', name: 'Notifications', icon: Bell },
     { id: 'reports', name: 'Reports', icon: BarChart3 },
