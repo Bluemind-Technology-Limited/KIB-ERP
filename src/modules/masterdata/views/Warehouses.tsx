@@ -3,8 +3,11 @@ import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, MapPin, Bo
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 import { DeleteConfirmationModal } from '../../../components/ui/DeleteConfirmationModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Bin {
   id: string;
@@ -28,6 +31,19 @@ interface Warehouse {
   zones: Zone[];
 }
 
+/** Derived stock row for one material/batch/bin inside a warehouse. */
+interface WarehouseStockRow {
+  materialId: string;
+  materialName: string;
+  sku: string;
+  unitOfMeasure: string;
+  batchLotId: string | null;
+  batchNumber: string | null;
+  expiryDate: string | null;
+  binId: string | null;
+  quantity: number;
+}
+
 const statusBadge: Record<string, string> = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   INACTIVE: 'bg-slate-100 text-slate-500 border-slate-200',
@@ -49,6 +65,10 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
   const [isDeleting, setIsDeleting] = useState(false);
   const [createConfirmation, setCreateConfirmation] = useState<'warehouse' | 'zone' | 'bin' | null>(null);
   const [saving, setSaving] = useState(false);
+  const [stockWarehouse, setStockWarehouse] = useState<Warehouse | null>(null);
+  const [viewing, setViewing] = useState<Warehouse | null>(null);
+  const [warehouseStock, setWarehouseStock] = useState<WarehouseStockRow[]>([]);
+  const [stockLoading, setStockLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -71,6 +91,25 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
     w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  /** Everything currently sitting in a warehouse — stock is the ledger sum, so
+   *  it is read from the inventory endpoint rather than the warehouse tables. */
+  const viewWarehouseStock = async (w: Warehouse) => {
+    setStockWarehouse(w);
+    setWarehouseStock([]);
+    setStockLoading(true);
+    try {
+      const res = await axiosClient.get<{ stock: WarehouseStockRow[] }>('/inventory/stock', {
+        params: { warehouseId: w.id },
+      });
+      setWarehouseStock((res.data.stock ?? []).filter((r) => Number(r.quantity) !== 0));
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to load warehouse stock');
+      setStockWarehouse(null);
+    } finally {
+      setStockLoading(false);
+    }
+  };
 
   const addWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,9 +212,9 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Warehouse Setup</h2>
-          <p className="text-[#737373] text-xs">Warehouses → Zones → Bins spatial hierarchy for stock location tracking.</p>
+          <PageDescription>Warehouses → Zones → Bins spatial hierarchy for stock location tracking.</PageDescription>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowAdd(!showAdd)} className="btn-3d px-4 h-9">
@@ -277,12 +316,23 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                     <WarehouseIcon className="w-4 h-4 text-[#EA4335]" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-[#171717] leading-none">{w.name}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 font-mono">{w.code}</p>
+                    <p title={w.name} className="text-sm font-bold text-[#171717] leading-none max-w-[180px] truncate">{w.name}</p>
+                    <p title={w.code} className="text-[10px] text-slate-400 mt-1 font-mono max-w-[180px] truncate">{w.code}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-slate-400">{w.zones.length} zones</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewWarehouseStock(w);
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-[#EA4335] transition-colors px-1.5 py-1 rounded hover:bg-rose-50"
+                    title="View materials in this warehouse"
+                  >
+                    <Boxes className="w-3.5 h-3.5" /> View Stock
+                  </button>
+                  <ViewButton onClick={() => setViewing(w)} />
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[w.status] || statusBadge.ACTIVE}`}>
                     {w.status}
                   </span>
@@ -436,6 +486,144 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
             </div>
           ))}
         </div>
+      )}
+
+      {/* Warehouse details modal */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.name}
+          subtitle={<span className="font-mono">{viewing.code}</span>}
+          status={{ label: viewing.status, className: statusBadge[viewing.status] || statusBadge.ACTIVE }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Warehouse', value: detailValue(viewing.name) },
+                { label: 'Code', value: <span className="font-mono">{viewing.code}</span> },
+                { label: 'Zones', value: viewing.zones.length },
+                {
+                  label: 'Bins',
+                  value: viewing.zones.reduce((sum, z) => sum + z.bins.length, 0),
+                },
+              ],
+            },
+            {
+              title: 'Location',
+              fields: [{ label: 'Address', value: detailValue(viewing.address), wide: true }],
+            },
+            {
+              title: `Zones & bins (${viewing.zones.length})`,
+              fields: [
+                {
+                  label: 'Layout',
+                  wide: true,
+                  value:
+                    viewing.zones.length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="space-y-1.5">
+                        {viewing.zones.map((z) => (
+                          <div key={z.id} className="rounded-lg border border-[#E9E9E9] px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <p title={z.name} className="text-[11px] font-semibold text-[#171717] truncate">{z.name}</p>
+                              <span className="text-[9px] font-mono text-slate-400 shrink-0">{z.code}</span>
+                            </div>
+                            <p
+                              title={z.bins.map((b) => b.name).join(', ')}
+                              className="text-[10px] text-slate-500 mt-0.5 truncate"
+                            >
+                              {z.bins.length === 0 ? 'No bins' : z.bins.map((b) => b.name).join(' · ')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
+
+      {/* Warehouse stock modal */}
+      {stockWarehouse && (
+        <Modal onClose={() => setStockWarehouse(null)}>
+          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center">
+                  <Boxes className="w-4 h-4 text-[#EA4335]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#171717] leading-none">{stockWarehouse.name}</h3>
+                  <p
+                    title={`${stockWarehouse.code}${stockWarehouse.address ? ` · ${stockWarehouse.address}` : ''}`}
+                    className="text-[10px] text-slate-400 mt-1 max-w-[360px] truncate"
+                  >
+                    <span className="font-mono">{stockWarehouse.code}</span>
+                    {stockWarehouse.address ? ` · ${stockWarehouse.address}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStockWarehouse(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Materials in store</span>
+              <span className="text-[10px] text-slate-500">
+                {new Set(warehouseStock.map((r) => r.materialId)).size} material(s) · {warehouseStock.length} line(s)
+              </span>
+            </div>
+
+            {stockLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : warehouseStock.length === 0 ? (
+              <EmptyState title="No stock in this warehouse." hint="Received goods will show up here once they hit the ledger." />
+            ) : (
+              <div className="border border-[#E9E9E9] rounded-xl overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50 border-b border-[#E9E9E9]">
+                    <tr>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Material</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Batch</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Expiry</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400 text-right">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {warehouseStock.map((row, i) => (
+                      <tr key={`${row.materialId}-${row.batchLotId ?? 'none'}-${row.binId ?? 'none'}-${i}`} className="hover:bg-slate-50/60">
+                        <td className="px-3 py-2">
+                          <p title={row.materialName} className="text-[11px] font-semibold text-[#171717] leading-none max-w-[180px] truncate">{row.materialName}</p>
+                          <p title={row.sku} className="text-[9px] font-mono text-slate-400 mt-1 max-w-[180px] truncate">{row.sku}</p>
+                        </td>
+                        <td className="px-3 py-2 text-[10px] font-mono text-slate-500">{row.batchNumber || '—'}</td>
+                        <td className="px-3 py-2 text-[10px] text-slate-500">
+                          {row.expiryDate ? new Date(row.expiryDate).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          <span className="text-[11px] font-bold text-[#171717]">{Number(row.quantity).toLocaleString()}</span>{' '}
+                          <span className="text-[9px] text-slate-400">{row.unitOfMeasure}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* Delete Confirmation Modal */}

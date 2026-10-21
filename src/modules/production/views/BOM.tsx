@@ -5,6 +5,8 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
   id: string;
@@ -58,6 +60,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ bomId: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [createConfirmation, setCreateConfirmation] = useState(false);
+  const [viewing, setViewing] = useState<BatchFormulation | null>(null);
 
   const [form, setForm] = useState({
     productName: '',
@@ -123,8 +126,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.productName || !form.finishedSkuId || !form.expectedYield || !form.yieldUnit) {
-      setError('Product name, finished SKU, expected yield and yield unit are required');
+    if (!form.finishedSkuId || !form.expectedYield || !form.yieldUnit) {
+      setError('Select the finished product, then enter the expected yield and yield unit');
       return;
     }
     const validIngredients = ingredients.filter((ing) => ing.materialId && ing.quantity);
@@ -227,9 +230,9 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Batch Formulation</h2>
-          <p className="text-[#737373] text-xs">Ingredient recipes with % / absolute quantities and expected yield.</p>
+          <PageDescription>Ingredient recipes with % / absolute quantities and expected yield.</PageDescription>
         </div>
         <button onClick={openAdd} className="btn-3d px-4 h-9">
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
@@ -284,8 +287,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       <FlaskConical className="w-4 h-4 text-[#EA4335]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-bold text-[#171717]">{bom.productName}</p>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-xs font-bold text-[#171717] max-w-[220px] truncate" title={bom.productName}>{bom.productName}</p>
+                      <p className="text-[10px] text-slate-400 max-w-[280px] truncate">
                         {bom.finishedSku?.name ?? '—'} · Yield {bom.expectedYield ?? '—'} {bom.yieldUnit ?? ''} · {ingCount} ingredients
                       </p>
                       {!isOpen && ingCount > 0 && (
@@ -308,6 +311,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
                       {bom.status}
                     </span>
+                    <ViewButton onClick={() => setViewing(bom)} />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -373,7 +377,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                             <tbody>
                               {bomIngredients.map((ing) => (
                                 <tr key={ing.id} className="border-b border-slate-50">
-                                  <td className="px-2 py-2 text-[11px] font-semibold text-slate-700">{ing.material.name}</td>
+                                  <td className="px-2 py-2 text-[11px] font-semibold text-slate-700 max-w-[180px] truncate" title={ing.material.name}>{ing.material.name}</td>
                                   <td className="px-2 py-2">
                                     <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${ing.material.type === 'RAW' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
                                       {ing.material.type}
@@ -413,19 +417,34 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             {/* 3a. Basic recipe info */}
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product Name *</label>
-                <input value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} placeholder="e.g. Cocoa Butter Body Balm" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished Product *</label>
+                <select
+                  value={form.finishedSkuId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const product = finishedMaterials.find((m) => m.id === id);
+                    // The product name is derived from the finished good.
+                    setForm({
+                      ...form,
+                      finishedSkuId: id,
+                      productName: product?.name ?? '',
+                      yieldUnit: form.yieldUnit || product?.unitOfMeasure || '',
+                    });
+                  }}
+                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                >
+                  <option value="">Select finished product…</option>
+                  {finishedMaterials.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-slate-400">
+                  {form.productName
+                    ? `Product name: ${form.productName}`
+                    : 'The product name is taken from the finished good you pick.'}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished SKU *</label>
-                  <select value={form.finishedSkuId} onChange={(e) => setForm({ ...form, finishedSkuId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                    <option value="">Select finished product…</option>
-                    {finishedMaterials.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                    ))}
-                  </select>
-                </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Yield *</label>
                   <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
@@ -549,6 +568,49 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
           onConfirm={confirmDelete}
           onCancel={() => setDeleteConfirmation(null)}
           isLoading={isDeleting}
+        />
+      )}
+
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title="Batch Formulation"
+          subtitle={<span className="font-mono">{detailValue(viewing.finishedSku?.sku)}</span>}
+          status={{ label: viewing.status, className: versionStatusBadge[viewing.status] ?? versionStatusBadge.DRAFT }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Product', value: viewing.productName },
+                { label: 'Finished SKU', value: viewing.finishedSku ? `${viewing.finishedSku.name} (${viewing.finishedSku.sku})` : '—' },
+                { label: 'Status', value: viewing.status },
+                { label: 'Description', value: detailValue(viewing.description), wide: true },
+              ],
+            },
+            {
+              title: 'Yield',
+              fields: [
+                { label: 'Expected yield', value: detailValue(viewing.expectedYield) },
+                { label: 'Yield unit', value: detailValue(viewing.yieldUnit) },
+                { label: 'Ingredients', value: `${viewing.ingredients?.length ?? 0}` },
+              ],
+            },
+            {
+              title: 'Materials',
+              fields: [
+                {
+                  label: 'Ingredient list',
+                  wide: true,
+                  value: viewing.ingredients?.length
+                    ? viewing.ingredients
+                        .map((ing) => `${ing.material.name} (${ing.isPercentage ? `${ing.quantity}%` : `${ing.quantity} ${ing.unitOfMeasure}`})`)
+                        .join(' · ')
+                    : '—',
+                },
+              ],
+            },
+          ]}
         />
       )}
     </div>

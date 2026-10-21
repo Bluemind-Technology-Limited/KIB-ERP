@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Plus, ChevronDown, ChevronRight, CheckCircle2, Trash2, Boxes, ShieldCheck } from 'lucide-react';
+import { Truck, Plus, ChevronDown, ChevronRight, Trash2, Boxes, ShieldCheck } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -8,6 +8,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { rolePermissions } from '../../../components/routing/RoleGuard';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
   id: string;
@@ -39,10 +40,13 @@ interface WarehouseBin {
 interface ConsignmentItem {
   id: string;
   materialId: string;
+  poItemId?: string | null;
   quantity: number;
+  receivedQty: number;
   unitOfMeasure: string;
   distributedQty: number;
   material: Material;
+  poItem?: { id: string; quantity: number; receivedQty: number; unitCost: number } | null;
 }
 
 interface ConsignmentDistribution {
@@ -59,6 +63,7 @@ interface Consignment {
   consignmentNumber: string;
   status: string;
   poNumbers?: string | null;
+  po?: { id: string; number: string; status: string } | null;
   shipDate?: Date | null;
   expectedDelivery?: Date | null;
   receivedAt?: Date | null;
@@ -89,12 +94,29 @@ interface Consignment {
 
 const consignmentStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
+  READY_FOR_SHIPMENT: 'bg-sky-50 text-sky-700 border-sky-200',
   IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200',
+  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
   RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
   QUALITY_PENDING: 'bg-orange-50 text-orange-700 border-orange-200',
   QUALITY_APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   DISTRIBUTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   CANCELLED: 'bg-slate-100 text-slate-500 border-slate-200',
+};
+
+/** Human labels for the receipt states. */
+const consignmentStatusLabel: Record<string, string> = {
+  DRAFT: 'Draft',
+  READY_FOR_SHIPMENT: 'Ready',
+  IN_TRANSIT: 'In transit',
+  PARTIALLY_RECEIVED: 'Partially received',
+  RECEIVED: 'Received',
+  QUALITY_PENDING: 'QA pending',
+  QUALITY_APPROVED: 'QA approved',
+  DISTRIBUTED: 'Distributed',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
 };
 
 const qualityStatusBadge: Record<string, string> = {
@@ -106,36 +128,20 @@ const qualityStatusBadge: Record<string, string> = {
   REJECTED: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
-const emptyItem = { materialId: '', quantity: '' };
 
 export default function Consignments({ searchQuery = '' }: { searchQuery?: string }) {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const canOpenQA = !!user && (rolePermissions[user.role]?.includes('qa-consignments') ?? false);
   const [consignments, setConsignments] = useState<Consignment[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [warehouseBins, setWarehouseBins] = useState<WarehouseBin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false);
   const [showDistributionModal, setShowDistributionModal] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ consignmentId: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [createConfirmation, setCreateConfirmation] = useState(false);
-  const [actionInProgress, setActionInProgress] = useState<{ consignmentId: string; action: string } | null>(null);
-
-  const [form, setForm] = useState({
-    supplierId: '',
-    warehouseId: '',
-    poNumbers: '',
-    shipDate: '',
-    expectedDelivery: '',
-  });
-  const [items, setItems] = useState([{ ...emptyItem }]);
 
   const [distributions, setDistributions] = useState<Array<{ itemId: string; binId: string; quantity: string }>>([]);
   const [selectedConsignmentForDistribution, setSelectedConsignmentForDistribution] = useState<Consignment | null>(null);
@@ -143,17 +149,11 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
   const load = async () => {
     setLoading(true);
     try {
-      const [consRes, supRes, whRes, matRes, binRes] = await Promise.all([
+      const [consRes, binRes] = await Promise.all([
         axiosClient.get<{ consignments: Consignment[] }>('/procurement/consignments'),
-        axiosClient.get<{ suppliers: Supplier[] }>('/master-data/suppliers'),
-        axiosClient.get<{ warehouses: Warehouse[] }>('/master-data/warehouses'),
-        axiosClient.get<{ materials: Material[] }>('/master-data/materials'),
         axiosClient.get<{ bins: WarehouseBin[] }>('/master-data/warehouse-bins'),
       ]);
       setConsignments(consRes.data.consignments);
-      setSuppliers(supRes.data.suppliers);
-      setWarehouses(whRes.data.warehouses);
-      setMaterials(matRes.data.materials);
       setWarehouseBins(binRes.data.bins);
       setError('');
     } catch (err: any) {
@@ -168,72 +168,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
   }, []);
 
   const toggleExpanded = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-
-  const openAdd = () => {
-    setForm({ supplierId: '', warehouseId: '', poNumbers: '', shipDate: '', expectedDelivery: '' });
-    setItems([{ ...emptyItem }]);
-    setError('');
-    setShowModal(true);
-  };
-
-  const updateItem = (i: number, field: keyof typeof emptyItem, value: string) => {
-    setItems((prev) =>
-      prev.map((item, idx) => (idx !== i ? item : { ...item, [field]: value }))
-    );
-  };
-
-  const addItemRow = () => setItems((prev) => [...prev, { ...emptyItem }]);
-  const removeItemRow = (i: number) => {
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.supplierId || !form.warehouseId) {
-      setError('Supplier and warehouse are required');
-      return;
-    }
-    const validItems = items.filter((item) => item.materialId && item.quantity);
-    if (validItems.length === 0) {
-      setError('Add at least one material with quantity');
-      return;
-    }
-    setCreateConfirmation(true);
-  };
-
-  const confirmCreate = async () => {
-    const validItems = items.filter((item) => item.materialId && item.quantity);
-    setSaving(true);
-    try {
-      const csn = await axiosClient.post<{ consignment: Consignment }>('/procurement/consignments', {
-        supplierId: form.supplierId,
-        warehouseId: form.warehouseId,
-        poNumbers: form.poNumbers || null,
-        shipDate: form.shipDate ? new Date(form.shipDate) : null,
-        expectedDelivery: form.expectedDelivery ? new Date(form.expectedDelivery) : null,
-      });
-      const csnId = csn.data.consignment.id;
-
-      // Add items to consignment
-      for (const item of validItems) {
-        await axiosClient.post(`/procurement/consignments/${csnId}/items`, {
-          materialId: item.materialId,
-          quantity: Number(item.quantity),
-          unitOfMeasure: materials.find((m) => m.id === item.materialId)?.unitOfMeasure || 'kg',
-        });
-      }
-
-      setShowModal(false);
-      setCreateConfirmation(false);
-      setError('');
-      load();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to create consignment');
-      setCreateConfirmation(false);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const openDistributionModal = (consignment: Consignment) => {
     setSelectedConsignmentForDistribution(consignment);
@@ -275,19 +209,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
     }
   };
 
-  const receiveConsignment = async (consignmentId: string) => {
-    setActionInProgress({ consignmentId, action: 'receive' });
-    try {
-      await axiosClient.patch(`/procurement/consignments/${consignmentId}`, { status: 'RECEIVED' });
-      setError('');
-      load();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to receive consignment');
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
   const deleteConsignment = (consignmentId: string) => {
     setDeleteConfirmation({ consignmentId });
   };
@@ -318,13 +239,13 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Consignments</h2>
-          <p className="text-[#737373] text-xs">Warehouse stocking through grouped shipments with bin-level distribution tracking.</p>
+          <PageDescription>Record what arrived from a purchase order. Anything not received stays outstanding on the PO for the next consignment.</PageDescription>
         </div>
-        <button onClick={openAdd} className="btn-3d px-4 h-9">
+        <button onClick={() => navigate('/inventory/grn')} className="btn-3d px-4 h-9">
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
-            <Plus className="w-3.5 h-3.5" /> New Consignment
+            <Plus className="w-3.5 h-3.5" /> Record Receipt
           </span>
         </button>
       </div>
@@ -363,6 +284,17 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
           filtered.map((csn) => {
             const isOpen = !!expanded[csn.id];
             const undistributedItems = csn.items.filter((item) => item.quantity > item.distributedQty);
+            // PO-level progress: what this order has received so far, and what is
+            // still owed (which is what the next consignment will offer).
+            const orderedTotal = csn.items.reduce(
+              (sum, item) => sum + Number(item.poItem?.quantity ?? item.quantity),
+              0
+            );
+            const receivedTotal = csn.items.reduce(
+              (sum, item) => sum + Number(item.poItem?.receivedQty ?? item.receivedQty ?? 0),
+              0
+            );
+            const outstandingTotal = Math.max(orderedTotal - receivedTotal, 0);
             return (
               <div key={csn.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
                 <button
@@ -376,13 +308,24 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                     <div className="flex-1">
                       <p className="text-xs font-bold text-[#171717]">{csn.consignmentNumber}</p>
                       <p className="text-[10px] text-slate-400">
-                        {csn.supplier.name} → {csn.warehouse.name} · {csn.items.length} items · Scheduled {csn.expectedDelivery ? new Date(csn.expectedDelivery).toLocaleDateString() : 'not set'}
+                        {csn.po ? `${csn.po.number} · ` : csn.poNumbers ? `${csn.poNumbers} · ` : ''}
+                        {csn.supplier.name} → {csn.warehouse.name} · {csn.items.length} items · Received {csn.receivedAt ? new Date(csn.receivedAt).toLocaleDateString() : '—'}
                       </p>
+                      {orderedTotal > 0 && (
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          PO received <b>{receivedTotal.toLocaleString()}</b> of {orderedTotal.toLocaleString()}
+                          {outstandingTotal > 0 ? (
+                            <span className="text-amber-600 font-semibold"> · {outstandingTotal.toLocaleString()} still outstanding</span>
+                          ) : (
+                            <span className="text-emerald-600 font-semibold"> · complete</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${consignmentStatusBadge[csn.status]}`}>
-                      {csn.status}
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${consignmentStatusBadge[csn.status] ?? consignmentStatusBadge.DRAFT}`}>
+                      {consignmentStatusLabel[csn.status] ?? csn.status}
                     </span>
                     {csn.qualityApproval && (
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${qualityStatusBadge[csn.qualityApproval.status]}`}>
@@ -430,7 +373,22 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                 <div className="flex-1">
                                   <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
                                   <p className="text-[10px] text-slate-400 mt-1">
-                                    Total: <b>{item.quantity}</b> {item.unitOfMeasure} • Distributed: <b>{item.distributedQty}</b>
+                                    Arrived in this shipment: <b>{Number(item.quantity)}</b> {item.unitOfMeasure}
+                                  </p>
+                                  {item.poItem && (
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                      PO line: <b>{Number(item.poItem.receivedQty)}</b> of {Number(item.poItem.quantity)} received
+                                      {Number(item.poItem.quantity) > Number(item.poItem.receivedQty) ? (
+                                        <span className="text-amber-600 font-semibold">
+                                          {' '}· {Number(item.poItem.quantity) - Number(item.poItem.receivedQty)} still outstanding
+                                        </span>
+                                      ) : (
+                                        <span className="text-emerald-600 font-semibold"> · complete</span>
+                                      )}
+                                    </p>
+                                  )}
+                                  <p className="text-[10px] text-slate-400 mt-0.5">
+                                    Distributed: <b>{Number(item.distributedQty)}</b>
                                   </p>
                                   {checks.length > 0 && (
                                     <p className="text-[9px] text-slate-400 mt-1">
@@ -459,17 +417,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-                      {csn.status === 'IN_TRANSIT' && (
-                        <button
-                          onClick={() => receiveConsignment(csn.id)}
-                          disabled={actionInProgress?.consignmentId === csn.id}
-                          className="btn-3d px-3 h-7"
-                        >
-                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                            <CheckCircle2 className="w-3 h-3" /> {actionInProgress?.consignmentId === csn.id ? 'Receiving…' : 'Mark Received'}
-                          </span>
-                        </button>
-                      )}
                       {csn.status === 'QUALITY_APPROVED' && undistributedItems.length > 0 && (
                         <button
                           onClick={() => openDistributionModal(csn)}
@@ -502,104 +449,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
           })
         )}
       </div>
-
-      {/* 3. Create Consignment Modal */}
-      {showModal && (
-        <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-[#00B4D8]" />
-                <h3 className="text-sm font-bold text-[#171717]">New Consignment</h3>
-              </div>
-              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            {/* Consignment Details */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier *</label>
-                  <select value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#00B4D8]">
-                    <option value="">Select supplier…</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warehouse *</label>
-                  <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#00B4D8]">
-                    <option value="">Select warehouse…</option>
-                    {warehouses.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PO Numbers (CSV)</label>
-                <input value={form.poNumbers} onChange={(e) => setForm({ ...form, poNumbers: e.target.value })} placeholder="e.g. PO-001, PO-002" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#00B4D8]" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ship Date</label>
-                  <input type="datetime-local" value={form.shipDate} onChange={(e) => setForm({ ...form, shipDate: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#00B4D8]" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Delivery</label>
-                  <input type="datetime-local" value={form.expectedDelivery} onChange={(e) => setForm({ ...form, expectedDelivery: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#00B4D8]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Items */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Materials *</label>
-                <span className="text-[9px] text-slate-400">{items.filter((i) => i.materialId && i.quantity).length} added</span>
-              </div>
-
-              <div className="space-y-2">
-                {items.map((item, i) => (
-                  <div key={i} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-500">Item {i + 1}</span>
-                      <button type="button" onClick={() => removeItemRow(i)} className="text-slate-300 hover:text-rose-500 p-0.5">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
-                      <select value={item.materialId} onChange={(e) => updateItem(i, 'materialId', e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#00B4D8]">
-                        <option value="">Select material…</option>
-                        {materials.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                      <input value={item.quantity} onChange={(e) => updateItem(i, 'quantity', e.target.value)} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#00B4D8]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button type="button" onClick={addItemRow} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#00B4D8]/50 hover:bg-blue-50/30 text-xs font-bold text-slate-400 hover:text-[#00B4D8] transition-colors flex items-center justify-center gap-1.5">
-                <Plus className="w-3.5 h-3.5" /> Add Material
-              </button>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button type="submit" disabled={saving} className="btn-3d px-4 h-9">
-                <span className="text-white text-xs font-semibold">{saving ? 'Creating…' : 'Create Consignment'}</span>
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
 
       {/* 4. Distribution Modal */}
       {showDistributionModal && selectedConsignmentForDistribution && (
@@ -662,18 +511,6 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Create Confirmation Modal */}
-      {createConfirmation && (
-        <ConfirmationModal
-          type="create"
-          title="Create Consignment"
-          description="Create a new consignment shipment with the specified supplier, warehouse, and materials."
-          onConfirm={confirmCreate}
-          onCancel={() => setCreateConfirmation(false)}
-          isLoading={saving}
-        />
       )}
 
       {/* Delete Confirmation Modal */}

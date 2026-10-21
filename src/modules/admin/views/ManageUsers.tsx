@@ -4,6 +4,8 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton, HeaderSkeleton } from '../../../components/ui/Skeleton';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface ManageUsersProps {
   searchQuery?: string;
@@ -34,6 +36,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingUser, setDeletingUser] = useState<ApiUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewing, setViewing] = useState<ApiUser | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -149,7 +152,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#171717]">User Accounts Management</h2>
-          <p className="text-xs text-[#737373]">Provision new dashboard accounts, manage role policies and view generated credentials.</p>
+          <PageDescription>Provision new dashboard accounts, manage role policies and view generated credentials.</PageDescription>
         </div>
         <button
           onClick={handleOpenModal}
@@ -193,8 +196,12 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
               <tbody className="divide-y divide-[#E9E9E9]">
                 {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-[#313131]">{u.fullName}</td>
-                    <td className="py-4 px-3 text-[#737373] font-medium">{u.email}</td>
+                    <td className="py-4 px-4 font-semibold text-[#313131]">
+                      <div className="max-w-[180px] truncate" title={u.fullName}>{u.fullName}</div>
+                    </td>
+                    <td className="py-4 px-3 text-[#737373] font-medium">
+                      <div className="max-w-[180px] truncate" title={u.email}>{u.email}</div>
+                    </td>
                     <td className="py-4 px-3">
                       <span className="inline-flex items-center gap-1 text-[9px] bg-slate-100 text-[#171717] px-2 py-0.5 rounded font-bold border border-slate-200">
                         <Shield className="w-2.5 h-2.5 opacity-60" />
@@ -208,6 +215,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right flex items-center justify-end gap-2">
+                      <ViewButton onClick={() => setViewing(u)} />
                       <button
                         onClick={() => handleEditClick(u)}
                         className="h-7 w-7 rounded border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
@@ -428,6 +436,47 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
             </form>
           </div>
         </Modal>
+      )}
+
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.fullName}
+          subtitle={viewing.email}
+          status={{
+            label: viewing.isActive ? 'ACTIVE' : 'INACTIVE',
+            className: viewing.isActive
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-600 border-rose-200',
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Account',
+              fields: [
+                { label: 'Full name', value: detailValue(viewing.fullName) },
+                { label: 'Username', value: detailValue(viewing.username) },
+                { label: 'Email address', value: detailValue(viewing.email), wide: true },
+              ],
+            },
+            {
+              title: 'Access',
+              fields: [
+                {
+                  label: 'System access role',
+                  value: viewing.role.replace(/_/g, ' '),
+                },
+                { label: 'Authentication', value: 'Supabase Auth' },
+                { label: 'Status', value: viewing.isActive ? 'Active' : 'Inactive' },
+                { label: 'User ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.id)}</span>, wide: true },
+              ],
+            },
+            {
+              title: 'Timeline',
+              fields: [{ label: 'Account created', value: detailDate(viewing.createdAt, true), wide: true }],
+            },
+          ]}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

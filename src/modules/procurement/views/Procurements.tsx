@@ -1,37 +1,53 @@
 import { useEffect, useState } from 'react';
-import { Truck, Plus, Trash2 } from 'lucide-react';
+import { Truck, Plus, Trash2, Send } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import LpoSendModal from '../components/LpoSendModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 
-interface MaterialOption {
-  id: string;
-  name: string;
-  sku: string;
-  unitOfMeasure: string;
-  /** Which suppliers this material can be bought from (Master Data → Materials). */
-  suppliers?: Array<{ supplier: { id: string; name: string } }>;
-}
 interface SupplierOption { id: string; name: string; vendorCode?: string }
+
+interface RequisitionLine {
+  materialId: string;
+  materialName: string;
+  sku: string;
+  supplierId: string;
+  supplierOptions: Array<{ id: string; name: string }>;
+  quantity: string;
+  unitOfMeasure: string;
+  unitCost: string;
+}
 
 const poStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   SENT: 'bg-sky-50 text-sky-700 border-sky-200',
-  PARTIAL: 'bg-amber-50 text-amber-700 border-amber-200',
+  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
   RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   CLOSED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
+const poStatusLabel: Record<string, string> = {
+  DRAFT: 'Draft',
+  SENT: 'Sent',
+  PARTIALLY_RECEIVED: 'Partially received',
+  RECEIVED: 'Received',
+  CLOSED: 'Closed',
+};
+
 export default function Procurements({ searchQuery = '' }: { searchQuery?: string }) {
-  const [materials, setMaterials] = useState<MaterialOption[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [approvedRequisitions, setApprovedRequisitions] = useState<any[]>([]);
+  const [lpoRequisitionId, setLpoRequisitionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showPoForm, setShowPoForm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string } | null>(null);
+  const [viewingPo, setViewingPo] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [createPoConfirmation, setCreatePoConfirmation] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,20 +59,41 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const [poRequisitionId, setPoRequisitionId] = useState('');
   const [poNotes, setPoNotes] = useState('');
   const [poExpected, setPoExpected] = useState('');
-  const [poItems, setPoItems] = useState<Array<{
-    materialId: string;
-    materialName: string;
-    sku: string;
-    supplierId: string;
-    quantity: string;
-    originalQuantity?: number;
-    unitOfMeasure: string;
-    unitCost: string;
-  }>>([]);
+  const [poItems, setPoItems] = useState<RequisitionLine[]>([]);
 
-  /** The suppliers a given material can be bought from. */
-  const suppliersForMaterial = (materialId: string) =>
-    (materials.find((m) => m.id === materialId)?.suppliers ?? []).map((s) => s.supplier);
+  /**
+   * A purchase order is always raised from an approved requisition. Picking one
+   * loads its lines — the officer only fills in cost and, when a material has
+   * several suppliers, which one it is bought from.
+   */
+  const selectRequisition = (requisitionId: string) => {
+    setPoRequisitionId(requisitionId);
+    const requisition = approvedRequisitions.find((r) => r.id === requisitionId);
+    if (!requisition) {
+      setPoItems([]);
+      return;
+    }
+
+    setPoItems(
+      (requisition.items ?? []).map((item: any) => {
+        const options = (item.material?.suppliers ?? []).map((link: any) => ({
+          id: link.supplier.id,
+          name: link.supplier.name,
+        }));
+        return {
+          materialId: item.materialId ?? item.material?.id,
+          materialName: item.material?.name ?? 'Material',
+          sku: item.material?.sku ?? '',
+          // Auto-select when the material only has one supplier.
+          supplierId: options.length === 1 ? options[0].id : '',
+          supplierOptions: options,
+          quantity: String(item.quantity ?? ''),
+          unitOfMeasure: item.unitOfMeasure ?? item.material?.unitOfMeasure ?? '',
+          unitCost: '0',
+        };
+      })
+    );
+  };
 
   /**
    * A purchase order is raised against exactly one supplier, so the supplier is
@@ -72,14 +109,15 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [matRes, supRes, poRes] = await Promise.all([
-        axiosClient.get<{ materials: MaterialOption[] }>('/master-data/materials'),
+      const [supRes, reqRes, poRes] = await Promise.all([
         axiosClient.get<{ suppliers: SupplierOption[] }>('/master-data/suppliers'),
+        axiosClient.get<{ requisitions: any[] }>('/procurement/requisitions', {
+          params: { status: 'APPROVED' },
+        }),
         axiosClient.get<{ purchaseOrders: any[] }>('/procurement/purchase-orders'),
       ]);
-      setMaterials(matRes.data.materials);
       setSuppliers(supRes.data.suppliers);
-      // Show all POs regardless of status
+      setApprovedRequisitions(reqRes.data.requisitions);
       setPurchaseOrders(poRes.data.purchaseOrders);
       setError('');
     } catch (err: any) {
@@ -98,15 +136,35 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     (p.supplier?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Approved requisitions with no PO yet, or a draft/partial PO to retry.
+  const awaitingLpo = approvedRequisitions.filter((r) => {
+    const pos = r.purchaseOrders ?? [];
+    return (
+      pos.length === 0 ||
+      pos.some((p: any) => p.status === 'DRAFT' || p.status === 'PARTIALLY_RECEIVED')
+    );
+  });
+
+  /** Internal POs can span suppliers; show a compact label instead of one name. */
+  const poSupplierLabel = (po: any) => {
+    const names = [
+      ...new Set(
+        (po.items ?? [])
+          .map((item: any) => item.supplier?.name)
+          .filter(Boolean)
+      ),
+    ] as string[];
+    if (names.length === 0) return po.supplier?.name ?? '—';
+    if (names.length === 1) return names[0];
+    return `${names[0]} +${names.length - 1} more`;
+  };
+
   const createPo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (poItems.length === 0) { setError('At least one item is required'); return; }
+    if (!poRequisitionId) { setError('Select an approved requisition first'); return; }
+    if (poItems.length === 0) { setError('This requisition has no items'); return; }
 
-    const missingMaterial = poItems.find((it) => !it.materialId);
-    if (missingMaterial) { setError('Every item needs a material'); return; }
-
-    // A material with no supplier linked cannot drive the order's supplier.
-    const unsupplied = poItems.find((it) => suppliersForMaterial(it.materialId).length === 0);
+    const unsupplied = poItems.find((it) => it.supplierOptions.length === 0);
     if (unsupplied) {
       setError(
         `"${unsupplied.materialName}" has no supplier. Add one in Master Data → Materials before raising this PO.`
@@ -146,6 +204,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     try {
       const body: any = {
         supplierId: resolvedSupplierId,
+        requisitionId: poRequisitionId,
         notes: poNotes,
         items: poItems.map((it) => ({
           materialId: it.materialId,
@@ -154,7 +213,6 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
           unitOfMeasure: it.unitOfMeasure
         }))
       };
-      if (poRequisitionId) body.requisitionId = poRequisitionId;
       if (poExpected) body.expectedDelivery = new Date(poExpected).toISOString();
       await axiosClient.post('/procurement/purchase-orders', body, {
         toast: { success: `Purchase order raised with ${supplier.name}` },
@@ -214,9 +272,9 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Purchase Orders</h2>
-          <p className="text-[#737373] text-xs">Create and manage purchase orders with suppliers.</p>
+          <PageDescription>Create and manage purchase orders with suppliers.</PageDescription>
         </div>
         <div className="flex gap-2">
             <button
@@ -234,6 +292,43 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
       {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
 
+      {/* 2b. Approved requisitions awaiting supplier LPOs */}
+      {awaitingLpo.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Approved Requisitions · Awaiting LPO
+            </h3>
+            <span className="text-[10px] text-slate-400">{awaitingLpo.length} ready</span>
+          </div>
+          <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+            {awaitingLpo.map((r) => {
+              const retry = (r.purchaseOrders ?? []).some((p: any) => p.status === 'DRAFT' || p.status === 'PARTIALLY_RECEIVED');
+              return (
+                <div key={r.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-[#171717]">{r.number}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">APPROVED</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      by {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
+                      {r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString()}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setLpoRequisitionId(r.id)}
+                    className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 shrink-0"
+                  >
+                    <Send className="w-3 h-3" /> {retry ? 'Retry LPO' : 'Generate & Send LPO'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 3. New Purchase Order Modal */}
       {showPoForm && (
         <Modal onClose={() => setShowPoForm(false)}>
@@ -241,12 +336,33 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#171717]">
                 <Truck className="w-4 h-4 text-[#EA4335]" />
-                <h3 className="text-sm font-bold">New Purchase Order</h3>
+                <h3 className="text-sm font-bold">Purchase Order from Requisition</h3>
               </div>
               <button type="button" onClick={() => setShowPoForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
             <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved Requisition *</label>
+                <select
+                  value={poRequisitionId}
+                  onChange={(e) => selectRequisition(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                >
+                  <option value="">Select approved requisition…</option>
+                  {approvedRequisitions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.number} — {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-slate-400">
+                  {approvedRequisitions.length === 0
+                    ? 'No approved requisitions yet — approve a requisition before raising a purchase order.'
+                    : 'Purchase orders are always raised from an approved requisition. Selecting one lists its items below.'}
+                </p>
+              </div>
+
               {/* Supplier is derived from the materials on the order. */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
@@ -264,111 +380,82 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                     <span className="text-slate-400">
                       {chosenSupplierIds.length > 1
                         ? 'Items have different suppliers — split into separate POs'
-                        : 'Filled in from the items below'}
+                        : 'Filled in from the requisition items'}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Items List */}
+              {/* Items come from the requisition — no free entry. */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">PO Items *</label>
-                {poItems.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Add items below.</p>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requisition Items *</label>
+                {!poRequisitionId ? (
+                  <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-[10px] text-slate-400">
+                    Select a requisition to load its items.
+                  </div>
+                ) : poItems.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">This requisition has no items.</p>
                 ) : (
                   <div className="space-y-2">
                     {poItems.map((item, idx) => (
-                      <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-slate-500">
-                            {item.materialName ? `${item.materialName} (${item.sku})` : `Item ${idx + 1}`}
-                          </span>
-                          <button type="button" onClick={() => setPoItems(poItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
-                          <select
-                            value={item.materialId}
-                            onChange={(e) => {
-                              const materialId = e.target.value;
-                              const m = materials.find((x) => x.id === materialId);
-                              const options = m?.suppliers ?? [];
-                              // Auto-fill when the material only has one supplier;
-                              // otherwise the row asks which one.
-                              const supplierId = options.length === 1 ? options[0].supplier.id : '';
-                              setPoItems(poItems.map((r, i) => i === idx ? { ...r, materialId, materialName: m?.name || '', sku: m?.sku || '', unitOfMeasure: m?.unitOfMeasure || '', supplierId } : r));
-                            }}
-                            className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-                          >
-                            <option value="">Select material…</option>
-                            {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
-                          </select>
-                        </div>
-
-                        {/* Supplier for this material */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
-                          {!item.materialId ? (
-                            <p className="text-[10px] text-slate-400 italic">Pick a material first.</p>
-                          ) : suppliersForMaterial(item.materialId).length === 0 ? (
-                            <p className="text-[10px] text-amber-600">
-                              No supplier linked to this material — add one in Master Data → Materials.
+                      <div key={`${item.materialId}-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-slate-700 truncate" title={item.materialName}>
+                              {item.materialName}
                             </p>
-                          ) : suppliersForMaterial(item.materialId).length === 1 ? (
-                            <p className="text-[10px] text-slate-600">
-                              {suppliersForMaterial(item.materialId)[0].name}
-                            </p>
-                          ) : (
-                            <select
-                              value={item.supplierId}
-                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, supplierId: e.target.value } : r))}
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-                            >
-                              <option value="">Which supplier…</option>
-                              {suppliersForMaterial(item.materialId).map((s) => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Qty *</label>
-                            <input 
-                              value={item.quantity} 
-                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} 
-                              placeholder="Qty" 
-                              type="number" 
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
-                              required
-                            />
+                            <p className="text-[9px] font-mono text-slate-400">{item.sku}</p>
                           </div>
+                          <span className="shrink-0 text-[11px] font-semibold text-slate-600 whitespace-nowrap">
+                            {item.quantity} {item.unitOfMeasure}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit Cost *</label>
-                            <input 
-                              value={item.unitCost} 
-                              onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, unitCost: e.target.value } : r))} 
-                              placeholder="Cost" 
-                              type="number" 
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
+                            <input
+                              value={item.unitCost}
+                              onChange={(e) =>
+                                setPoItems(poItems.map((r, i) => (i === idx ? { ...r, unitCost: e.target.value } : r)))
+                              }
+                              type="number"
+                              min="0"
+                              step="any"
                               required
+                              className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
+                            {item.supplierOptions.length === 0 ? (
+                              <p className="text-[10px] text-amber-600 py-1.5">
+                                No supplier linked — add one in Master Data → Materials.
+                              </p>
+                            ) : item.supplierOptions.length === 1 ? (
+                              <p className="h-8 flex items-center text-[10px] text-slate-600">
+                                {item.supplierOptions[0].name}
+                              </p>
+                            ) : (
+                              <select
+                                value={item.supplierId}
+                                onChange={(e) =>
+                                  setPoItems(poItems.map((r, i) => (i === idx ? { ...r, supplierId: e.target.value } : r)))
+                                }
+                                className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                              >
+                                <option value="">Which supplier…</option>
+                                {item.supplierOptions.map((s) => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-
-                <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', supplierId: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Add Item
-                </button>
               </div>
 
               <div className="space-y-1">
@@ -422,16 +509,32 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   <div className="flex items-center gap-2">
                     <Truck className="w-3.5 h-3.5 text-slate-400" />
                     <span className="font-mono text-xs font-bold text-[#171717]">{p.number}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{p.status}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{poStatusLabel[p.status] ?? p.status}</span>
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    {p.supplier?.name} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
+                    {poSupplierLabel(p)} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    {p.items?.map((i: any) => `${i.material?.name} × ${i.quantity}${i.receivedQty ? ` (recv ${i.receivedQty})` : ''}`).join(', ')}
+                    {p.items?.map((i: any) => {
+                      const received = Number(i.receivedQty ?? 0);
+                      const ordered = Number(i.quantity);
+                      const outstanding = ordered - received;
+                      return `${i.material?.name} ${received}/${ordered}${outstanding > 0 ? ` (${outstanding} outstanding)` : ' ✓'}`;
+                    }).join(' · ')}
                   </p>
+                  {Array.isArray(p.consignments) && p.consignments.length > 0 && (
+                    <p className="text-[10px] text-slate-400">
+                      Receipts:{' '}
+                      {p.consignments
+                        .map((c: any) =>
+                          c.receivedAt ? new Date(c.receivedAt).toLocaleDateString() : '—'
+                        )
+                        .join(' · ')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
+                  <ViewButton onClick={() => setViewingPo(p)} />
                   {p.status === 'DRAFT' && (
                     <>
                       <button onClick={() => handleStatusChange(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
@@ -440,7 +543,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                       </button>
                     </>
                   )}
-                  {['PARTIAL', 'RECEIVED'].includes(p.status) && (
+                  {['PARTIALLY_RECEIVED', 'RECEIVED'].includes(p.status) && (
                     <button onClick={() => handleStatusChange(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
                   )}
                   {p.status === 'CLOSED' && (
@@ -453,6 +556,77 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
             ))
           )}
         </div>
+      )}
+
+      {viewingPo && (
+        <DetailsModal
+          title={viewingPo.number}
+          subtitle={poSupplierLabel(viewingPo)}
+          status={{ label: poStatusLabel[viewingPo.status] ?? viewingPo.status, className: poStatusBadge[viewingPo.status] }}
+          onClose={() => setViewingPo(null)}
+          sections={[
+            {
+              title: 'Order',
+              fields: [
+                { label: 'Supplier', value: poSupplierLabel(viewingPo) },
+                { label: 'Requisition', value: detailValue(viewingPo.requisition?.number) },
+                { label: 'Created by', value: detailValue(viewingPo.createdBy?.fullName) },
+                { label: 'Order date', value: detailDate(viewingPo.orderDate) },
+                { label: 'Expected delivery', value: detailDate(viewingPo.expectedDelivery) },
+                { label: 'Closed at', value: detailDate(viewingPo.closedAt) },
+              ],
+            },
+            {
+              title: 'Lines',
+              fields: [
+                {
+                  label: 'Materials',
+                  wide: true,
+                  value: (
+                    <div className="space-y-1">
+                      {(viewingPo.items ?? []).map((i: any) => {
+                        const received = Number(i.receivedQty ?? 0);
+                        const ordered = Number(i.quantity);
+                        const outstanding = ordered - received;
+                        return (
+                          <div key={i.id} className="flex items-center justify-between gap-3 border-b border-slate-50 pb-1 last:border-0">
+                            <span className="truncate">{i.material?.name}</span>
+                            <span className="shrink-0 text-slate-500 text-[10px]">
+                              {received}/{ordered} {i.unitOfMeasure}
+                              {outstanding > 0 ? (
+                                <span className="text-amber-600 font-semibold"> · {outstanding} outstanding</span>
+                              ) : (
+                                <span className="text-emerald-600 font-semibold"> · complete</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ),
+                },
+              ],
+            },
+            {
+              title: 'Receipts',
+              fields: [
+                {
+                  label: 'Delivery dates',
+                  wide: true,
+                  value:
+                    Array.isArray(viewingPo.consignments) && viewingPo.consignments.length > 0
+                      ? viewingPo.consignments
+                          .map((c: any) =>
+                            c.receivedAt ? new Date(c.receivedAt).toLocaleDateString() : '—'
+                          )
+                          .join(' · ')
+                      : '—',
+                },
+                { label: 'Notes', wide: true, value: detailValue(viewingPo.notes) },
+              ],
+            },
+          ]}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
@@ -484,10 +658,24 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
         <ConfirmationModal
           type="create"
           title="Create Purchase Order"
-          description="Create a new purchase order with the specified items and supplier."
+          description="Raise this purchase order from the selected approved requisition?"
           onConfirm={confirmCreatePo}
           onCancel={() => setCreatePoConfirmation(false)}
           isLoading={saving}
+        />
+      )}
+
+      {lpoRequisitionId && (
+        <LpoSendModal
+          requisitionId={lpoRequisitionId}
+          onClose={() => {
+            setLpoRequisitionId(null);
+            loadAll();
+          }}
+          onSent={() => {
+            setLpoRequisitionId(null);
+            loadAll();
+          }}
         />
       )}
     </div>

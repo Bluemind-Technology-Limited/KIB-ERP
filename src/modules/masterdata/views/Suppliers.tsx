@@ -5,6 +5,8 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Supplier {
   id: string;
@@ -30,6 +32,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
+  const [viewing, setViewing] = useState<Supplier | null>(null);
   const [form, setForm] = useState({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '', vendorCode: '' });
   const [createConfirmation, setCreateConfirmation] = useState(false);
   const [updateConfirmation, setUpdateConfirmation] = useState(false);
@@ -131,9 +134,9 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Supplier Directory</h2>
-          <p className="text-[#737373] text-xs">Supplier profiles used by the procurement workflow (requisitions → purchase orders).</p>
+          <PageDescription>Supplier profiles used by the procurement workflow (requisitions → purchase orders).</PageDescription>
         </div>
         <div className="flex gap-2">
           <button onClick={openAdd} className="btn-3d px-4 h-9">
@@ -176,21 +179,21 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <Handshake className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
-                        <p className="text-xs font-bold text-[#171717] leading-none">{s.name}</p>
+                        <p title={s.name} className="text-xs font-bold text-[#171717] leading-none max-w-[180px] truncate">{s.name}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-xs text-slate-600">{s.contactPerson || '—'}</p>
+                        <p title={s.contactPerson || '—'} className="text-xs text-slate-600 max-w-[180px] truncate">{s.contactPerson || '—'}</p>
                         {s.email && (
-                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                            <Mail className="w-2.5 h-2.5" /> {s.email}
+                          <p title={s.email} className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 max-w-[180px]">
+                            <Mail className="w-2.5 h-2.5 shrink-0" /> <span className="truncate">{s.email}</span>
                           </p>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">{s.phone || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[220px] truncate">{s.address || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px] truncate" title={s.address || '—'}>{s.address || '—'}</td>
                     <td className="px-4 py-3">
                       {s.taxId ? <span className="text-[10px] font-mono text-slate-500">{s.taxId}</span> : <span className="text-[10px] text-slate-300">—</span>}
                     </td>
@@ -199,6 +202,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <ViewButton onClick={() => setViewing(s)} />
                         <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-indigo-600 p-1 transition-colors">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -214,6 +218,49 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.name}
+          subtitle={viewing.vendorCode ? <span className="font-mono">Vendor code {viewing.vendorCode}</span> : undefined}
+          status={{ label: viewing.status, className: statusBadge[viewing.status] || statusBadge.ACTIVE }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Contact',
+              fields: [
+                { label: 'Supplier', value: detailValue(viewing.name) },
+                { label: 'Contact person', value: detailValue(viewing.contactPerson) },
+                { label: 'Email', value: detailValue(viewing.email) },
+                { label: 'Phone', value: detailValue(viewing.phone) },
+              ],
+            },
+            {
+              title: 'Address',
+              fields: [{ label: 'Address', value: detailValue(viewing.address), wide: true }],
+            },
+            {
+              title: 'Compliance',
+              fields: [
+                { label: 'Tax ID', value: viewing.taxId ? <span className="font-mono">{viewing.taxId}</span> : '—' },
+                {
+                  label: 'Vendor code',
+                  value: viewing.vendorCode ? <span className="font-mono">{viewing.vendorCode}</span> : '—',
+                },
+                {
+                  label: 'Status',
+                  value: (
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${statusBadge[viewing.status] || statusBadge.ACTIVE}`}>
+                      {viewing.status}
+                    </span>
+                  ),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
 
       {/* 3. Add/Edit Modal */}
       {showModal && (

@@ -5,6 +5,8 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface StockRow {
   materialId: string; materialName: string; sku: string; unitOfMeasure: string;
@@ -68,6 +70,9 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
   const [editStockForm, setEditStockForm] = useState({ minQuantity: '' });
   const [isEditingSaving, setIsEditingSaving] = useState(false);
 
+  // view details modal
+  const [viewing, setViewing] = useState<StockRow | null>(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -79,7 +84,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       ]);
       setStock(stockRes.data.stock);
       setHistory(histRes.data.history);
-      setMaterials(matRes.data.materials);
+      setMaterials(matRes.data.materials.filter((m: any) => m.type !== 'FINISHED'));
       setWarehouses(whRes.data.warehouses);
       setError('');
     } catch (err: any) {
@@ -195,9 +200,9 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Inventory Ledger</h2>
-          <p className="text-[#737373] text-xs">Derived stock — SUM of all ledger transactions per material/batch/location. No mutable stock columns.</p>
+          <PageDescription>Derived stock for raw and packaging materials. Finished goods are tracked separately under Inventory → Finished Goods.</PageDescription>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowTransfer(true)} className="btn-3d px-4 h-9 shrink-0">
@@ -242,9 +247,9 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0"><Boxes className="w-3.5 h-3.5 text-[#EA4335]" /></div>
-                        <div>
-                          <p className="text-xs font-bold text-[#171717] leading-none">{s.materialName}</p>
-                          <p className="text-[9px] text-slate-400 mt-0.5 font-mono">{s.sku}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={s.materialName}>{s.materialName}</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5 font-mono truncate max-w-[180px]" title={s.sku}>{s.sku}</p>
                         </div>
                       </div>
                     </td>
@@ -267,6 +272,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.unitOfMeasure}</td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
+                      <ViewButton onClick={() => setViewing(s)} />
                       <button 
                         onClick={() => {
                           setTr({
@@ -605,6 +611,40 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           onConfirm={() => handleDeleteEntry(deletingEntryId)}
           onCancel={() => setDeletingEntryId(null)}
           isDangerous
+        />
+      )}
+
+      {/* Stock item details */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.materialName}
+          subtitle={viewing.sku}
+          status={
+            viewing.quantity <= (viewing.minQuantity || 0)
+              ? { label: viewing.quantity < 0 ? 'Negative' : 'Low Stock', className: 'bg-rose-50 text-rose-600 border-rose-200' }
+              : { label: 'In Stock', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+          }
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Material', value: detailValue(viewing.materialName) },
+                { label: 'SKU', value: detailValue(viewing.sku) },
+                { label: 'Batch Number', value: detailValue(viewing.batchNumber) },
+                { label: 'Warehouse', value: detailValue(viewing.warehouseName) },
+              ],
+            },
+            {
+              title: 'Stock',
+              fields: [
+                { label: 'On Hand', value: `${viewing.quantity} ${viewing.unitOfMeasure}` },
+                { label: 'Minimum Quantity', value: detailValue(viewing.minQuantity) },
+                { label: 'Unit of Measure', value: detailValue(viewing.unitOfMeasure) },
+                { label: 'Bin', value: detailValue(viewing.binId) },
+              ],
+            },
+          ]}
         />
       )}
     </div>

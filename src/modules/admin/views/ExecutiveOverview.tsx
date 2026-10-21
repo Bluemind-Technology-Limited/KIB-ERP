@@ -4,6 +4,7 @@ import { RefreshCw, HeartHandshake, Boxes, Factory, ShieldCheck, Warehouse, Pack
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Metrics {
   materials: number;
@@ -81,11 +82,11 @@ export default function ExecutiveOverview() {
     <div className="space-y-8 text-[#171717]">
       {/* 1. Header Overview welcome */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">
             Welcome back, {user?.fullName || 'Admin'}
           </h2>
-          <p className="text-[#737373] text-xs">Live ERP state across procurement, inventory, production and quality.</p>
+          <PageDescription>Live ERP state across procurement, inventory, production and quality.</PageDescription>
         </div>
         <div className="flex gap-2">
           <button

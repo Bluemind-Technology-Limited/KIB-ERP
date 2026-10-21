@@ -5,6 +5,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
 interface SupplierOption { id: string; name: string; vendorCode?: string }
@@ -18,7 +19,7 @@ const reqStatusBadge: Record<string, string> = {
 const poStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   SENT: 'bg-sky-50 text-sky-700 border-sky-200',
-  PARTIAL: 'bg-amber-50 text-amber-700 border-amber-200',
+  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
   RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   CLOSED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
@@ -221,9 +222,9 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Procurement</h2>
-          <p className="text-[#737373] text-xs">Requisition → Approval → Purchase Order workflow.</p>
+          <PageDescription>Requisition → Approval → Purchase Order workflow.</PageDescription>
         </div>
         <div className="flex gap-2">
           <button
@@ -533,7 +534,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                       </button>
                     </>
                   )}
-                  {['PARTIAL', 'RECEIVED'].includes(p.status) && (
+                  {['PARTIALLY_RECEIVED', 'RECEIVED'].includes(p.status) && (
                     <button onClick={() => updatePoStatus(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
                   )}
                 </div>

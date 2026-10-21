@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
   id: string;
@@ -45,6 +47,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Material | null>(null);
+  const [viewing, setViewing] = useState<Material | null>(null);
   const [filter, setFilter] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('');
   const [form, setForm] = useState({
@@ -85,23 +88,20 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       .catch(() => {});
   }, []);
 
-  const [lockedType, setLockedType] = useState<'RAW' | 'FINISHED' | null>(null);
   const [createConfirmation, setCreateConfirmation] = useState(false);
   const [updateConfirmation, setUpdateConfirmation] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const openAddWithType = (type: 'RAW' | 'FINISHED') => {
+  const openAddWithType = (type: 'RAW') => {
     setEditing(null);
-    setLockedType(type);
     setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', requiresLot: true, supplierIds: [], traceabilityCode: '' });
     setShowModal(true);
   };
 
   const openEdit = (m: Material) => {
     setEditing(m);
-    setLockedType(m.type === 'FINISHED' ? 'FINISHED' : 'RAW');
     setForm({
       name: m.name,
       sku: m.sku,
@@ -170,30 +170,32 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     }
   };
 
-  const filtered = materials.filter((m) =>
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.traceabilityCode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = materials
+    .filter((m) => m.type !== 'FINISHED')
+    .filter((m) =>
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.traceabilityCode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Material Master</h2>
-          <p className="text-[#737373] text-xs">Raw, Packaging and Finished materials with their traceability codes and suppliers.</p>
+          <PageDescription>Raw and packaging materials with their traceability codes and suppliers.</PageDescription>
         </div>
         <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Type (RAW/PACKAGING/FINISHED)"
-              className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-56 focus:outline-none focus:border-[#EA4335]"
-            />
-          </div>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="h-9 rounded-lg border border-[#E9E9E9] bg-white px-2.5 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
+          >
+            <option value="">All types</option>
+            <option value="RAW">Raw</option>
+            <option value="PACKAGING">Packaging</option>
+          </select>
           <select
             value={supplierFilter}
             onChange={(e) => setSupplierFilter(e.target.value)}
@@ -207,11 +209,6 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
           <button onClick={() => openAddWithType('RAW')} className="btn-3d px-4 h-9 shrink-0">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
               <Plus className="w-3.5 h-3.5 shrink-0" /> Add Material
-            </span>
-          </button>
-          <button onClick={() => openAddWithType('FINISHED')} className="btn-3d px-4 h-9 shrink-0 bg-emerald-600 border-emerald-700 hover:bg-emerald-500">
-            <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap">
-              <Plus className="w-3.5 h-3.5 shrink-0" /> Add Finished Product
             </span>
           </button>
         </div>
@@ -251,7 +248,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                           <Package className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#171717] leading-none">{m.name}</p>
+                          <p title={m.name} className="text-xs font-bold text-[#171717] leading-none max-w-[180px] truncate">{m.name}</p>
                           {m.traceabilityCode && (
                             <p className="text-[9px] text-slate-400 mt-0.5">
                               code <span className="font-mono">{m.traceabilityCode}</span>
@@ -292,6 +289,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <ViewButton onClick={() => setViewing(m)} />
                         <button onClick={() => openEdit(m)} className="text-slate-400 hover:text-indigo-600 p-1 transition-colors">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -308,12 +306,77 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
         )}
       </div>
 
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.name}
+          subtitle={<span className="font-mono">{viewing.sku}</span>}
+          status={{ label: viewing.status, className: statusBadge[viewing.status] || statusBadge.ACTIVE }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Identification',
+              fields: [
+                { label: 'Material', value: detailValue(viewing.name) },
+                { label: 'SKU', value: <span className="font-mono">{viewing.sku}</span> },
+                {
+                  label: 'Type',
+                  value: (
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${typeBadge[viewing.type]}`}>
+                      {viewing.type}
+                    </span>
+                  ),
+                },
+                { label: 'Category', value: detailValue(viewing.category) },
+                {
+                  label: 'Traceability code',
+                  value: viewing.traceabilityCode ? <span className="font-mono">{viewing.traceabilityCode}</span> : '—',
+                },
+                { label: 'Barcode', value: viewing.barcode ? <span className="font-mono">{viewing.barcode}</span> : '—' },
+              ],
+            },
+            {
+              title: 'Storing',
+              fields: [
+                { label: 'Unit of measure', value: detailValue(viewing.unitOfMeasure) },
+                { label: 'Lot tracking', value: viewing.requiresLot ? 'Lot tracked' : 'No lot' },
+                { label: 'Default expiry', value: detailDate(viewing.defaultExpiryDate) },
+              ],
+            },
+            {
+              title: 'Suppliers',
+              fields: [
+                {
+                  label: `Suppliers (${(viewing.suppliers ?? []).length})`,
+                  wide: true,
+                  value:
+                    (viewing.suppliers ?? []).length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {(viewing.suppliers ?? []).map(({ supplier }) => (
+                          <span
+                            key={supplier.id}
+                            className="text-[9px] font-semibold text-[#171717] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded"
+                          >
+                            {supplier.name}
+                          </span>
+                        ))}
+                      </div>
+                    ),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
+
       {/* 3. Add/Edit Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
           <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Item' : form.type === 'FINISHED' ? 'Add Finished Product' : 'Add Material'}</h3>
+              <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Item' : 'Add Material'}</h3>
               <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
@@ -332,15 +395,9 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Type *</label>
-                <select value={form.type} disabled={lockedType === 'FINISHED'} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50">
-                  {lockedType === 'FINISHED' ? (
-                    <option value="FINISHED">Finished</option>
-                  ) : (
-                    <>
-                      <option value="RAW">Raw</option>
-                      <option value="PACKAGING">Packaging</option>
-                    </>
-                  )}
+                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50">
+                  <option value="RAW">Raw</option>
+                  <option value="PACKAGING">Packaging</option>
                 </select>
               </div>
               <div className="space-y-1">

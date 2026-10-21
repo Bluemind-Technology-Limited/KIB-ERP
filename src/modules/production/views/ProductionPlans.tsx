@@ -5,6 +5,8 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
   id: string;
@@ -73,8 +75,6 @@ const planStatusBadge: Record<string, string> = {
   CANCELLED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-const emptyPlanItem = { bomId: '', targetQuantity: '' };
-
 export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: string }) {
   const [plans, setPlans] = useState<ProductionPlan[]>([]);
   const [boms, setBoms] = useState<Bom[]>([]);
@@ -87,12 +87,14 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
   const [isDeleting, setIsDeleting] = useState(false);
   const [createConfirmation, setCreateConfirmation] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<{ planId: string; action: string } | null>(null);
+  const [viewing, setViewing] = useState<ProductionPlan | null>(null);
 
   const [form, setForm] = useState({
     description: '',
     scheduledFor: '',
   });
-  const [items, setItems] = useState([{ ...emptyPlanItem }]);
+  /** Selected batch formulations and their target quantities, keyed by BOM id. */
+  const [selection, setSelection] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
@@ -119,49 +121,55 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
 
   const openAdd = () => {
     setForm({ description: '', scheduledFor: '' });
-    setItems([{ ...emptyPlanItem }]);
+    setSelection({});
     setError('');
     setShowModal(true);
   };
 
-  const updateItem = (i: number, field: keyof typeof emptyPlanItem, value: string | number) => {
-    setItems((prev) =>
-      prev.map((item, idx) => (idx !== i ? item : { ...item, [field]: value }))
-    );
+  /** Batch formulations that can go on a plan. */
+  const selectableBoms = boms.filter((b) => b.status === 'ACTIVE' || b.status === 'APPROVED');
+
+  const toggleBom = (bomId: string) => {
+    setSelection((prev) => {
+      const next = { ...prev };
+      if (bomId in next) delete next[bomId];
+      else next[bomId] = '';
+      return next;
+    });
   };
 
-  const addItemRow = () => setItems((prev) => [...prev, { ...emptyPlanItem }]);
-  const removeItemRow = (i: number) => {
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
+  const setTarget = (bomId: string, value: string) => {
+    setSelection((prev) => ({ ...prev, [bomId]: value }));
   };
+
+  const selectedEntries = Object.entries(selection);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validItems = items.filter((item) => item.bomId && item.targetQuantity);
-    if (validItems.length === 0) {
-      setError('Add at least one BOM with a target quantity');
+    if (selectedEntries.length === 0) {
+      setError('Select at least one product to produce');
+      return;
+    }
+    const missingQty = selectedEntries.find(([, qty]) => !qty || Number(qty) <= 0);
+    if (missingQty) {
+      setError('Enter a target quantity for every selected product');
       return;
     }
     setCreateConfirmation(true);
   };
 
   const confirmCreate = async () => {
-    const validItems = items.filter((item) => item.bomId && item.targetQuantity);
     setSaving(true);
     try {
-      const plan = await axiosClient.post<{ productionPlan: ProductionPlan }>('/production/production-plans', {
+      await axiosClient.post('/production/production-plans', {
         description: form.description || null,
         scheduledFor: form.scheduledFor ? new Date(form.scheduledFor) : null,
+        // All selected products are created with the plan in one request.
+        items: selectedEntries.map(([bomId, qty]) => ({
+          bomId,
+          targetQuantity: Number(qty),
+        })),
       });
-      const planId = plan.data.productionPlan.id;
-
-      // Add items to plan
-      for (let i = 0; i < validItems.length; i++) {
-        await axiosClient.post(`/production/production-plans/${planId}/formulations`, {
-          bomId: validItems[i].bomId,
-          targetQuantity: Number(validItems[i].targetQuantity),
-        });
-      }
 
       setShowModal(false);
       setCreateConfirmation(false);
@@ -251,9 +259,9 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Plans</h2>
-          <p className="text-[#737373] text-xs">Multi-product recipes with aggregated ingredients and coordinated scheduling.</p>
+          <PageDescription>Multi-product recipes with aggregated ingredients and coordinated scheduling.</PageDescription>
         </div>
         <button onClick={openAdd} className="btn-3d px-4 h-9">
           <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
@@ -311,7 +319,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                         {plan.items.length} BOM{plan.items.length !== 1 ? 's' : ''} · {plan.aggregatedIngredients.length} unique ingredients · Scheduled {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : 'not set'}
                       </p>
                       {plan.description && (
-                        <p className="text-[10px] text-slate-500 mt-1 truncate">{plan.description}</p>
+                        <p className="text-[10px] text-slate-500 mt-1 truncate" title={plan.description}>{plan.description}</p>
                       )}
                     </div>
                   </div>
@@ -319,6 +327,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${planStatusBadge[plan.status]}`}>
                       {plan.status}
                     </span>
+                    <ViewButton onClick={() => setViewing(plan)} />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -377,7 +386,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                           <tbody>
                             {plan.aggregatedIngredients.map((ing) => (
                               <tr key={ing.materialId} className="border-b border-slate-50">
-                                <td className="px-2 py-2 text-[11px] font-semibold text-slate-700">{ing.materialName}</td>
+                                <td className="px-2 py-2 text-[11px] font-semibold text-slate-700 max-w-[180px] truncate" title={ing.materialName}>{ing.materialName}</td>
                                 <td className="px-2 py-2 text-right text-[11px] font-mono text-slate-600">{Number(ing.totalQuantity).toFixed(2)}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-500">{ing.unitOfMeasure}</td>
                                 <td className="px-2 py-2 text-right text-[11px] text-slate-400">{ing.itemCount} BOM{ing.itemCount !== 1 ? 's' : ''}</td>
@@ -456,42 +465,65 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
               </div>
             </div>
 
-            {/* Plan Items */}
+            {/* Plan Items — multi-select of approved batch formulations */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BOMs to Produce *</label>
-                <span className="text-[9px] text-slate-400">{items.filter((i) => i.bomId && i.targetQuantity).length} added</span>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Products to Produce *</label>
+                <span className="text-[9px] text-slate-400">{selectedEntries.length} selected</span>
               </div>
 
-              <div className="space-y-2">
-                {items.map((item, i) => (
-                  <div key={i} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-500">Item {i + 1}</span>
-                      <button type="button" onClick={() => removeItemRow(i)} className="text-slate-300 hover:text-rose-500 p-0.5">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">BOM *</label>
-                      <select value={item.bomId} onChange={(e) => updateItem(i, 'bomId', e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#AA3BFF]">
-                        <option value="">Select BOM…</option>
-                        {boms.filter((b) => b.status === 'ACTIVE' || b.status === 'APPROVED').map((b) => (
-                          <option key={b.id} value={b.id}>{b.productName} → {b.finishedSku?.name ?? '—'}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Target Quantity *</label>
-                      <input value={item.targetQuantity} onChange={(e) => updateItem(i, 'targetQuantity', e.target.value)} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#AA3BFF]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {selectableBoms.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-[10px] text-slate-400">
+                  No approved batch formulations yet — approve a formulation before planning production.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-0.5">
+                  {selectableBoms.map((b) => {
+                    const selected = b.id in selection;
+                    return (
+                      <div
+                        key={b.id}
+                        className={`rounded-lg border p-2.5 transition-colors ${
+                          selected ? 'border-[#AA3BFF]/40 bg-[#AA3BFF]/5' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleBom(b.id)}
+                            className="mt-0.5 h-3.5 w-3.5 accent-[#AA3BFF]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold text-slate-700 truncate" title={b.productName}>
+                              {b.productName}
+                            </p>
+                            <p className="text-[9px] text-slate-400 truncate">
+                              {b.finishedSku?.name ?? '—'} · yield {Number(b.expectedYield)} {b.yieldUnit}
+                            </p>
+                          </div>
+                        </label>
 
-              <button type="button" onClick={addItemRow} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#AA3BFF]/50 hover:bg-purple-50/30 text-xs font-bold text-slate-400 hover:text-[#AA3BFF] transition-colors flex items-center justify-center gap-1.5">
-                <Plus className="w-3.5 h-3.5" /> Add BOM to Plan
-              </button>
+                        {selected && (
+                          <div className="mt-2 flex items-center gap-2 pl-5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Target qty</span>
+                            <input
+                              value={selection[b.id]}
+                              onChange={(e) => setTarget(b.id, e.target.value)}
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              placeholder={String(Number(b.expectedYield) || 100)}
+                              className="h-8 w-28 rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                            />
+                            <span className="text-[10px] text-slate-400">{b.yieldUnit}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -525,6 +557,61 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
           onConfirm={confirmDelete}
           onCancel={() => setDeleteConfirmation(null)}
           isLoading={isDeleting}
+        />
+      )}
+
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title="Production Plan"
+          subtitle={<span className="font-mono">{viewing.planNumber}</span>}
+          status={{ label: viewing.status, className: planStatusBadge[viewing.status] }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Plan', value: <span className="font-mono">{viewing.planNumber}</span> },
+                { label: 'Status', value: viewing.status },
+                { label: 'Description', value: detailValue(viewing.description), wide: true },
+                { label: 'Created by', value: detailValue(viewing.createdBy?.fullName) },
+                { label: 'Created', value: detailDate(viewing.createdAt, true) },
+              ],
+            },
+            {
+              title: 'Schedule',
+              fields: [
+                { label: 'Scheduled for', value: detailDate(viewing.scheduledFor) },
+                { label: 'Started', value: detailDate(viewing.startedAt, true) },
+                { label: 'Completed', value: detailDate(viewing.completedAt, true) },
+              ],
+            },
+            {
+              title: 'Contents',
+              fields: [
+                { label: 'BOMs', value: `${viewing.items.length}` },
+                { label: 'Unique ingredients', value: `${viewing.aggregatedIngredients.length}` },
+                {
+                  label: 'Products in plan',
+                  wide: true,
+                  value: viewing.items.length
+                    ? viewing.items
+                        .map((item) => `${item.bom.productName} → ${item.bom.finishedSku?.name ?? '—'} (${item.targetQuantity} ${item.bom.yieldUnit})`)
+                        .join(' · ')
+                    : '—',
+                },
+                {
+                  label: 'Aggregated ingredients',
+                  wide: true,
+                  value: viewing.aggregatedIngredients.length
+                    ? viewing.aggregatedIngredients
+                        .map((ing) => `${ing.materialName} (${Number(ing.totalQuantity).toFixed(2)} ${ing.unitOfMeasure})`)
+                        .join(' · ')
+                    : '—',
+                },
+              ],
+            },
+          ]}
         />
       )}
     </div>

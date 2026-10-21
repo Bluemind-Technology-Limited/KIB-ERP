@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface AuditEntry {
   id: string;
@@ -133,9 +134,9 @@ export default function AuditTrail() {
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Audit Trail & Analytics</h2>
-          <p className="text-[#737373] text-xs">System activity, user actions, approval workflows, and production metrics.</p>
+          <PageDescription>System activity, user actions, approval workflows, and production metrics.</PageDescription>
         </div>
       </div>
 

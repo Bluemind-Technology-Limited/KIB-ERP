@@ -9,6 +9,7 @@ import { RoleGuard, rolePermissions } from './components/routing/RoleGuard';
 import Warehouses from './modules/masterdata/views/Warehouses';
 import Materials from './modules/masterdata/views/Materials';
 import Suppliers from './modules/masterdata/views/Suppliers';
+import Products from './modules/masterdata/views/Products';
 import Requisitions from './modules/procurement/views/Requisitions';
 import RequisitionActions from './modules/procurement/views/RequisitionActions';
 import Procurements from './modules/procurement/views/Procurements';
@@ -20,6 +21,7 @@ import FinishedGoods from './modules/inventory/views/FinishedGoods';
 import BOM from './modules/production/views/BOM';
 import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
+import DailyRecords from './modules/production/views/DailyRecords';
 import Traceability from './modules/production/views/Traceability';
 import SupervisorDashboard from './modules/production/supervisor/SupervisorDashboard';
 import StockIssue from './modules/production/line/StockIssue';
@@ -46,10 +48,11 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'md-warehouses': { path: '/master-data/warehouses', parent: 'Master Data', label: 'Warehouses' },
   'md-materials': { path: '/master-data/materials', parent: 'Master Data', label: 'Materials' },
   'md-suppliers': { path: '/master-data/suppliers', parent: 'Master Data', label: 'Suppliers' },
+  'md-products': { path: '/master-data/products', parent: 'Master Data', label: 'Products' },
   'proc-requisitions': { path: '/procurement/requisitions', parent: 'Requisitions & PO', label: 'Requisitions' },
   'proc-actions': { path: '/procurement/actions', parent: 'Requisitions & PO', label: 'Requisition Actions' },
   'proc-procurements': { path: '/procurement/procurements', parent: 'Requisitions & PO', label: 'Procurements' },
-  'proc-consignments': { path: '/procurement/consignments', parent: 'Requisitions & PO', label: 'Consignments' },
+  'proc-consignments': { path: '/inventory/consignments', parent: 'Inventory', label: 'Consignments' },
   'inv-stock': { path: '/inventory/stock', parent: 'Inventory', label: 'Stock Ledger' },
   'inv-daily-prod': { path: '/inventory/daily-production', parent: 'Inventory', label: 'Daily Production' },
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
@@ -57,11 +60,12 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Batch Formulation' },
   'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Plans' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
+  'prod-daily-records': { path: '/production/daily-records', parent: 'Production', label: 'Daily Records' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
   'prod-supervisor': { path: '/production/supervisor', parent: 'Production', label: 'Production Supervisor' },
   'prod-issue': { path: '/production/stock-issue', parent: 'Production', label: 'Stock Issue' },
   'prod-grinding': { path: '/production/grinding', parent: 'Production', label: 'Grinding Station' },
-  'prod-finishing': { path: '/production/finishing', parent: 'Production', label: 'Finishing Station' },
+  'prod-finishing': { path: '/production/finishing', parent: 'Production', label: 'Production Station' },
   'machines': { path: '/machines', parent: 'Assets', label: 'Machines & Assets' },
   'qa-inspections': { path: '/quality/inspections', parent: 'Quality Assurance', label: 'Inspections' },
   'qa-consignments': { path: '/quality/consignment-checks', parent: 'Quality Assurance', label: 'Consignment QA' },
@@ -195,6 +199,12 @@ export default function App() {
             <Suppliers searchQuery={searchQuery} />
           </RoleGuard>
         );
+      case 'md-products':
+        return (
+          <RoleGuard userRole={user.role} viewId="md-products">
+            <Products searchQuery={searchQuery} />
+          </RoleGuard>
+        );
       case 'proc-requisitions':
         return (
           <RoleGuard userRole={user.role} viewId="proc-requisitions">
@@ -259,6 +269,12 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="prod-orders">
             <ProductionOrders searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'prod-daily-records':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-daily-records">
+            <DailyRecords searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'prod-trace':

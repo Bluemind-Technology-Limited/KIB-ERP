@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, Search, Paperclip, Upload, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
+import { uploadFileToR2 } from '../../../lib/r2Client';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Inspection {
   id: string;
@@ -16,6 +20,12 @@ interface Inspection {
   material?: { name: string; sku: string; unitOfMeasure: string } | null;
   batchLot?: { id: string; batchNumber: string; status: string } | null;
   inspector?: { fullName?: string } | null;
+  reviewDocumentUrl?: string | null;
+  reviewDocumentKey?: string | null;
+  reviewDocumentName?: string | null;
+  reviewDocumentMime?: string | null;
+  reviewDocumentSize?: number | null;
+  reviewDocumentUploadedAt?: string | null;
 }
 
 const resultBadge: Record<string, string> = {
@@ -37,6 +47,11 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [filter, setFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [docToDelete, setDocToDelete] = useState<Inspection | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState(false);
+  /** Batch numbers keyed by inspection id — QA assigns them here, not at receipt. */
+  const [batchInputs, setBatchInputs] = useState<Record<string, string>>({});
+  const [viewing, setViewing] = useState<Inspection | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -60,13 +75,80 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const decide = async (inspection: Inspection, action: 'release' | 'reject') => {
     setBusyId(inspection.id);
     try {
-      await axiosClient.post(`/qa/inspections/${inspection.id}/${action}`, {});
+      await axiosClient.post(`/qa/inspections/${inspection.id}/${action}`, {
+        batchNumber: batchInputs[inspection.id]?.trim() || undefined,
+      });
       setError('');
+      setBatchInputs((prev) => {
+        const next = { ...prev };
+        delete next[inspection.id];
+        return next;
+      });
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || `Failed to ${action} batch`);
     } finally {
       setBusyId(null);
+    }
+  };
+
+  /** Browser uploads straight to R2; if CORS blocks it, fall back to the API. */
+  const uploadReviewDoc = async (inspection: Inspection, file: File) => {
+    if (busyId) return;
+    setBusyId(inspection.id);
+    setError('');
+    const contentType = file.type || 'application/octet-stream';
+    const folder = `inspections/${inspection.id}/review-docs`;
+    try {
+      let publicUrl: string;
+      try {
+        publicUrl = await uploadFileToR2(file, folder);
+      } catch (directError) {
+        // Mirrors school-pulse: direct R2 PUT needs bucket CORS, so use the
+        // API upload route when the browser blocks it.
+        console.warn('Direct R2 upload failed, falling back to backend upload:', directError);
+        const res = await axiosClient.post<{ url: string }>(
+          `/qa/inspections/${inspection.id}/review-document/upload`,
+          file,
+          {
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'x-file-type': contentType,
+            },
+            params: { fileName: file.name },
+            toast: false,
+          }
+        );
+        publicUrl = res.data.url;
+      }
+
+      // The backend only receives the URL produced by the upload.
+      await axiosClient.post(`/qa/inspections/${inspection.id}/review-document`, {
+        url: publicUrl,
+        fileName: file.name,
+        mimeType: contentType,
+        fileSize: file.size,
+      });
+      await load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to upload the review document.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeReviewDoc = async () => {
+    if (!docToDelete) return;
+    setDeletingDoc(true);
+    setError('');
+    try {
+      await axiosClient.delete(`/qa/inspections/${docToDelete.id}/review-document`);
+      setDocToDelete(null);
+      await load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to remove the review document.');
+    } finally {
+      setDeletingDoc(false);
     }
   };
 
@@ -81,9 +163,9 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">QA Inspections</h2>
-          <p className="text-[#737373] text-xs">Release or reject quarantined batches from GRN receiving and finished production.</p>
+          <PageDescription>Release or reject quarantined batches from GRN receiving and finished production.</PageDescription>
         </div>
         <div className="flex gap-2">
           <div className="relative">
@@ -115,7 +197,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       {/* 2. Inspections Table */}
       <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={7} rows={6} />
+          <TableSkeleton cols={8} rows={6} />
         ) : filtered.length === 0 ? (
           <EmptyState title="No inspections found." />
         ) : (
@@ -129,6 +211,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                   <th className="px-4 py-3 font-semibold">Inspected By</th>
                   <th className="px-4 py-3 font-semibold">Batch Status</th>
                   <th className="px-4 py-3 font-semibold">Result</th>
+                  <th className="px-4 py-3 font-semibold">Review Document</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -147,7 +230,22 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[10px] font-mono text-slate-500">{i.batchLot?.batchNumber ?? '—'}</span>
+                      {i.result === 'PENDING' && i.batchLot ? (
+                        <input
+                          value={
+                            batchInputs[i.id] ??
+                            (i.batchLot.batchNumber.startsWith('PENDING-') ? '' : i.batchLot.batchNumber)
+                          }
+                          onChange={(e) =>
+                            setBatchInputs((prev) => ({ ...prev, [i.id]: e.target.value }))
+                          }
+                          placeholder="Assign batch #"
+                          title="Batch number is assigned by QA"
+                          className="h-7 w-36 rounded-md border border-[#E9E9E9] px-2 text-[10px] font-mono focus:outline-none focus:border-[#EA4335]"
+                        />
+                      ) : (
+                        <span className="text-[10px] font-mono text-slate-500">{i.batchLot?.batchNumber ?? '—'}</span>
+                      )}
                       {i.referenceLabel && (
                         <p className="text-[9px] text-slate-400">Ref: {i.referenceLabel}</p>
                       )}
@@ -171,29 +269,91 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${resultBadge[i.result]}`}>{i.result}</span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      {i.result === 'PENDING' && (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => decide(i, 'release')}
-                            disabled={busyId === i.id}
-                            className="btn-3d px-3 h-7"
+                    <td className="px-4 py-3">
+                      {i.reviewDocumentUrl ? (
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={i.reviewDocumentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={i.reviewDocumentName ?? 'Open review document'}
+                            className="inline-flex items-center gap-1 max-w-[150px] text-[10px] font-semibold text-[#171717] hover:text-[#EA4335]"
                           >
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <CheckCircle2 className="w-3 h-3" /> Release
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => decide(i, 'reject')}
-                            disabled={busyId === i.id}
-                            className="px-3 h-7 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold hover:bg-rose-50"
+                            <Paperclip className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{i.reviewDocumentName ?? 'Document'}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                          <label
+                            className={`inline-flex items-center justify-center w-6 h-6 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer ${busyId === i.id ? 'opacity-60 pointer-events-none' : ''}`}
+                            title="Replace document"
                           >
-                            <span className="flex items-center gap-1">
-                              <XCircle className="w-3 h-3" /> Reject
-                            </span>
+                            {busyId === i.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            <input
+                              type="file"
+                              className="hidden"
+                              disabled={busyId === i.id}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = '';
+                                if (file) void uploadReviewDoc(i, file);
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setDocToDelete(i)}
+                            disabled={busyId === i.id}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded border border-rose-200 text-rose-500 hover:bg-rose-50"
+                            title="Delete document"
+                          >
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
+                      ) : (
+                        <label
+                          className={`inline-flex items-center gap-1 px-2 h-7 rounded-lg border border-slate-200 text-[10px] font-semibold cursor-pointer hover:bg-slate-50 ${busyId === i.id ? 'opacity-60 pointer-events-none' : 'text-slate-600'}`}
+                        >
+                          {busyId === i.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                          {busyId === i.id ? 'Uploading…' : 'Upload'}
+                          <input
+                            type="file"
+                            className="hidden"
+                            disabled={busyId === i.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (file) void uploadReviewDoc(i, file);
+                            }}
+                          />
+                        </label>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <ViewButton onClick={() => setViewing(i)} />
+                        {i.result === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => decide(i, 'release')}
+                              disabled={busyId === i.id}
+                              className="btn-3d px-3 h-7"
+                            >
+                              <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                                <CheckCircle2 className="w-3 h-3" /> Release
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => decide(i, 'reject')}
+                              disabled={busyId === i.id}
+                              className="px-3 h-7 rounded-lg border border-rose-200 text-rose-600 text-[10px] font-semibold hover:bg-rose-50"
+                            >
+                              <span className="flex items-center gap-1">
+                                <XCircle className="w-3 h-3" /> Reject
+                              </span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -202,6 +362,71 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
           </div>
         )}
       </div>
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.material?.name ?? 'Inspection'}
+          subtitle={viewing.material?.sku ? `SKU ${viewing.material.sku}` : undefined}
+          status={{ label: viewing.result, className: resultBadge[viewing.result] }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Inspection',
+              fields: [
+                { label: 'Type', value: viewing.inspectionType },
+                { label: 'Reference', value: viewing.referenceLabel ?? '—' },
+                { label: 'Inspected by', value: viewing.inspector?.fullName ?? '—' },
+                { label: 'Inspected at', value: detailDate(viewing.inspectedAt, true) },
+                { label: 'Created', value: detailDate(viewing.createdAt, true) },
+              ],
+            },
+            {
+              title: 'Batch',
+              fields: [
+                { label: 'Batch number', value: viewing.batchLot?.batchNumber ?? '—' },
+                { label: 'Batch status', value: viewing.batchLot?.status ?? '—' },
+                { label: 'Material', value: viewing.material?.name ?? '—' },
+                { label: 'SKU', value: viewing.material?.sku ?? '—' },
+              ],
+            },
+            {
+              title: 'Review document',
+              fields: [
+                { label: 'Document', value: viewing.reviewDocumentName ?? '—' },
+                { label: 'Uploaded', value: detailDate(viewing.reviewDocumentUploadedAt, true) },
+                {
+                  label: 'Link',
+                  wide: true,
+                  value: viewing.reviewDocumentUrl ? (
+                    <a
+                      href={viewing.reviewDocumentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[#EA4335] font-semibold hover:underline break-all"
+                    >
+                      {viewing.reviewDocumentUrl} <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  ) : (
+                    '—'
+                  ),
+                },
+                { label: 'Notes', wide: true, value: viewing.notes ?? '—' },
+              ],
+            },
+          ]}
+        />
+      )}
+
+      {docToDelete && (
+        <ConfirmationModal
+          type="delete"
+          title="Delete review document"
+          message={`Remove “${docToDelete.reviewDocumentName ?? 'this document'}”? The file will also be deleted from storage.`}
+          onConfirm={removeReviewDoc}
+          onCancel={() => setDocToDelete(null)}
+          isLoading={deletingDoc}
+        />
+      )}
     </div>
   );
 }

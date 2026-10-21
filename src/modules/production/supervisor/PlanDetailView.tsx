@@ -85,7 +85,7 @@ export default function PlanDetailView({
               <ArrowLeft className="h-4 w-4" />
             </button>
           )}
-          <div>
+          <div className="min-w-0">
             <h2 className="text-xl font-bold tracking-tight text-[#171717]">{plan.planNumber}</h2>
             <p className="text-xs text-[#737373] mt-1">
               Production plan execution, WIP carryover and daily reconciliation

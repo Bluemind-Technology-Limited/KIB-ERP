@@ -4,7 +4,9 @@ import { useAuthStore } from '../../../stores/useAuthStore';
 import CostApprovalWorkflow from '../components/CostApprovalWorkflow';
 import CostHistoryViewer from '../components/CostHistoryViewer';
 import CostEditModal from '../components/CostEditModal';
-import type { EntityType } from '../../../types/costManagement';
+import type { EntityType, CostHistoryItem } from '../../../types/costManagement';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 export default function CostManagementDashboard() {
   const {
@@ -23,6 +25,7 @@ export default function CostManagementDashboard() {
   const [showCostEditModal, setShowCostEditModal] = useState(false);
   const [selectedEntityType, setSelectedEntityType] = useState<EntityType>('Material');
   const [selectedEntityId, setSelectedEntityId] = useState('');
+  const [viewing, setViewing] = useState<CostHistoryItem | null>(null);
 
   // Determine if user can approve costs
   const canApprove = ['SUPER_ADMIN', 'EXECUTIVE_ADMIN'].includes(user?.role || '');
@@ -63,7 +66,7 @@ export default function CostManagementDashboard() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Cost Management</h1>
-        <p className="text-gray-600">Manage, approve, and track cost modifications across all resources</p>
+        <PageDescription>Manage, approve, and track cost modifications across all resources</PageDescription>
       </div>
 
       {/* Messages */}
@@ -181,6 +184,7 @@ export default function CostManagementDashboard() {
                       <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Variance %</th>
                       <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
                       <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Changed By</th>
+                      <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -208,6 +212,9 @@ export default function CostManagementDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.changedBy}</td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <ViewButton onClick={() => setViewing(item)} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -234,6 +241,50 @@ export default function CostManagementDashboard() {
           }}
           entityType={selectedEntityType}
           entityId={selectedEntityId}
+        />
+      )}
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.fieldName}
+          subtitle={viewing.changedBy}
+          status={{
+            label: viewing.status,
+            className:
+              viewing.status === 'APPROVED'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : viewing.status === 'PENDING'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-rose-50 text-rose-600 border-rose-200',
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Cost change',
+              fields: [
+                { label: 'Field', value: detailValue(viewing.fieldName) },
+                { label: 'Status', value: detailValue(viewing.status) },
+                { label: 'Old value', value: `₦${viewing.oldValue.toLocaleString()}` },
+                { label: 'New value', value: `₦${viewing.newValue.toLocaleString()}` },
+                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}₦${Math.abs(viewing.variance).toLocaleString()}` },
+                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${viewing.variancePercent.toFixed(2)}%` },
+              ],
+            },
+            {
+              title: 'Reason',
+              fields: [{ label: 'Reason', value: detailValue(viewing.reason), wide: true }],
+            },
+            {
+              title: 'Audit trail',
+              fields: [
+                { label: 'Changed by', value: detailValue(viewing.changedBy) },
+                { label: 'Changed at', value: detailDate(viewing.changedAt, true) },
+                { label: 'Approved by', value: detailValue(viewing.approvedBy) },
+                { label: 'Approved at', value: viewing.approvedAt ? detailDate(viewing.approvedAt, true) : '—' },
+                { label: 'Change ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.id)}</span>, wide: true },
+              ],
+            },
+          ]}
         />
       )}
     </div>

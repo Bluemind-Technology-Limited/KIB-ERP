@@ -15,6 +15,8 @@ import {
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface BatchMatch {
   id: string;
@@ -161,6 +163,12 @@ const sourceLabel: Record<string, string> = {
   PROD_CONSUMPTION: 'Consumed by order',
 };
 
+/** Row types that can be expanded into a details modal. */
+type TraceRow =
+  | { kind: 'ingredient'; ingredient: TraceTree['ingredients'][number] }
+  | { kind: 'downstream'; entry: TraceTree['downstream']['usedInFinishedBatches'][number] }
+  | { kind: 'movement'; movement: TraceTree['downstream']['movements'][number] };
+
 export default function Traceability({ searchQuery: _searchQuery = '' }: { searchQuery?: string }) {
   const [term, setTerm] = useState('');
   const [matches, setMatches] = useState<BatchMatch[]>([]);
@@ -168,6 +176,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState('');
+  const [viewing, setViewing] = useState<TraceRow | null>(null);
 
   const loadTree = async (batchId: string) => {
     setLoading(true);
@@ -217,12 +226,12 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Traceability</h2>
-          <p className="text-[#737373] text-xs">
+          <PageDescription>
             Trace any raw material, ingredient or finished good — upstream to the supplier and downstream to
             finished goods.
-          </p>
+          </PageDescription>
         </div>
         <form onSubmit={submit} className="flex gap-2">
           <div className="relative">
@@ -414,18 +423,21 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
               <div className="divide-y divide-slate-50">
                 {tree.ingredients.map((ing) => (
                   <div key={ing.materialId} className="px-4 py-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold text-slate-700">{ing.materialName ?? ing.materialId}</p>
-                        <p className="text-[9px] font-mono text-slate-400">{ing.sku ?? ''}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-700 max-w-[220px] truncate" title={ing.materialName ?? ing.materialId}>{ing.materialName ?? ing.materialId}</p>
+                        <p className="text-[9px] font-mono text-slate-400 max-w-[220px] truncate" title={ing.sku ?? ''}>{ing.sku ?? ''}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[11px] font-mono text-slate-500">
-                          {ing.quantity}{ing.isPercentage ? '%' : ''} {ing.unitOfMeasure}
-                        </span>
-                        {ing.source && (
-                          <p className="text-[9px] text-slate-400">{sourceLabel[ing.source]}</p>
-                        )}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <span className="text-[11px] font-mono text-slate-500">
+                            {ing.quantity}{ing.isPercentage ? '%' : ''} {ing.unitOfMeasure}
+                          </span>
+                          {ing.source && (
+                            <p className="text-[9px] text-slate-400">{sourceLabel[ing.source]}</p>
+                          )}
+                        </div>
+                        <ViewButton onClick={() => setViewing({ kind: 'ingredient', ingredient: ing })} />
                       </div>
                     </div>
                     <div className="mt-2 space-y-1.5 border-l-2 border-slate-100 pl-3">
@@ -501,21 +513,24 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
             ) : (
               <div className="divide-y divide-slate-50">
                 {tree.downstream.usedInFinishedBatches.map((d, idx) => (
-                  <div key={`${d.batchLotId}-${idx}`} className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <p className="text-xs font-bold text-slate-700">{d.batchNumber ?? '—'}</p>
-                      <p className="text-[10px] text-slate-400">
+                  <div key={`${d.batchLotId}-${idx}`} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 max-w-[220px] truncate" title={d.batchNumber ?? '—'}>{d.batchNumber ?? '—'}</p>
+                      <p className="text-[10px] text-slate-400 max-w-[280px] truncate">
                         {d.materialName ?? '—'}
                         {d.productName ? ` · ${d.productName}` : ''}
                         {d.planNumber ? ` · plan ${d.planNumber}` : ''}
                         {d.orderNumber ? ` · order ${d.orderNumber}` : ''}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[11px] font-mono text-slate-500">{d.quantity}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-slate-400">
-                        {d.via === 'GRINDING' ? 'grinding input' : 'order release'}
-                      </p>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-[11px] font-mono text-slate-500">{d.quantity}</p>
+                        <p className="text-[9px] uppercase tracking-wider text-slate-400">
+                          {d.via === 'GRINDING' ? 'grinding input' : 'order release'}
+                        </p>
+                      </div>
+                      <ViewButton onClick={() => setViewing({ kind: 'downstream', entry: d })} />
                     </div>
                   </div>
                 ))}
@@ -541,6 +556,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                       <th className="px-4 py-2 font-semibold">Warehouse</th>
                       <th className="px-4 py-2 font-semibold">Reference</th>
                       <th className="px-4 py-2 font-semibold">By</th>
+                      <th className="px-4 py-2 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -554,10 +570,13 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                           {m.quantity} {m.unitOfMeasure}
                         </td>
                         <td className="px-4 py-2 text-[10px] text-slate-500">{m.warehouseName ?? '—'}</td>
-                        <td className="px-4 py-2 text-[10px] text-slate-500">
+                        <td className="px-4 py-2 text-[10px] text-slate-500 max-w-[160px] truncate" title={m.referenceType ?? '—'}>
                           {m.referenceType ?? '—'}
                         </td>
-                        <td className="px-4 py-2 text-[10px] text-slate-500">{m.createdBy ?? '—'}</td>
+                        <td className="px-4 py-2 text-[10px] text-slate-500 max-w-[160px] truncate" title={m.createdBy ?? '—'}>{m.createdBy ?? '—'}</td>
+                        <td className="px-4 py-2 text-right">
+                          <ViewButton onClick={() => setViewing({ kind: 'movement', movement: m })} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -575,6 +594,115 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
             hint="Search any batch number, material name or SKU to trace it end to end."
           />
         </div>
+      )}
+
+      {/* Details Modal */}
+      {viewing && (
+        <DetailsModal
+          title={
+            viewing.kind === 'ingredient'
+              ? 'Ingredient trace'
+              : viewing.kind === 'downstream'
+              ? 'Finished batch'
+              : 'Stock movement'
+          }
+          subtitle={
+            viewing.kind === 'ingredient' ? (
+              <span className="font-mono">{detailValue(viewing.ingredient.sku)}</span>
+            ) : viewing.kind === 'downstream' ? (
+              detailValue(viewing.entry.materialName)
+            ) : (
+              <span className="font-mono">{viewing.movement.eventType}</span>
+            )
+          }
+          onClose={() => setViewing(null)}
+          sections={
+            viewing.kind === 'ingredient'
+              ? [
+                  {
+                    title: 'Ingredient',
+                    fields: [
+                      { label: 'Material', value: detailValue(viewing.ingredient.materialName) },
+                      { label: 'SKU', value: <span className="font-mono">{detailValue(viewing.ingredient.sku)}</span> },
+                      { label: 'Type', value: detailValue(viewing.ingredient.type) },
+                      {
+                        label: 'Quantity',
+                        value: `${viewing.ingredient.quantity}${viewing.ingredient.isPercentage ? '%' : ''} ${viewing.ingredient.unitOfMeasure}`,
+                      },
+                      {
+                        label: 'Source',
+                        value: viewing.ingredient.source ? sourceLabel[viewing.ingredient.source] : '—',
+                      },
+                      { label: 'Raw batches', value: `${viewing.ingredient.rawBatches.length}` },
+                    ],
+                  },
+                  {
+                    title: 'Raw batches',
+                    fields: [
+                      {
+                        label: 'Batch lots',
+                        wide: true,
+                        value: viewing.ingredient.rawBatches.length
+                          ? viewing.ingredient.rawBatches
+                              .map((rb) => {
+                                const lot = rb.batch.lotCode ?? rb.batch.batchNumber;
+                                const supplier = rb.inbound?.supplier?.name ?? rb.batch.supplier?.name;
+                                return supplier ? `${lot} · ${supplier}` : lot;
+                              })
+                              .join(' · ')
+                          : '—',
+                      },
+                    ],
+                  },
+                ]
+              : viewing.kind === 'downstream'
+              ? [
+                  {
+                    title: 'Finished batch',
+                    fields: [
+                      { label: 'Batch', value: <span className="font-mono">{detailValue(viewing.entry.batchNumber)}</span> },
+                      { label: 'Material', value: detailValue(viewing.entry.materialName) },
+                      { label: 'SKU', value: <span className="font-mono">{detailValue(viewing.entry.sku)}</span> },
+                      { label: 'Product', value: detailValue(viewing.entry.productName) },
+                      { label: 'Plan', value: detailValue(viewing.entry.planNumber) },
+                      { label: 'Order', value: detailValue(viewing.entry.orderNumber) },
+                    ],
+                  },
+                  {
+                    title: 'Routing',
+                    fields: [
+                      { label: 'Via', value: viewing.entry.via === 'GRINDING' ? 'Grinding input' : 'Order release' },
+                      { label: 'Quantity', value: `${viewing.entry.quantity}` },
+                      {
+                        label: 'Batch lot ID',
+                        wide: true,
+                        value: <span className="font-mono">{detailValue(viewing.entry.batchLotId)}</span>,
+                      },
+                    ],
+                  },
+                ]
+              : [
+                  {
+                    title: 'Movement',
+                    fields: [
+                      { label: 'Event', value: viewing.movement.eventType },
+                      { label: 'Date', value: detailDate(viewing.movement.createdAt, true) },
+                      { label: 'Quantity', value: `${viewing.movement.quantity} ${viewing.movement.unitOfMeasure}` },
+                      { label: 'Warehouse', value: detailValue(viewing.movement.warehouseName) },
+                      { label: 'Reference type', value: detailValue(viewing.movement.referenceType) },
+                      { label: 'Reference ID', value: <span className="font-mono">{detailValue(viewing.movement.referenceId)}</span> },
+                      { label: 'Created by', value: detailValue(viewing.movement.createdBy) },
+                    ],
+                  },
+                  {
+                    title: 'Notes',
+                    fields: [
+                      { label: 'Notes', wide: true, value: detailValue(viewing.movement.notes) },
+                    ],
+                  },
+                ]
+          }
+        />
       )}
     </div>
   );

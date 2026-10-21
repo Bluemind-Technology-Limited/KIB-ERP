@@ -69,6 +69,8 @@ export default function DashboardLayout({
         return { parent: 'Master Data', current: 'Warehouses' };
       case 'md-materials':
         return { parent: 'Master Data', current: 'Materials' };
+      case 'md-products':
+        return { parent: 'Master Data', current: 'Products' };
       case 'md-suppliers':
         return { parent: 'Master Data', current: 'Suppliers' };
       case 'proc-requisitions':
@@ -94,7 +96,7 @@ export default function DashboardLayout({
       case 'prod-grinding':
         return { parent: 'Production', current: 'Grinding Station' };
       case 'prod-finishing':
-        return { parent: 'Production', current: 'Finishing Station' };
+        return { parent: 'Production', current: 'Production Station' };
       case 'machines':
         return { parent: 'Assets', current: 'Machines & Assets' };
       case 'qa-inspections':

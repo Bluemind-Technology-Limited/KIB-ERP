@@ -3,6 +3,8 @@ import { BarChart3, Download, LineChart, Wallet2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton, Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface EfficiencyRow {
   orderNumber: string;
@@ -50,6 +52,8 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
   const [valuation, setValuation] = useState<{ rows: ValuationRow[]; summary: any }>({ rows: [], summary: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewing, setViewing] = useState<EfficiencyRow | null>(null);
+  const [viewingValuation, setViewingValuation] = useState<ValuationRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -112,9 +116,9 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Reports</h2>
-          <p className="text-[#737373] text-xs">Production efficiency, yield analysis and inventory valuation with CSV export.</p>
+          <PageDescription>Production efficiency, yield analysis and inventory valuation with CSV export.</PageDescription>
         </div>
         <button
           onClick={tab === 'efficiency' ? exportEfficiency : exportValuation}
@@ -212,6 +216,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                     <th className="px-4 py-3 font-semibold text-right">Target</th>
                     <th className="px-4 py-3 font-semibold text-right">Actual</th>
                     <th className="px-4 py-3 font-semibold text-right">Yield %</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,7 +224,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                     <tr key={r.orderNumber} className="border-b border-slate-50 hover:bg-slate-50/50">
                       <td className="px-4 py-3 text-[11px] font-mono font-bold text-slate-600">{r.orderNumber}</td>
                       <td className="px-4 py-3">
-                        <p className="text-xs font-semibold text-slate-700">{r.productName}</p>
+                        <p className="text-xs font-semibold text-slate-700 max-w-[180px] truncate" title={r.productName}>{r.productName}</p>
                         <p className="text-[9px] font-mono text-slate-400">{r.sku}</p>
                       </td>
                       <td className="px-4 py-3">
@@ -235,6 +240,9 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                         ) : (
                           <span className="text-[10px] text-slate-300">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <ViewButton onClick={() => setViewing(r)} />
                       </td>
                     </tr>
                   ))}
@@ -259,6 +267,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                     <th className="px-4 py-3 font-semibold text-right">On Hand</th>
                     <th className="px-4 py-3 font-semibold text-right">Unit Cost</th>
                     <th className="px-4 py-3 font-semibold text-right">Value</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -269,7 +278,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                           <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                             <LineChart className="w-3.5 h-3.5 text-[#EA4335]" />
                           </div>
-                          <p className="text-xs font-bold text-slate-700">{r.materialName}</p>
+                          <p className="text-xs font-bold text-slate-700 max-w-[180px] truncate" title={r.materialName}>{r.materialName}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-[10px] font-mono text-slate-500">{r.sku}</td>
@@ -282,6 +291,9 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                       <td className="px-4 py-3 text-right text-xs font-mono font-bold text-emerald-600">
                         {r.value.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        <ViewButton onClick={() => setViewingValuation(r)} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -289,6 +301,76 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
             </div>
           )}
         </div>
+      )}
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.productName}
+          subtitle={viewing.orderNumber}
+          status={{
+            label: viewing.status,
+            className: statusBadge[viewing.status] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Order',
+              fields: [
+                { label: 'Order number', value: <span className="font-mono">{detailValue(viewing.orderNumber)}</span> },
+                { label: 'Product', value: detailValue(viewing.productName) },
+                { label: 'SKU', value: <span className="font-mono text-[10px]">{detailValue(viewing.sku)}</span> },
+                { label: 'Completed', value: detailDate(viewing.completedAt, true) },
+              ],
+            },
+            {
+              title: 'Output',
+              fields: [
+                { label: 'Target quantity', value: detailValue(viewing.targetQuantity) },
+                { label: 'Actual yield', value: detailValue(viewing.actualYield) },
+                {
+                  label: 'Yield %',
+                  value: viewing.yieldPct === null ? '—' : `${viewing.yieldPct}%`,
+                },
+                { label: 'Status', value: detailValue(viewing.status) },
+              ],
+            },
+          ]}
+        />
+      )}
+
+      {viewingValuation && (
+        <DetailsModal
+          title={viewingValuation.materialName}
+          subtitle={viewingValuation.sku}
+          onClose={() => setViewingValuation(null)}
+          sections={[
+            {
+              title: 'Material',
+              fields: [
+                { label: 'Material', value: detailValue(viewingValuation.materialName), wide: true },
+                { label: 'SKU', value: <span className="font-mono text-[10px]">{detailValue(viewingValuation.sku)}</span> },
+                { label: 'Unit of measure', value: detailValue(viewingValuation.unitOfMeasure) },
+              ],
+            },
+            {
+              title: 'Stock value',
+              fields: [
+                { label: 'On hand', value: `${viewingValuation.quantity} ${viewingValuation.unitOfMeasure}` },
+                {
+                  label: 'Unit cost',
+                  value: viewingValuation.unitCost
+                    ? viewingValuation.unitCost.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })
+                    : '—',
+                },
+                {
+                  label: 'Total value',
+                  value: viewingValuation.value.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }),
+                  wide: true,
+                },
+              ],
+            },
+          ]}
+        />
       )}
     </div>
   );

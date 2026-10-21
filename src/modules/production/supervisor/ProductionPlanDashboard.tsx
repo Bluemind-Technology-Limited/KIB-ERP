@@ -80,7 +80,7 @@ export default function ProductionPlanDashboard() {
     <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Plans</h2>
           <p className="text-xs text-[#737373] mt-1">Monitor and manage daily production schedules</p>
         </div>

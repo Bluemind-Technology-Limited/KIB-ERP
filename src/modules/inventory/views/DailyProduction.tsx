@@ -5,6 +5,8 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface ProductionOrder {
   id: string;
@@ -48,6 +50,9 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
   const [ingredientBatches, setIngredientBatches] = useState<Record<string, Array<{ id: string; batchNumber: string; quantity: number; warehouseName: string; expiryDate?: string }>>>({});
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [pickingIngredientIdx, setPickingIngredientIdx] = useState<number | null>(null);
+
+  // view details modal
+  const [viewing, setViewing] = useState<ProductionOrder | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -160,9 +165,9 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
   return (
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Daily Production Release</h2>
-          <p className="text-[#737373] text-xs">Review scheduled production plans and release raw materials from inventory.</p>
+          <PageDescription>Review scheduled production plans and release raw materials from inventory.</PageDescription>
         </div>
       </div>
 
@@ -190,7 +195,9 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((o) => (
+                {filtered.map((o) => {
+                  const productName = o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—';
+                  return (
                   <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
@@ -204,7 +211,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-700">{o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate max-w-[180px]" title={productName}>{productName}</p>
                       <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{Number(o.targetQuantity).toFixed(2)}</td>
@@ -221,23 +228,27 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {o.planLinked ? (
-                        <span
-                          className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
-                          title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
-                        >
-                          <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
-                        </span>
-                      ) : (
-                        <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
-                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                            <Eye className="w-3.5 h-3.5" /> View Details
+                      <div className="flex items-center justify-end gap-1.5">
+                        <ViewButton onClick={() => setViewing(o)} />
+                        {o.planLinked ? (
+                          <span
+                            className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                            title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
+                          >
+                            <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
                           </span>
-                        </button>
-                      )}
+                        ) : (
+                          <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <Eye className="w-3.5 h-3.5" /> View Details
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -428,6 +439,72 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
           onCancel={() => setReleaseConfirmation(false)}
           isLoading={saving}
           confirmText="Release Ingredients"
+        />
+      )}
+
+      {/* Production order details */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.orderNumber}
+          subtitle={viewing.bom?.finishedSku?.name ?? viewing.bom?.productName ?? '—'}
+          status={{ label: viewing.status, className: 'bg-slate-100 text-slate-600 border-slate-200' }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Order Number', value: detailValue(viewing.orderNumber) },
+                { label: 'Product', value: detailValue(viewing.bom?.finishedSku?.name ?? viewing.bom?.productName) },
+                { label: 'SKU', value: detailValue(viewing.bom?.finishedSku?.sku) },
+                { label: 'Target Quantity', value: Number(viewing.targetQuantity).toFixed(2) },
+              ],
+            },
+            {
+              title: 'Schedule',
+              fields: [
+                { label: 'Machine', value: detailValue(viewing.machine?.name) },
+                { label: 'Shift', value: detailValue(viewing.shift?.name) },
+                { label: 'Scheduled Start', value: detailDate(viewing.scheduledStart) },
+                { label: 'Created By', value: detailValue(viewing.createdBy?.fullName) },
+                { label: 'Created At', value: detailDate(viewing.createdAt, true) },
+                { label: 'Status', value: detailValue(viewing.status) },
+              ],
+            },
+            {
+              title: 'Plan',
+              fields: [
+                { label: 'Plan Number', value: detailValue(viewing.planNumber) },
+                { label: 'Plan Linked', value: viewing.planLinked ? 'Yes — issue via Stock Issue' : 'No' },
+              ],
+            },
+            {
+              title: 'Ingredients',
+              fields: [
+                {
+                  label: 'BOM Ingredients',
+                  wide: true,
+                  value:
+                    (viewing.productionIngredients ?? []).length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="space-y-1">
+                        {(viewing.productionIngredients ?? []).map((ing) => (
+                          <div key={ing.id} className="flex items-start justify-between gap-3 border-b border-slate-50 pb-1 last:border-0">
+                            <span className="min-w-0 truncate">
+                              {ing.material.name}{' '}
+                              <span className="font-mono text-[9px] text-slate-400">{ing.material.sku}</span>
+                            </span>
+                            <span className="shrink-0 font-mono text-slate-500">
+                              {Number(ing.projectedQuantity).toFixed(2)} {ing.material.unitOfMeasure}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ),
+                },
+              ],
+            },
+          ]}
         />
       )}
     </div>

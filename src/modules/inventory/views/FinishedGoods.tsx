@@ -5,6 +5,8 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface FinishedGoodsRow {
   materialId: string;
@@ -42,6 +44,8 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
   const [dispatchForm, setDispatchForm] = useState({ toWarehouseId: '', quantity: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [dispatchConfirmation, setDispatchConfirmation] = useState(false);
+  // view details modal
+  const [viewing, setViewing] = useState<FinishedGoodsRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -118,9 +122,9 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Finished Goods</h2>
-          <p className="text-[#737373] text-xs">QA-released finished product batches per warehouse, with dispatch via the ledger.</p>
+          <PageDescription>QA-released finished product batches per warehouse, with dispatch via the ledger.</PageDescription>
         </div>
       </div>
 
@@ -157,9 +161,9 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <PackageCheck className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#171717] leading-none">{r.materialName}</p>
-                          <p className="text-[9px] font-mono text-slate-400 mt-0.5">{r.sku}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={r.materialName}>{r.materialName}</p>
+                          <p className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[180px]" title={r.sku}>{r.sku}</p>
                         </div>
                       </div>
                     </td>
@@ -180,13 +184,16 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {r.batchStatus === 'ACTIVE' && Number(r.quantity) > 0 && (
-                        <button onClick={() => openDispatch(r)} className="btn-3d px-3 h-7">
-                          <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                            <Truck className="w-3 h-3" /> Dispatch
-                          </span>
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        <ViewButton onClick={() => setViewing(r)} />
+                        {r.batchStatus === 'ACTIVE' && Number(r.quantity) > 0 && (
+                          <button onClick={() => openDispatch(r)} className="btn-3d px-3 h-7">
+                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
+                              <Truck className="w-3 h-3" /> Dispatch
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -251,6 +258,43 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
           onCancel={() => setDispatchConfirmation(false)}
           isLoading={saving}
           confirmText="Dispatch"
+        />
+      )}
+
+      {/* Finished goods details */}
+      {viewing && (
+        <DetailsModal
+          title={viewing.materialName}
+          subtitle={`${viewing.batchNumber} · ${viewing.sku}`}
+          status={{ label: viewing.batchStatus, className: batchStatusBadge[viewing.batchStatus] ?? batchStatusBadge.ACTIVE }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Overview',
+              fields: [
+                { label: 'Product', value: detailValue(viewing.materialName) },
+                { label: 'SKU', value: detailValue(viewing.sku) },
+                { label: 'Batch Number', value: detailValue(viewing.batchNumber) },
+                { label: 'Batch Status', value: detailValue(viewing.batchStatus) },
+              ],
+            },
+            {
+              title: 'Stock',
+              fields: [
+                { label: 'Warehouse', value: `${viewing.warehouseName} (${viewing.warehouseCode})` },
+                { label: 'On Hand', value: `${viewing.quantity} ${viewing.unitOfMeasure}` },
+                { label: 'Order Number', value: detailValue(viewing.orderNumber) },
+                { label: 'Unit of Measure', value: detailValue(viewing.unitOfMeasure) },
+              ],
+            },
+            {
+              title: 'Dates',
+              fields: [
+                { label: 'Manufacturing Date', value: detailDate(viewing.manufacturingDate) },
+                { label: 'Expiry Date', value: detailDate(viewing.expiryDate) },
+              ],
+            },
+          ]}
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import { AlertCircle, Boxes, ChevronDown, ChevronRight, Loader, PackageCheck, Re
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface AggregatedIngredient {
   id: string;
@@ -216,11 +217,9 @@ export default function StockIssue() {
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Stock Issue — Production</h2>
-          <p className="text-[#737373] text-xs">
-            Required ingredients for each plan. Select a warehouse and deduct the quantities.
-          </p>
+          <PageDescription>Required ingredients for each plan. Select a warehouse and deduct the quantities.</PageDescription>
         </div>
         <button
           onClick={load}

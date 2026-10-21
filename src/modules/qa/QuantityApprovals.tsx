@@ -4,6 +4,7 @@ import { axiosClient } from '../../lib/axiosClient';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { PageDescription } from '../../components/ui/PageDescription';
 
 interface Adjustment {
   id: string;
@@ -83,11 +84,9 @@ export default function QuantityApprovals() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <div>
+      <div className="min-w-0">
         <h2 className="text-xl font-bold tracking-tight text-[#171717]">Quantity Approvals</h2>
-        <p className="text-[#737373] text-xs">
-          Approve quantity corrections proposed by QC. Only an approved change is written to inventory.
-        </p>
+        <PageDescription>Approve quantity corrections proposed by QC. Only an approved change is written to inventory.</PageDescription>
       </div>
 
       <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">

@@ -3,6 +3,7 @@ import { Bell, RefreshCw, CheckCheck, AlertTriangle, Boxes, ShieldCheck } from '
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Notification {
   id: string;
@@ -89,7 +90,7 @@ export default function Notifications({ searchQuery = '' }: { searchQuery?: stri
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Notifications</h2>
-          <p className="text-[#737373] text-xs">Expiry, low-stock and pending-approval alerts for your workspace.</p>
+          <PageDescription>Expiry, low-stock and pending-approval alerts for your workspace.</PageDescription>
         </div>
         <div className="flex gap-2">
           {unreadCount > 0 && (

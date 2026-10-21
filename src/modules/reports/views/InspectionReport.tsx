@@ -3,6 +3,8 @@ import { AlertCircle, Download, FileText, Paperclip, RefreshCw, Search, ShieldCh
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface ReportRow {
   id: string;
@@ -91,6 +93,8 @@ export default function InspectionReport() {
   const [tab, setTab] = useState<'checks' | 'adjustments'>('checks');
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', result: '', q: '' });
   const [applied, setApplied] = useState(filters);
+  const [viewing, setViewing] = useState<ReportRow | null>(null);
+  const [viewingAdjustment, setViewingAdjustment] = useState<AdjustmentRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,11 +135,9 @@ export default function InspectionReport() {
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Inspection Report</h2>
-          <p className="text-[#737373] text-xs">
-            Every quality check the QC team carried out, across consignments and batch inspections.
-          </p>
+          <PageDescription>Every quality check the QC team carried out, across consignments and batch inspections.</PageDescription>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -317,6 +319,7 @@ export default function InspectionReport() {
                     <th className="px-4 py-3 font-semibold">Checked by</th>
                     <th className="px-4 py-3 font-semibold">Result</th>
                     <th className="px-4 py-3 font-semibold text-right">Proof</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -330,10 +333,16 @@ export default function InspectionReport() {
                         <p className="text-[9px] font-mono text-slate-400">{row.material?.sku ?? ''}</p>
                       </td>
                       <td className="px-4 py-3 text-[10px] text-slate-500">
-                        {row.document ?? '—'}
+                        <div className="max-w-[180px] truncate" title={row.document ?? '—'}>
+                          {row.document ?? '—'}
+                        </div>
                         <p className="text-[9px] text-slate-400">{row.source === 'BATCH_INSPECTION' ? 'Batch inspection' : 'Consignment'}</p>
                       </td>
-                      <td className="px-4 py-3 text-[10px] text-slate-600">{row.checkType.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-3 text-[10px] text-slate-600">
+                        <div className="max-w-[180px] truncate" title={row.checkType.replace(/_/g, ' ')}>
+                          {row.checkType.replace(/_/g, ' ')}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-[11px] text-slate-500">{row.checkedBy ?? '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`rounded border px-2 py-0.5 text-[9px] font-bold ${resultBadge[row.result] ?? resultBadge.PENDING}`}>
@@ -348,6 +357,9 @@ export default function InspectionReport() {
                         ) : (
                           <span className="text-[10px] text-slate-300">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <ViewButton onClick={() => setViewing(row)} />
                       </td>
                     </tr>
                   ))}
@@ -370,6 +382,7 @@ export default function InspectionReport() {
                   <th className="px-4 py-3 font-semibold">QC</th>
                   <th className="px-4 py-3 font-semibold">Head of QC</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -402,6 +415,9 @@ export default function InspectionReport() {
                         {row.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <ViewButton onClick={() => setViewingAdjustment(row)} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -415,6 +431,94 @@ export default function InspectionReport() {
         Includes consignment ingredient checks, GRN / finished-batch inspections and QC quantity changes.
         <ShieldCheck className="ml-1 h-3 w-3" />
       </p>
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.material?.name ?? viewing.checkType.replace(/_/g, ' ')}
+          subtitle={viewing.document ?? (viewing.source === 'BATCH_INSPECTION' ? 'Batch inspection' : 'Consignment check')}
+          status={{
+            label: viewing.result,
+            className: resultBadge[viewing.result] ?? resultBadge.PENDING,
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Inspection',
+              fields: [
+                { label: 'Source', value: viewing.source === 'BATCH_INSPECTION' ? 'Batch inspection' : 'Consignment check' },
+                { label: 'Document', value: <span className="font-mono">{detailValue(viewing.document)}</span> },
+                { label: 'Check type', value: viewing.checkType.replace(/_/g, ' ') },
+                { label: 'Checked at', value: detailDate(viewing.checkedAt, true) },
+              ],
+            },
+            {
+              title: 'Material',
+              fields: [
+                { label: 'Material', value: detailValue(viewing.material?.name) },
+                { label: 'SKU', value: <span className="font-mono text-[10px]">{detailValue(viewing.material?.sku)}</span> },
+              ],
+            },
+            {
+              title: 'Outcome',
+              fields: [
+                { label: 'Result', value: detailValue(viewing.result) },
+                { label: 'Approval status', value: detailValue(viewing.approvalStatus) },
+                { label: 'Checked by', value: detailValue(viewing.checkedBy) },
+                { label: 'Attachments', value: detailValue(viewing.attachmentCount) },
+              ],
+            },
+            {
+              title: 'Remarks',
+              fields: [{ label: 'Remarks', value: detailValue(viewing.remarks), wide: true }],
+            },
+          ]}
+        />
+      )}
+
+      {viewingAdjustment && (
+        <DetailsModal
+          title={viewingAdjustment.material?.name ?? 'Quantity change'}
+          subtitle={viewingAdjustment.consignment?.consignmentNumber ?? undefined}
+          status={{
+            label: viewingAdjustment.status,
+            className:
+              viewingAdjustment.status === 'APPROVED'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : viewingAdjustment.status === 'REJECTED'
+                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200',
+          }}
+          onClose={() => setViewingAdjustment(null)}
+          sections={[
+            {
+              title: 'Material',
+              fields: [
+                { label: 'Material', value: detailValue(viewingAdjustment.material?.name) },
+                { label: 'SKU', value: <span className="font-mono text-[10px]">{detailValue(viewingAdjustment.material?.sku)}</span> },
+                { label: 'Consignment', value: detailValue(viewingAdjustment.consignment?.consignmentNumber) },
+                { label: 'Requested at', value: detailDate(viewingAdjustment.requestedAt, true) },
+              ],
+            },
+            {
+              title: 'Change',
+              fields: [
+                { label: 'Old quantity', value: detailValue(viewingAdjustment.oldQuantity) },
+                { label: 'New quantity', value: detailValue(viewingAdjustment.newQuantity) },
+                { label: 'Difference', value: detailValue(viewingAdjustment.difference) },
+                { label: 'Reason code', value: (viewingAdjustment.reasonCode ?? '—').replace('_', ' ') },
+              ],
+            },
+            {
+              title: 'Sign-off',
+              fields: [
+                { label: 'Requested by', value: detailValue(viewingAdjustment.requestedBy?.fullName) },
+                { label: 'Head of QC', value: detailValue(viewingAdjustment.approvedBy?.fullName) },
+                { label: 'Status', value: detailValue(viewingAdjustment.status) },
+              ],
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

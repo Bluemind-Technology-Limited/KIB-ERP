@@ -123,7 +123,7 @@ export default function ConsignmentQualityForm() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div>
+      <div className="min-w-0">
         <h2 className="text-xl font-bold tracking-tight text-[#171717]">Quality Check Review</h2>
         <p className="text-xs text-[#737373] mt-1">Review and record checks for each consignment item</p>
       </div>

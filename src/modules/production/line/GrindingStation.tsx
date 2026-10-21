@@ -3,6 +3,7 @@ import { AlertCircle, ChevronDown, ChevronRight, Cog, Loader, RefreshCw } from '
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface AggregatedIngredient {
   id: string;
@@ -179,11 +180,9 @@ export default function GrindingStation() {
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Grinding Station</h2>
-          <p className="text-[#737373] text-xs">
-            Record what you actually ground for each batch, and return any unused ingredients.
-          </p>
+          <PageDescription>Record what you actually ground for each batch, and return any unused ingredients.</PageDescription>
         </div>
         <button
           onClick={load}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useCostManagementStore } from '../../../stores/useCostManagementStore';
-import type { EntityType } from '../../../types/costManagement';
+import type { EntityType, CostHistoryItem } from '../../../types/costManagement';
 import { toast } from '../../../stores/useToastStore';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 
 export default function CostHistoryViewer() {
   const {
@@ -15,6 +16,7 @@ export default function CostHistoryViewer() {
   const [entityId, setEntityId] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
+  const [viewing, setViewing] = useState<CostHistoryItem | null>(null);
 
   const entityTypes: EntityType[] = ['Material', 'BomIngredient', 'ProductionOrder', 'PurchaseOrderItem', 'GoodsReceiptItem'];
 
@@ -161,6 +163,7 @@ export default function CostHistoryViewer() {
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Changed By</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                        <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -199,6 +202,9 @@ export default function CostHistoryViewer() {
                                 {new Date(item.changedAt).toLocaleTimeString()}
                               </p>
                             </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-right">
+                            <ViewButton onClick={() => setViewing(item)} />
                           </td>
                         </tr>
                       ))}
@@ -245,6 +251,51 @@ export default function CostHistoryViewer() {
             Select an entity type and enter an ID to view cost modification history
           </p>
         </div>
+      )}
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.fieldName}
+          subtitle={`${entityType} · ${entityId}`}
+          status={{
+            label: viewing.status,
+            className:
+              viewing.status === 'APPROVED'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : viewing.status === 'PENDING'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-rose-50 text-rose-600 border-rose-200',
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Cost change',
+              fields: [
+                { label: 'Field', value: detailValue(viewing.fieldName) },
+                { label: 'Status', value: detailValue(viewing.status) },
+                { label: 'Old value', value: `₦${viewing.oldValue.toLocaleString()}` },
+                { label: 'New value', value: `₦${viewing.newValue.toLocaleString()}` },
+                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}₦${Math.abs(viewing.variance).toLocaleString()}` },
+                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${viewing.variancePercent.toFixed(2)}%` },
+              ],
+            },
+            {
+              title: 'Reason',
+              fields: [{ label: 'Reason', value: detailValue(viewing.reason), wide: true }],
+            },
+            {
+              title: 'Audit trail',
+              fields: [
+                { label: 'Entity type', value: entityType },
+                { label: 'Entity ID', value: <span className="font-mono text-[10px]">{detailValue(entityId)}</span>, wide: true },
+                { label: 'Changed by', value: detailValue(viewing.changedBy) },
+                { label: 'Changed at', value: detailDate(viewing.changedAt, true) },
+                { label: 'Approved by', value: detailValue(viewing.approvedBy) },
+                { label: 'Approved at', value: viewing.approvedAt ? detailDate(viewing.approvedAt, true) : '—' },
+              ],
+            },
+          ]}
+        />
       )}
     </div>
   );

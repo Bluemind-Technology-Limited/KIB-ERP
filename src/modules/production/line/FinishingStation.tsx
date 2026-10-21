@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Factory, Loader, 
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface PlanItem {
   id: string;
@@ -133,11 +134,9 @@ export default function FinishingStation() {
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Finishing Station</h2>
-          <p className="text-[#737373] text-xs">
-            Required finished-goods output per batch. Record what you achieved and any unused ground batches.
-          </p>
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Station</h2>
+          <PageDescription>Required finished-goods output per batch. Record what you achieved and any unused ground batches.</PageDescription>
         </div>
         <button
           onClick={load}

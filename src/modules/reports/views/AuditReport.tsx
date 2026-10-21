@@ -4,6 +4,8 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface FlowItem {
   planItemId: string;
@@ -163,6 +165,7 @@ export default function AuditReport() {
   const [flow, setFlow] = useState<{ rows: FlowPlan[]; summary: FlowSummary } | null>(null);
   const [activity, setActivity] = useState<{ rows: ActivityRow[]; summary: { total: number; byModule: Record<string, number> } } | null>(null);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<ActivityRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -206,11 +209,9 @@ export default function AuditReport() {
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Audit &amp; Report</h2>
-          <p className="text-[#737373] text-xs">
-            The whole production flow and every ERP activity in a date range.
-          </p>
+          <PageDescription>The whole production flow and every ERP activity in a date range.</PageDescription>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -577,6 +578,7 @@ export default function AuditReport() {
                       <th className="px-4 py-3 font-semibold">Detail</th>
                       <th className="px-4 py-3 font-semibold">Actor</th>
                       <th className="px-4 py-3 text-right font-semibold">Amount</th>
+                      <th className="px-4 py-3 text-right font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -592,12 +594,19 @@ export default function AuditReport() {
                         </td>
                         <td className="px-4 py-2.5 text-[10px] font-semibold text-slate-600">{r.type}</td>
                         <td className="px-4 py-2.5 text-[10px] text-slate-600">
-                          {r.description}
-                          {r.detail && <span className="block text-[9px] text-slate-400">{r.detail}</span>}
+                          <div className="max-w-[180px] truncate" title={r.description}>{r.description}</div>
+                          {r.detail && (
+                            <div className="max-w-[180px] truncate text-[9px] text-slate-400" title={r.detail}>
+                              {r.detail}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-[10px] text-slate-500">{r.actor ?? '—'}</td>
                         <td className="px-4 py-2.5 text-right text-[10px] font-mono text-slate-600">
                           {r.amount === null ? '—' : r.amount}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <ViewButton onClick={() => setViewing(r)} />
                         </td>
                       </tr>
                     ))}
@@ -607,6 +616,45 @@ export default function AuditReport() {
             )}
           </div>
         </div>
+      )}
+
+      {viewing && (
+        <DetailsModal
+          title={viewing.type}
+          subtitle={viewing.description}
+          status={{
+            label: viewing.module,
+            className: moduleBadge[viewing.module] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+          }}
+          onClose={() => setViewing(null)}
+          sections={[
+            {
+              title: 'Event',
+              fields: [
+                { label: 'Module', value: detailValue(viewing.module) },
+                { label: 'Event type', value: detailValue(viewing.type) },
+                { label: 'Timestamp', value: detailDate(viewing.timestamp, true) },
+                { label: 'Actor', value: detailValue(viewing.actor) },
+              ],
+            },
+            {
+              title: 'Description',
+              fields: [
+                { label: 'Description', value: detailValue(viewing.description), wide: true },
+                { label: 'Detail', value: detailValue(viewing.detail), wide: true },
+              ],
+            },
+            {
+              title: 'Reference',
+              fields: [
+                { label: 'Reference type', value: detailValue(viewing.referenceType) },
+                { label: 'Reference ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.referenceId)}</span> },
+                { label: 'Amount', value: viewing.amount === null ? '—' : viewing.amount },
+                { label: 'Event ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.id)}</span> },
+              ],
+            },
+          ]}
+        />
       )}
     </div>
   );

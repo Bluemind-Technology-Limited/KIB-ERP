@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, LogOut, ChevronDown, ChevronRight, Database,
   HeartHandshake, ExternalLink, Users, ShoppingCart, Boxes,
-  FlaskConical, ClipboardList, ShieldCheck, Network, Truck, Bell, BarChart3
+  FlaskConical, ClipboardList, ShieldCheck, Network, Truck, Bell, BarChart3, Package
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { rolePermissions } from './routing/RoleGuard';
@@ -52,6 +52,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       items: [
         { id: 'md-warehouses', name: 'Warehouses', icon: Database },
         { id: 'md-materials', name: 'Materials', icon: Database },
+        { id: 'md-products', name: 'Products', icon: Package },
         { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
       ],
     },
@@ -72,6 +73,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       items: [
         { id: 'inv-stock', name: 'Stock Ledger', icon: Boxes },
         { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
+        { id: 'proc-consignments', name: 'Consignments', icon: Truck },
         { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
       ],
     },
@@ -83,9 +85,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
         { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
         { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
         { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
-        { id: 'prod-finishing', name: 'Finishing Station', icon: ClipboardList },
+        { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
         { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+        { id: 'prod-daily-records', name: 'Daily Records', icon: ClipboardList },
         { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'prod-trace', name: 'Traceability', icon: Network },
       ],
@@ -128,6 +131,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'admin-audit', name: 'Audit Trail', icon: BarChart3 },
     { id: 'md-warehouses', name: 'Warehouses', icon: Database },
     { id: 'md-materials', name: 'Materials', icon: Database },
+    { id: 'md-products', name: 'Products', icon: Package },
     { id: 'md-suppliers', name: 'Suppliers', icon: HeartHandshake },
     { id: 'proc-requisitions', name: 'Requisitions', icon: ShoppingCart },
     { id: 'proc-actions', name: 'Requisition Actions', icon: ShoppingCart },
@@ -139,8 +143,9 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
     { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
     { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
-    { id: 'prod-finishing', name: 'Finishing Station', icon: ClipboardList },
+    { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
+    { id: 'prod-daily-records', name: 'Daily Records', icon: ClipboardList },
     { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'prod-trace', name: 'Traceability', icon: Network },
     { id: 'machines', name: 'Machines & Assets', icon: Boxes },

@@ -20,6 +20,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { PageDescription } from '../../components/ui/PageDescription';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -870,11 +871,9 @@ export default function ConsignmentQA() {
   return (
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Consignment QA</h2>
-          <p className="text-[#737373] text-xs">
-            Independent quality checks per ingredient, with proof-of-check attachments and consignment sign-off.
-          </p>
+          <PageDescription>Independent quality checks per ingredient, with proof-of-check attachments and consignment sign-off.</PageDescription>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-[#E9E9E9] bg-white p-1">
           <button
