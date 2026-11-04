@@ -3,6 +3,7 @@ import { BarChart3, Zap } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import ProductionPlanDashboard from './ProductionPlanDashboard';
+import { formatNumber } from '../../../lib/format';
 
 interface DashboardData {
   totalPlans: number;
@@ -67,19 +68,19 @@ export default function SupervisorDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
             <p className="text-[9px] font-semibold text-slate-500 mb-2">Total Plans</p>
-            <p className="text-2xl font-bold text-slate-700">{dashboardData?.totalPlans || 0}</p>
+            <p className="text-2xl font-bold text-slate-700">{formatNumber(dashboardData?.totalPlans || 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
             <p className="text-[9px] font-semibold text-slate-500 mb-2">Active</p>
-            <p className="text-2xl font-bold text-amber-600">{dashboardData?.activePlans || 0}</p>
+            <p className="text-2xl font-bold text-amber-600">{formatNumber(dashboardData?.activePlans || 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
             <p className="text-[9px] font-semibold text-slate-500 mb-2">Completed Today</p>
-            <p className="text-2xl font-bold text-green-600">{dashboardData?.completedToday || 0}</p>
+            <p className="text-2xl font-bold text-green-600">{formatNumber(dashboardData?.completedToday || 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl p-4">
             <p className="text-[9px] font-semibold text-slate-500 mb-2">Pending Reconcile</p>
-            <p className="text-2xl font-bold text-rose-600">{dashboardData?.pendingReconciliations || 0}</p>
+            <p className="text-2xl font-bold text-rose-600">{formatNumber(dashboardData?.pendingReconciliations || 0)}</p>
           </div>
         </div>
       )}
@@ -96,19 +97,19 @@ export default function SupervisorDashboard() {
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
               <span className="text-xs font-semibold text-blue-700">Scheduled</span>
               <span className="text-lg font-bold text-blue-700">
-                {dashboardData?.allocationMetrics?.scheduled || 0}
+                {formatNumber(dashboardData?.allocationMetrics?.scheduled || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
               <span className="text-xs font-semibold text-amber-700">In Progress</span>
               <span className="text-lg font-bold text-amber-700">
-                {dashboardData?.allocationMetrics?.inProgress || 0}
+                {formatNumber(dashboardData?.allocationMetrics?.inProgress || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
               <span className="text-xs font-semibold text-green-700">Completed</span>
               <span className="text-lg font-bold text-green-700">
-                {dashboardData?.allocationMetrics?.completed || 0}
+                {formatNumber(dashboardData?.allocationMetrics?.completed || 0)}
               </span>
             </div>
           </div>
@@ -124,19 +125,19 @@ export default function SupervisorDashboard() {
             <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
               <span className="text-xs font-semibold text-amber-700">Pending</span>
               <span className="text-lg font-bold text-amber-700">
-                {dashboardData?.reconciliationMetrics?.pending || 0}
+                {formatNumber(dashboardData?.reconciliationMetrics?.pending || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
               <span className="text-xs font-semibold text-green-700">Verified</span>
               <span className="text-lg font-bold text-green-700">
-                {dashboardData?.reconciliationMetrics?.verified || 0}
+                {formatNumber(dashboardData?.reconciliationMetrics?.verified || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-rose-50 rounded-lg border border-rose-100">
               <span className="text-xs font-semibold text-rose-700">Flagged</span>
               <span className="text-lg font-bold text-rose-700">
-                {dashboardData?.reconciliationMetrics?.flagged || 0}
+                {formatNumber(dashboardData?.reconciliationMetrics?.flagged || 0)}
               </span>
             </div>
           </div>

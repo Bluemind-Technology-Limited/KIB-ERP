@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface AggregatedIngredient {
   id: string;
@@ -233,7 +234,7 @@ export default function GrindingStation() {
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
                       <p className="truncate text-[10px] text-slate-400">
-                        {plan.progress.grinding.done}/{plan.progress.grinding.totalItems} batches ground
+                        {formatNumber(plan.progress.grinding.done)}/{formatNumber(plan.progress.grinding.totalItems)} batches ground
                       </p>
                     </div>
                   </div>
@@ -259,7 +260,7 @@ export default function GrindingStation() {
                               Batch {item.sequence} · {item.bom?.productName}
                             </p>
                             <span className="text-[10px] text-slate-400">
-                              Target {item.targetQuantity}
+                              Target {formatNumber(item.targetQuantity)}
                             </span>
                           </div>
 
@@ -377,7 +378,7 @@ export default function GrindingStation() {
                                         <option value="">Select batch…</option>
                                         {batches.map((b) => (
                                           <option key={b.batchLotId ?? 'none'} value={b.batchLotId ?? ''}>
-                                            {b.batchNumber ?? 'no batch'} ({b.quantity})
+                                            {b.batchNumber ?? 'no batch'} ({formatNumber(b.quantity)})
                                           </option>
                                         ))}
                                       </select>
@@ -420,7 +421,7 @@ export default function GrindingStation() {
                                   <div key={agg.id} className="flex items-center gap-2">
                                     <span className="flex-1 truncate text-[10px] text-slate-600">
                                       {agg.material.name}
-                                      <span className="ml-1 text-slate-400">({agg.issuedQuantity ?? 0})</span>
+                                      <span className="ml-1 text-slate-400">({formatNumber(agg.issuedQuantity ?? 0)})</span>
                                     </span>
                                     <input
                                       type="number"

@@ -5,6 +5,7 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatMoney, formatNumber } from '../../../lib/format';
 
 interface LotLine {
   batchNumber: string;
@@ -50,11 +51,9 @@ interface DailyDay {
   };
 }
 
-const qty = (value: number) =>
-  Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 });
+const qty = (value: number) => formatNumber(value);
 
-const money = (value: number) =>
-  `₦${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (value: number) => formatMoney(value);
 
 const dayLabel = (key: string) =>
   new Date(`${key}T00:00:00`).toLocaleDateString(undefined, {
@@ -210,7 +209,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                         <td className="px-4 py-3 text-[11px] text-slate-600">{achievedSummary}</td>
                         <td className="px-4 py-3">
                           <span className="text-[10px] font-semibold text-amber-600">
-                            {day.wip.lines.length} line(s) · {money(day.wip.value)}
+                            {formatNumber(day.wip.lines.length)} line(s) · {money(day.wip.value)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right text-[9px] text-slate-400">Expand</td>
@@ -223,7 +222,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                               <span className="text-[11px] font-semibold text-slate-600">Achieved</span>
                             </td>
                             <td className="px-4 py-2.5 text-[10px] text-slate-500">
-                              {achievedSummary} · {day.achieved.lines.length} record(s)
+                              {achievedSummary} · {formatNumber(day.achieved.lines.length)} record(s)
                             </td>
                             <td />
                             <td className="px-4 py-2.5 text-right">
@@ -239,7 +238,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                             </td>
                             <td />
                             <td className="px-4 py-2.5 text-[10px] text-amber-700">
-                              {day.wip.lines.length} line(s) · {money(day.wip.value)} carried forward
+                              {formatNumber(day.wip.lines.length)} line(s) · {money(day.wip.value)} carried forward
                             </td>
                             <td className="px-4 py-2.5 text-right">
                               <ViewButton label="View WIP" onClick={() => setViewing({ day, arm: 'wip' })} />
@@ -288,7 +287,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                       { label: 'Output quantity', value: qty(viewing.day.achieved.outputQty) },
                       { label: 'Output value', value: money(viewing.day.achieved.outputValue) },
                       { label: 'Ground quantity', value: qty(viewing.day.achieved.grindingQty) },
-                      { label: 'Records', value: `${viewing.day.achieved.lines.length}` },
+                      { label: 'Records', value: formatNumber(viewing.day.achieved.lines.length) },
                     ],
                   },
                   {

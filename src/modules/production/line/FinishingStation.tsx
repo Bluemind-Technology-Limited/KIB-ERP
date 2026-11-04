@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface PlanItem {
   id: string;
@@ -189,7 +190,7 @@ export default function FinishingStation() {
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
                       <p className="truncate text-[10px] text-slate-400">
-                        {plan.progress.finishing.done}/{plan.progress.finishing.totalItems} batches finished
+                        {formatNumber(plan.progress.finishing.done)}/{formatNumber(plan.progress.finishing.totalItems)} batches finished
                       </p>
                     </div>
                   </div>
@@ -216,10 +217,10 @@ export default function FinishingStation() {
                             </p>
                             <div className="flex items-center gap-3 text-[10px]">
                               <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-600">
-                                Required {item.targetQuantity}
+                                Required {formatNumber(item.targetQuantity)}
                               </span>
                               <span className="rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-0.5 text-[#AA3BFF]">
-                                Ground {item.groundQuantity}
+                                Ground {formatNumber(item.groundQuantity)}
                               </span>
                             </div>
                           </div>
@@ -227,7 +228,7 @@ export default function FinishingStation() {
                           {Number(item.carryoverAvailable ?? 0) > 0 && (
                             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-3 py-2">
                               <span className="text-[10px] font-semibold text-[#AA3BFF]">
-                                Unfinished from previous batches: {item.carryoverAvailable}
+                                Unfinished from previous batches: {formatNumber(item.carryoverAvailable)}
                               </span>
                               <label className="flex items-center gap-2 text-[10px] text-slate-600">
                                 Use now

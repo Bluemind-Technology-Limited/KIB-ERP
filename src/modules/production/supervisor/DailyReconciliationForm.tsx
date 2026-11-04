@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { AlertCircle, Loader, Save } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Modal } from '../../../components/ui/Modal';
+import { formatNumber, formatPercent, formatQty } from '../../../lib/format';
 
 interface PlanItemShape {
   id: string;
@@ -133,10 +134,10 @@ export default function DailyReconciliationForm({
                       {item.bom?.finishedSku?.name ?? item.bom?.productName ?? 'Unknown'}
                     </td>
                     <td className="py-3 px-3 text-right text-slate-600">
-                      {target.toFixed(2)} {unit}
+                      {formatQty(target, unit, 2)}
                     </td>
                     <td className="py-3 px-3 text-right text-slate-600">
-                      {hasOutput ? `${output.toFixed(2)} ${unit}` : '—'}
+                      {hasOutput ? formatQty(output, unit, 2) : '—'}
                     </td>
                     <td
                       className={`py-3 px-3 text-right font-semibold ${
@@ -144,23 +145,23 @@ export default function DailyReconciliationForm({
                       }`}
                     >
                       {diff > 0 ? '+' : ''}
-                      {diff.toFixed(2)}
+                      {formatNumber(diff, 2)}
                     </td>
                   </tr>
                 );
               })}
               <tr className="bg-slate-50 border-t-2 border-slate-200">
                 <td className="py-3 px-3 font-bold text-slate-700">Total</td>
-                <td className="py-3 px-3 text-right font-bold text-slate-700">{planned.toFixed(2)}</td>
-                <td className="py-3 px-3 text-right font-bold text-slate-700">{achieved.toFixed(2)}</td>
+                <td className="py-3 px-3 text-right font-bold text-slate-700">{formatNumber(planned, 2)}</td>
+                <td className="py-3 px-3 text-right font-bold text-slate-700">{formatNumber(achieved, 2)}</td>
                 <td
                   className={`py-3 px-3 text-right font-bold ${
                     variance < 0 ? 'text-rose-600' : variance > 0 ? 'text-amber-600' : 'text-green-600'
                   }`}
                 >
                   {variance > 0 ? '+' : ''}
-                  {variance.toFixed(2)} ({variancePercent > 0 ? '+' : ''}
-                  {variancePercent.toFixed(1)}%)
+                  {formatNumber(variance, 2)} ({variancePercent > 0 ? '+' : ''}
+                  {formatPercent(variancePercent, 1)})
                 </td>
               </tr>
             </tbody>

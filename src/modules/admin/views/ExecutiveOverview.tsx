@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../stores/useAuthStore';
-import { RefreshCw, HeartHandshake, Boxes, Factory, ShieldCheck, Warehouse, PackageCheck } from 'lucide-react';
+import { RefreshCw, Factory } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface Metrics {
   materials: number;
@@ -134,42 +135,12 @@ export default function ExecutiveOverview() {
         <>
           {/* 2. Top Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <MetricCard
-              label="Materials"
-              icon={<Boxes className="w-4 h-4 text-[#EA4335]" />}
-              value={metrics.materials}
-              sub="Registered SKUs"
-            />
-            <MetricCard
-              label="Warehouses"
-              icon={<Warehouse className="w-4 h-4 text-[#EA4335]" />}
-              value={metrics.warehouses}
-              sub="Storage locations"
-            />
-            <MetricCard
-              label="Suppliers"
-              icon={<HeartHandshake className="w-4 h-4 text-[#EA4335]" />}
-              value={metrics.suppliers}
-              sub="Approved vendors"
-            />
-            <MetricCard
-              label="Production Orders"
-              icon={<Factory className="w-4 h-4 text-amber-600" />}
-              value={metrics.productionOrders}
-              sub="Scheduled / running"
-            />
-            <MetricCard
-              label="Pending QA"
-              icon={<ShieldCheck className="w-4 h-4 text-sky-600" />}
-              value={metrics.pendingInspections}
-              sub="Awaiting release"
-            />
-            <MetricCard
-              label="Finished Goods"
-              icon={<PackageCheck className="w-4 h-4 text-emerald-600" />}
-              value={metrics.finishedGoodsQty}
-              sub="Units on-hand"
-            />
+            <MetricCard label="Materials" value={metrics.materials} sub="Registered SKUs" />
+            <MetricCard label="Warehouses" value={metrics.warehouses} sub="Storage locations" />
+            <MetricCard label="Suppliers" value={metrics.suppliers} sub="Approved vendors" />
+            <MetricCard label="Production Orders" value={metrics.productionOrders} sub="Scheduled / running" />
+            <MetricCard label="Pending QA" value={metrics.pendingInspections} sub="Awaiting release" />
+            <MetricCard label="Finished Goods" value={metrics.finishedGoodsQty} sub="Units on-hand" />
           </div>
 
           {/* 3. Recharts Bar: Production orders by status */}
@@ -222,26 +193,19 @@ export default function ExecutiveOverview() {
 
 function MetricCard({
   label,
-  icon,
   value,
   sub,
 }: {
   label: string;
-  icon: React.ReactNode;
   value: number;
   sub: string;
 }) {
   return (
-    <div className="bg-white border border-[#E9E9E9] rounded-lg flex items-center gap-3 px-4 py-3">
-      <div className="w-9 h-9 rounded-lg border border-[#E9E9E9] bg-slate-50 flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold text-slate-500">{label}</p>
-        <div className="flex items-baseline gap-2">
-          <h4 className="text-lg font-bold text-[#171717] leading-none">{value}</h4>
-          <span className="text-[10px] text-slate-400 truncate">{sub}</span>
-        </div>
+    <div className="bg-white border border-[#E9E9E9] rounded-lg px-5 py-5">
+      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+      <div className="flex items-baseline gap-2 mt-2">
+        <h4 className="text-3xl font-bold text-[#171717] leading-none tracking-tight">{formatNumber(value, 0)}</h4>
+        <span className="text-[10px] text-slate-400 truncate">{sub}</span>
       </div>
     </div>
   );

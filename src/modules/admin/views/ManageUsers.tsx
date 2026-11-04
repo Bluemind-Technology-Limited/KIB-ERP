@@ -188,7 +188,6 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                   <th className="py-3.5 px-4 font-semibold">Full Name</th>
                   <th className="py-3.5 px-3 font-semibold">Email Address</th>
                   <th className="py-3.5 px-3 font-semibold">System Access Role</th>
-                  <th className="py-3.5 px-3 font-semibold">Authentication</th>
                   <th className="py-3.5 px-3 font-semibold">Status</th>
                   <th className="py-3.5 px-4 text-right font-semibold">Actions</th>
                 </tr>
@@ -208,7 +207,6 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                         {u.role.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="py-4 px-3 text-[#737373] font-mono text-[11px]">Supabase Auth</td>
                     <td className="py-4 px-3">
                       <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold border ${u.isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'}`}>
                         {u.isActive ? 'ACTIVE' : 'INACTIVE'}

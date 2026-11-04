@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface GrnData {
   id: string;
@@ -435,10 +436,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   const supplierName = g.supplier?.name ?? g.po?.supplier?.name ?? '—';
                   const reference = g.po?.number ?? g.consignment?.consignmentNumber ?? 'Direct receipt';
                   const firstLabel = first
-                    ? `${first.material?.name ?? 'Material'} × ${first.quantity} ${first.unitOfMeasure}`
+                    ? `${first.material?.name ?? 'Material'} × ${formatNumber(first.quantity)} ${first.unitOfMeasure}`
                     : '—';
                   const itemTitle = items
-                    .map((it: any) => `${it.material?.name ?? 'Material'} × ${it.quantity} ${it.unitOfMeasure}`)
+                    .map((it: any) => `${it.material?.name ?? 'Material'} × ${formatNumber(it.quantity)} ${it.unitOfMeasure}`)
                     .join('\n');
 
                   return (
@@ -596,10 +597,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         Delivered
                       </label>
                       <span className="text-[9px] text-slate-400">
-                        {Number(line.alreadyReceived ?? 0)} of {Number(line.orderedQty ?? 0)} already received
+                        {formatNumber(line.alreadyReceived ?? 0)} of {formatNumber(line.orderedQty ?? 0)} already received
                         {Number(line.orderedQty ?? 0) - Number(line.alreadyReceived ?? 0) > 0 && (
                           <span className="text-amber-600 font-semibold">
-                            {' '}· {Number(line.orderedQty ?? 0) - Number(line.alreadyReceived ?? 0)} outstanding
+                            {' '}· {formatNumber(Number(line.orderedQty ?? 0) - Number(line.alreadyReceived ?? 0))} outstanding
                           </span>
                         )}
                       </span>
@@ -765,7 +766,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       {/* GRN details */}
       {viewing && (
         <DetailsModal
-          title={`GRN ${viewing.number}`}
+          title={viewing.number}
           subtitle={
             <>
               {sourceLabel[viewing.source ?? 'PURCHASE_ORDER']}
@@ -846,7 +847,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                                   {it.batchLot?.expiryDate ? detailDate(it.batchLot.expiryDate) : '—'}
                                 </td>
                                 <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                                  <span className="text-[11px] font-bold text-[#171717]">{it.quantity}</span>{' '}
+                                  <span className="text-[11px] font-bold text-[#171717]">{formatNumber(it.quantity)}</span>{' '}
                                   <span className="text-[9px] text-slate-400">{it.unitOfMeasure}</span>
                                 </td>
                               </tr>

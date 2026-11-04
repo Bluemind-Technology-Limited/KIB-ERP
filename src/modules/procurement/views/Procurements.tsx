@@ -8,6 +8,7 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import LpoSendModal from '../components/LpoSendModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { formatNumber } from '../../../lib/format';
 
 interface SupplierOption { id: string; name: string; vendorCode?: string }
 
@@ -470,7 +471,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                             <p className="text-[9px] font-mono text-slate-400">{item.sku}</p>
                           </div>
                           <span className="shrink-0 text-[11px] font-semibold text-slate-600 whitespace-nowrap">
-                            {item.quantity} {item.unitOfMeasure}
+                            {formatNumber(item.quantity)} {item.unitOfMeasure}
                           </span>
                         </div>
 
@@ -587,7 +588,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                       const received = Number(i.receivedQty ?? 0);
                       const ordered = Number(i.quantity);
                       const outstanding = ordered - received;
-                      return `${i.material?.name} ${received}/${ordered}${outstanding > 0 ? ` (${outstanding} outstanding)` : ' ✓'}`;
+                      return `${i.material?.name} ${formatNumber(received)}/${formatNumber(ordered)}${outstanding > 0 ? ` (${formatNumber(outstanding)} outstanding)` : ' ✓'}`;
                     }).join(' · ')}
                   </p>
                   {Array.isArray(p.consignments) && p.consignments.length > 0 && (
@@ -686,7 +687,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="shrink-0 text-slate-500 text-[10px]">
-                                {received}/{ordered} {i.unitOfMeasure}
+                                {formatNumber(received)}/{formatNumber(ordered)} {i.unitOfMeasure}
                                 {outstanding > 0 ? (
                                   <span className="text-amber-600 font-semibold"> · {outstanding} outstanding</span>
                                 ) : (

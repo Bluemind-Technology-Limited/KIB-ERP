@@ -61,7 +61,10 @@ export function DetailsModal({
         </div>
 
         {sections.map((section, i) => (
-          <div key={i} className="space-y-2">
+          <div
+            key={i}
+            className="space-y-2 rounded-lg border border-[#E9E9E9] bg-slate-50/70 px-3 py-2.5"
+          >
             {section.title && (
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{section.title}</p>
             )}

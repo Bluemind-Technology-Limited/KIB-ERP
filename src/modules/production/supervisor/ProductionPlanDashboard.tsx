@@ -3,6 +3,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import PlanDetailView from './PlanDetailView';
+import { formatPercent } from '../../../lib/format';
 
 interface Plan {
   id: string;
@@ -176,7 +177,7 @@ export default function ProductionPlanDashboard() {
                     <p className="text-[9px] text-slate-500 mb-1">Variance</p>
                     <p className={`text-sm font-bold ${getVarianceColor(plan.executionStatus.variancePercentage)}`}>
                       {plan.executionStatus.variancePercentage > 0 ? '+' : ''}
-                      {plan.executionStatus.variancePercentage.toFixed(1)}%
+                      {formatPercent(plan.executionStatus.variancePercentage, 1)}
                     </p>
                   </div>
                 </div>

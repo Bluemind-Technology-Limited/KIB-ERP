@@ -5,7 +5,7 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Product {
@@ -18,6 +18,7 @@ interface Product {
   traceabilityCode?: string | null;
   barcode?: string | null;
   defaultExpiryDate?: string | null;
+  shelfLifeDays?: number | null;
   requiresLot: boolean;
   status: string;
 }
@@ -33,6 +34,8 @@ const emptyForm = () => ({
   category: '',
   unitOfMeasure: '',
   requiresLot: true,
+  /** Shelf life in days — 730 (2 years) unless edited. */
+  shelfLifeDays: '730',
 });
 
 export default function Products({ searchQuery = '' }: { searchQuery?: string }) {
@@ -82,6 +85,7 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
       category: p.category ?? '',
       unitOfMeasure: p.unitOfMeasure,
       requiresLot: p.requiresLot,
+      shelfLifeDays: String(p.shelfLifeDays ?? 730),
     });
     setShowModal(true);
   };
@@ -99,7 +103,11 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
   const confirmSave = async () => {
     setSaving(true);
     try {
-      const payload = { ...form, type: 'FINISHED' };
+      const payload = {
+        ...form,
+        type: 'FINISHED',
+        shelfLifeDays: form.shelfLifeDays === '' ? null : Number(form.shelfLifeDays),
+      };
       if (editing) {
         await axiosClient.patch(`/master-data/materials/${editing.id}`, payload);
         setUpdateConfirmation(false);
@@ -252,11 +260,19 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
               fields: [
                 {
                   label: 'Traceability code',
-                  value: viewing.traceabilityCode ? <span className="font-mono">{viewing.traceabilityCode}</span> : '—',
+                  value: viewing.traceabilityCode ? (
+                    <span className="font-mono">{viewing.traceabilityCode}</span>
+                  ) : (
+                    <span className="text-slate-400">Not set</span>
+                  ),
                 },
-                { label: 'Barcode', value: viewing.barcode ? <span className="font-mono">{viewing.barcode}</span> : '—' },
                 { label: 'Lot tracking', value: viewing.requiresLot ? 'Lot tracked' : 'No lot' },
-                { label: 'Default expiry', value: detailDate(viewing.defaultExpiryDate) },
+                {
+                  label: 'Expiry period',
+                  value: viewing.shelfLifeDays
+                    ? `${viewing.shelfLifeDays} days`
+                    : <span className="text-slate-400">Not set</span>,
+                },
               ],
             },
           ]}
@@ -292,6 +308,18 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure *</label>
                 <input value={form.unitOfMeasure} onChange={(e) => setForm({ ...form, unitOfMeasure: e.target.value })} placeholder="kg / units / cartons" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expiry Period (days)</label>
+                <input
+                  value={form.shelfLifeDays}
+                  onChange={(e) => setForm({ ...form, shelfLifeDays: e.target.value })}
+                  type="number"
+                  min="1"
+                  placeholder="730"
+                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                />
+                <p className="text-[9px] text-slate-400">Defaults to 730 days (2 years) unless edited.</p>
               </div>
               <div className="space-y-1 flex items-end">
                 <label className="flex items-center gap-2 h-9 text-xs text-slate-600 cursor-pointer">

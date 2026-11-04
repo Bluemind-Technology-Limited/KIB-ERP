@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface StockLine {
   batchLotId: string;
@@ -52,11 +53,6 @@ const batchStatusBadge: Record<string, string> = {
   QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
   REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
   EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
-};
-
-const fmt = (value: number) => {
-  const n = Number(value ?? 0);
-  return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
 };
 
 const dayLabel = (iso: string) => {
@@ -234,18 +230,18 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono font-bold text-emerald-700">
-                      {day.produced ? `+${fmt(day.produced)}` : <span className="text-slate-300">—</span>}
+                      {day.produced ? `+${formatNumber(day.produced)}` : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs font-mono font-bold text-rose-600">
-                      {day.qtyOut ? `-${fmt(day.qtyOut)}` : <span className="text-slate-300">—</span>}
+                      {day.qtyOut ? `-${formatNumber(day.qtyOut)}` : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs font-mono font-bold text-slate-700">
-                      {fmt(day.closingBalance)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
+                      {formatNumber(day.closingBalance)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
                     </td>
                     <td className="px-4 py-3">
                       {current ? (
                         <span className="text-xs font-mono font-bold text-[#171717]">
-                          {fmt(product.currentStock)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
+                          {formatNumber(product.currentStock)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-300">—</span>
@@ -282,22 +278,22 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
             {
               title: 'Day Summary',
               fields: [
-                { label: 'Produced', value: `${fmt(viewing.day.produced)} ${viewing.product.unitOfMeasure}` },
-                { label: 'Out', value: `${fmt(viewing.day.qtyOut)} ${viewing.product.unitOfMeasure}` },
-                { label: 'Received In', value: `${fmt(viewing.day.qtyIn)} ${viewing.product.unitOfMeasure}` },
-                { label: 'Closing Balance', value: `${fmt(viewing.day.closingBalance)} ${viewing.product.unitOfMeasure}` },
-                { label: 'Current Stock', value: `${fmt(viewing.product.currentStock)} ${viewing.product.unitOfMeasure}` },
-                { label: 'Total Produced', value: `${fmt(viewing.product.producedTotal)} ${viewing.product.unitOfMeasure}` },
+                { label: 'Produced', value: formatQty(viewing.day.produced, viewing.product.unitOfMeasure) },
+                { label: 'Out', value: formatQty(viewing.day.qtyOut, viewing.product.unitOfMeasure) },
+                { label: 'Received In', value: formatQty(viewing.day.qtyIn, viewing.product.unitOfMeasure) },
+                { label: 'Closing Balance', value: formatQty(viewing.day.closingBalance, viewing.product.unitOfMeasure) },
+                { label: 'Current Stock', value: formatQty(viewing.product.currentStock, viewing.product.unitOfMeasure) },
+                { label: 'Total Produced', value: formatQty(viewing.product.producedTotal, viewing.product.unitOfMeasure) },
               ],
             },
             {
-              title: `Batches (${viewing.day.lines.length})`,
+              title: `Batches (${formatNumber(viewing.day.lines.length)})`,
               fields: viewing.day.lines.map((line) => ({
                 label: `${line.batchNumber} · ${line.warehouseCode || line.warehouseName}`,
                 wide: true,
                 value: (
                   <span className="font-mono text-[10px]">
-                    In {fmt(line.qtyIn)} · Out {fmt(line.qtyOut)} · On hand {fmt(line.onHand)}
+                    In {formatNumber(line.qtyIn)} · Out {formatNumber(line.qtyOut)} · On hand {formatNumber(line.onHand)}
                     {line.orderNumber ? ` · ${line.orderNumber}` : ''}
                     {line.expiryDate ? ` · Exp ${detailDate(line.expiryDate)}` : ''}
                   </span>
@@ -316,7 +312,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-[#171717] leading-none truncate">{stockProduct.materialName}</h3>
                 <p className="text-[10px] text-slate-400 mt-1.5">
-                  Current stock {fmt(stockProduct.currentStock)} {stockProduct.unitOfMeasure} · {stockProduct.batches.length} batch
+                  Current stock {formatQty(stockProduct.currentStock, stockProduct.unitOfMeasure)} · {formatNumber(stockProduct.batches.length)} batch
                   {stockProduct.batches.length === 1 ? '' : 'es'}
                 </p>
               </div>
@@ -343,7 +339,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                         {line.warehouseName} <span className="text-[9px] text-slate-400">({line.warehouseCode})</span>
                       </td>
                       <td className="px-3 py-2 text-[11px] font-mono font-bold text-slate-700">
-                        {fmt(line.onHand)} <span className="text-[9px] font-normal text-slate-400">{stockProduct.unitOfMeasure}</span>
+                        {formatNumber(line.onHand)} <span className="text-[9px] font-normal text-slate-400">{stockProduct.unitOfMeasure}</span>
                       </td>
                       <td className="px-3 py-2 text-[10px] text-slate-500">{detailDate(line.expiryDate)}</td>
                       <td className="px-3 py-2">
@@ -382,7 +378,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
 
             <p className="text-[11px] text-slate-500">
               <span className="font-mono font-bold text-slate-700">{dispatchTarget.line.batchNumber}</span> — {dispatchTarget.product.materialName} ·{' '}
-              {dispatchTarget.line.warehouseName} ({fmt(dispatchTarget.line.onHand)} {dispatchTarget.product.unitOfMeasure} on hand)
+              {dispatchTarget.line.warehouseName} ({formatQty(dispatchTarget.line.onHand, dispatchTarget.product.unitOfMeasure)} on hand)
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -406,7 +402,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                   onChange={(e) => setDispatchForm({ ...dispatchForm, quantity: e.target.value })}
                   type="number"
                   step="0.0001"
-                  placeholder={`Max ${fmt(dispatchTarget.line.onHand)}`}
+                  placeholder={`Max ${formatNumber(dispatchTarget.line.onHand)}`}
                   className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
               </div>

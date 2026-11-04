@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { formatNumber, formatPercent } from '../../../lib/format';
 
 /** Shape returned by GET /supervisor/production-plans/:planId/reconciliation-history */
 interface Reconciliation {
@@ -155,7 +156,7 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
               <div className="text-right mr-2">
                 <p className={`text-sm font-bold ${varianceColor(percent)}`}>
                   {percent > 0 ? '+' : ''}
-                  {percent.toFixed(1)}%
+                  {formatPercent(percent, 1)}
                 </p>
                 <p className="text-[9px] text-slate-500">variance</p>
               </div>
@@ -170,17 +171,17 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <p className="text-[9px] font-semibold text-slate-500 mb-1">Planned</p>
-                    <p className="text-sm font-bold text-slate-700">{planned.toFixed(2)}</p>
+                    <p className="text-sm font-bold text-slate-700">{formatNumber(planned, 2)}</p>
                   </div>
                   <div>
                     <p className="text-[9px] font-semibold text-slate-500 mb-1">Actual</p>
-                    <p className="text-sm font-bold text-slate-700">{actual.toFixed(2)}</p>
+                    <p className="text-sm font-bold text-slate-700">{formatNumber(actual, 2)}</p>
                   </div>
                   <div>
                     <p className="text-[9px] font-semibold text-slate-500 mb-1">Variance</p>
                     <p className={`text-sm font-bold ${varianceColor(percent)}`}>
                       {variance > 0 ? '+' : ''}
-                      {variance.toFixed(2)}
+                      {formatNumber(variance, 2)}
                     </p>
                   </div>
                 </div>

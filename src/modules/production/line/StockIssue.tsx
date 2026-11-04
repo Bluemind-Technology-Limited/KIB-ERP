@@ -4,6 +4,7 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface AggregatedIngredient {
   id: string;
@@ -272,8 +273,8 @@ export default function StockIssue() {
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
                       <p className="truncate text-[10px] text-slate-400">
-                        {plan.items.length} product(s) · {plan.progress.issue.issuedIngredients}/
-                        {plan.progress.issue.totalIngredients} ingredients issued
+                        {formatNumber(plan.items.length)} product(s) · {formatNumber(plan.progress.issue.issuedIngredients)}/
+                        {formatNumber(plan.progress.issue.totalIngredients)} ingredients issued
                         {plan.createdBy?.fullName ? ` · ${plan.createdBy.fullName}` : ''}
                       </p>
                     </div>
@@ -304,7 +305,7 @@ export default function StockIssue() {
                         {plan.items
                           .map(
                             (i) =>
-                              `${i.bom?.finishedSku?.name ?? i.bom?.productName}: ${i.targetQuantity}`
+                              `${i.bom?.finishedSku?.name ?? i.bom?.productName}: ${formatNumber(i.targetQuantity)}`
                           )
                           .join(' · ')}
                       </p>
@@ -351,10 +352,10 @@ export default function StockIssue() {
                                   <p className="text-[9px] font-mono text-slate-400">{agg.material.sku}</p>
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-600">
-                                  {agg.totalQuantity} {agg.unitOfMeasure}
+                                  {formatQty(agg.totalQuantity, agg.unitOfMeasure)}
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-500">
-                                  {agg.issuedQuantity ?? 0}
+                                  {formatNumber(agg.issuedQuantity ?? 0)}
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-500">
                                   {warehouseId ? (
@@ -366,7 +367,7 @@ export default function StockIssue() {
                                           : 'text-slate-500'
                                       }
                                     >
-                                      {availableFor(agg.materialId, warehouseId)}
+                                      {formatNumber(availableFor(agg.materialId, warehouseId))}
                                     </span>
                                   ) : (
                                     '—'
@@ -402,7 +403,7 @@ export default function StockIssue() {
                                     <option value="">Auto / none</option>
                                     {batches.map((b) => (
                                       <option key={b.batchLotId ?? 'none'} value={b.batchLotId ?? ''}>
-                                        {b.batchNumber ?? 'no batch'} ({b.quantity})
+                                        {b.batchNumber ?? 'no batch'} ({formatNumber(b.quantity)})
                                       </option>
                                     ))}
                                   </select>

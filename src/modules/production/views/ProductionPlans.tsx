@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface Material {
   id: string;
@@ -316,7 +317,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                     <div className="flex-1">
                       <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
                       <p className="text-[10px] text-slate-400">
-                        {plan.items.length} BOM{plan.items.length !== 1 ? 's' : ''} · {plan.aggregatedIngredients.length} unique ingredients · Scheduled {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : 'not set'}
+                        {formatNumber(plan.items.length)} BOM{plan.items.length !== 1 ? 's' : ''} · {formatNumber(plan.aggregatedIngredients.length)} unique ingredients · Scheduled {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : 'not set'}
                       </p>
                       {plan.description && (
                         <p className="text-[10px] text-slate-500 mt-1 truncate" title={plan.description}>{plan.description}</p>
@@ -356,10 +357,10 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                                   {idx + 1}. {item.bom.productName} → {item.bom.finishedSku?.name ?? '—'}
                                 </p>
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                  Target: <b>{item.targetQuantity}</b> {item.bom.yieldUnit}
+                                  Target: <b>{formatNumber(item.targetQuantity)}</b> {item.bom.yieldUnit}
                                   {item.actualYield && (
                                     <>
-                                      {' '} • Actual: <b>{item.actualYield}</b> {item.bom.yieldUnit}
+                                      {' '} • Actual: <b>{formatNumber(item.actualYield)}</b> {item.bom.yieldUnit}
                                     </>
                                   )}
                                 </p>
@@ -387,9 +388,9 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                             {plan.aggregatedIngredients.map((ing) => (
                               <tr key={ing.materialId} className="border-b border-slate-50">
                                 <td className="px-2 py-2 text-[11px] font-semibold text-slate-700 max-w-[180px] truncate" title={ing.materialName}>{ing.materialName}</td>
-                                <td className="px-2 py-2 text-right text-[11px] font-mono text-slate-600">{Number(ing.totalQuantity).toFixed(2)}</td>
+                                <td className="px-2 py-2 text-right text-[11px] font-mono text-slate-600">{formatNumber(ing.totalQuantity, 2)}</td>
                                 <td className="px-2 py-2 text-[11px] text-slate-500">{ing.unitOfMeasure}</td>
-                                <td className="px-2 py-2 text-right text-[11px] text-slate-400">{ing.itemCount} BOM{ing.itemCount !== 1 ? 's' : ''}</td>
+                                <td className="px-2 py-2 text-right text-[11px] text-slate-400">{formatNumber(ing.itemCount)} BOM{ing.itemCount !== 1 ? 's' : ''}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -469,7 +470,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Products to Produce *</label>
-                <span className="text-[9px] text-slate-400">{selectedEntries.length} selected</span>
+                <span className="text-[9px] text-slate-400">{formatNumber(selectedEntries.length)} selected</span>
               </div>
 
               {selectableBoms.length === 0 ? (
@@ -499,7 +500,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                               {b.productName}
                             </p>
                             <p className="text-[9px] text-slate-400 truncate">
-                              {b.finishedSku?.name ?? '—'} · yield {Number(b.expectedYield)} {b.yieldUnit}
+                              {b.finishedSku?.name ?? '—'} · yield {formatQty(b.expectedYield, b.yieldUnit)}
                             </p>
                           </div>
                         </label>
@@ -589,14 +590,14 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
             {
               title: 'Contents',
               fields: [
-                { label: 'BOMs', value: `${viewing.items.length}` },
-                { label: 'Unique ingredients', value: `${viewing.aggregatedIngredients.length}` },
+                { label: 'BOMs', value: formatNumber(viewing.items.length) },
+                { label: 'Unique ingredients', value: formatNumber(viewing.aggregatedIngredients.length) },
                 {
                   label: 'Products in plan',
                   wide: true,
                   value: viewing.items.length
                     ? viewing.items
-                        .map((item) => `${item.bom.productName} → ${item.bom.finishedSku?.name ?? '—'} (${item.targetQuantity} ${item.bom.yieldUnit})`)
+                        .map((item) => `${item.bom.productName} → ${item.bom.finishedSku?.name ?? '—'} (${formatQty(item.targetQuantity, item.bom.yieldUnit)})`)
                         .join(' · ')
                     : '—',
                 },
@@ -605,7 +606,7 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                   wide: true,
                   value: viewing.aggregatedIngredients.length
                     ? viewing.aggregatedIngredients
-                        .map((ing) => `${ing.materialName} (${Number(ing.totalQuantity).toFixed(2)} ${ing.unitOfMeasure})`)
+                        .map((ing) => `${ing.materialName} (${formatQty(ing.totalQuantity, ing.unitOfMeasure, 2)})`)
                         .join(' · ')
                     : '—',
                 },

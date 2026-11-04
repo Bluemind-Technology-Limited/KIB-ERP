@@ -7,6 +7,7 @@ import CostEditModal from '../components/CostEditModal';
 import type { EntityType, CostHistoryItem } from '../../../types/costManagement';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatMoney, formatNumber, formatPercent } from '../../../lib/format';
 
 export default function CostManagementDashboard() {
   const {
@@ -106,7 +107,7 @@ export default function CostManagementDashboard() {
               Approvals
               {pendingApprovals.length > 0 && (
                 <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {pendingApprovals.length}
+                  {formatNumber(pendingApprovals.length)}
                 </span>
               )}
             </button>
@@ -132,24 +133,24 @@ export default function CostManagementDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-gray-600 text-sm font-medium">Total Changes</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{auditSummary.totalChanges}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{formatNumber(auditSummary.totalChanges)}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-gray-600 text-sm font-medium">Pending Approval</p>
-                <p className="text-3xl font-bold text-yellow-600 mt-2">{auditSummary.pendingApprovals}</p>
+                <p className="text-3xl font-bold text-yellow-600 mt-2">{formatNumber(auditSummary.pendingApprovals)}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-gray-600 text-sm font-medium">Approved</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">{auditSummary.approvedChanges}</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">{formatNumber(auditSummary.approvedChanges)}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-gray-600 text-sm font-medium">Rejected</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">{auditSummary.rejectedChanges}</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{formatNumber(auditSummary.rejectedChanges)}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-gray-600 text-sm font-medium">Avg Variance %</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {auditSummary.averageVariancePercent.toFixed(2)}%
+                  {formatPercent(auditSummary.averageVariancePercent, 2)}
                 </p>
               </div>
             </div>
@@ -191,11 +192,11 @@ export default function CostManagementDashboard() {
                     {auditSummary.recentChanges.slice(0, 5).map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">{item.fieldName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">₦{item.oldValue.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">₦{item.newValue.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{formatMoney(item.oldValue)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{formatMoney(item.newValue)}</td>
                         <td className="px-6 py-4 text-sm font-medium">
                           <span className={item.variancePercent > 0 ? 'text-red-600' : 'text-green-600'}>
-                            {item.variancePercent > 0 ? '+' : ''}{item.variancePercent.toFixed(2)}%
+                            {item.variancePercent > 0 ? '+' : ''}{formatPercent(item.variancePercent, 2)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm">
@@ -264,10 +265,10 @@ export default function CostManagementDashboard() {
               fields: [
                 { label: 'Field', value: detailValue(viewing.fieldName) },
                 { label: 'Status', value: detailValue(viewing.status) },
-                { label: 'Old value', value: `₦${viewing.oldValue.toLocaleString()}` },
-                { label: 'New value', value: `₦${viewing.newValue.toLocaleString()}` },
-                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}₦${Math.abs(viewing.variance).toLocaleString()}` },
-                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${viewing.variancePercent.toFixed(2)}%` },
+                { label: 'Old value', value: formatMoney(viewing.oldValue) },
+                { label: 'New value', value: formatMoney(viewing.newValue) },
+                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}${formatMoney(Math.abs(viewing.variance))}` },
+                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${formatPercent(viewing.variancePercent, 2)}` },
               ],
             },
             {

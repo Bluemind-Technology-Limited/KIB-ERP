@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCostManagementStore } from '../../../stores/useCostManagementStore';
 import { Modal } from '../../../components/ui/Modal';
 import { toast } from '../../../stores/useToastStore';
+import { formatPercent } from '../../../lib/format';
 
 export default function CostApprovalWorkflow() {
   const {
@@ -125,7 +126,7 @@ export default function CostApprovalWorkflow() {
                 <p className="text-xs font-medium mb-1">Variance</p>
                 <p className="text-lg font-bold">
                   {approval.variancePercent > 0 ? '+' : ''}
-                  {approval.variancePercent.toFixed(2)}%
+                  {formatPercent(approval.variancePercent, 2)}
                 </p>
               </div>
             </div>

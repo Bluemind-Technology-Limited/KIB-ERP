@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, PauseCircle, Send, XCircle } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Modal } from '../../../components/ui/Modal';
+import { formatMoney, formatNumber, formatQty } from '../../../lib/format';
 
 interface SupplierInfo {
   id: string;
@@ -66,12 +67,6 @@ interface SendResponse {
   allSent: boolean;
   remaining: number;
 }
-
-const money = (value: number) =>
-  `NGN ${new Intl.NumberFormat('en-NG', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(value) ? value : 0)}`;
 
 interface LpoSendModalProps {
   poId: string;
@@ -243,8 +238,8 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
               {preview
                 ? `${preview.purchaseOrder.number}${
                     preview.purchaseOrder.requisition ? ` · from ${preview.purchaseOrder.requisition.number}` : ''
-                  } · ${preview.summary.eligible} line(s) ready${preview.summary.sent ? ` · ${preview.summary.sent} already sent` : ''}${
-                    preview.summary.onHold ? ` · ${preview.summary.onHold} on hold` : ''
+                  } · ${formatNumber(preview.summary.eligible)} line(s) ready${preview.summary.sent ? ` · ${formatNumber(preview.summary.sent)} already sent` : ''}${
+                    preview.summary.onHold ? ` · ${formatNumber(preview.summary.onHold)} on hold` : ''
                   }`
                 : 'Preparing supplier split…'}
             </p>
@@ -268,7 +263,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
             {eligibleItems.length > 0 && (
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Order lines · {preview.items.length}
+                  Order lines · {formatNumber(preview.items.length)}
                 </p>
                 <div className="flex items-center gap-2 text-[10px]">
                   <button type="button" onClick={() => toggleAll(true)} className="text-sky-600 font-semibold hover:underline">Select all</button>
@@ -311,7 +306,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                       </label>
                       <div className="text-right shrink-0 space-y-1">
                         <p className="text-xs font-semibold text-[#171717] whitespace-nowrap">
-                          {item.quantity} {item.unitOfMeasure}
+                          {formatQty(item.quantity, item.unitOfMeasure)}
                         </p>
                         {state ? (
                           <span className={`inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${state.className}`}>
@@ -320,7 +315,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                           </span>
                         ) : (
                           <span className="text-[9px] text-slate-400">
-                            {item.receivedQty > 0 ? `${item.receivedQty} received` : 'ready'}
+                            {item.receivedQty > 0 ? `${formatNumber(item.receivedQty)} received` : 'ready'}
                           </span>
                         )}
                       </div>
@@ -377,7 +372,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                           <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount</label>
                             <p className="h-9 flex items-center text-[11px] font-semibold text-[#171717]">
-                              {money(item.quantity * unitCost)}
+                              {formatMoney(item.quantity * unitCost)}
                             </p>
                           </div>
                         </div>
@@ -391,7 +386,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
             {/* Supplier split summary */}
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Supplier split · {groups.length} LPO{groups.length === 1 ? '' : 's'}
+                Supplier split · {formatNumber(groups.length)} LPO{groups.length === 1 ? '' : 's'}
               </p>
               {groups.length === 0 ? (
                 <p className="text-[11px] text-amber-600">Select at least one line to build the LPOs.</p>
@@ -401,13 +396,13 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                     <div>
                       <p className="text-[11px] font-semibold text-[#171717]">{group.supplier.name}</p>
                       <p className="text-[9px] text-slate-400">
-                        {group.items.length} item(s) · {group.supplier.email || 'no email'}
+                        {formatNumber(group.items.length)} item(s) · {group.supplier.email || 'no email'}
                       </p>
                       <p className="text-[9px] text-slate-500 mt-1">
-                        {group.items.map((i) => `${i.materialName} × ${i.quantity}${i.unitOfMeasure}`).join(' · ')}
+                        {group.items.map((i) => `${i.materialName} × ${formatNumber(i.quantity)}${i.unitOfMeasure}`).join(' · ')}
                       </p>
                     </div>
-                    <p className="text-[11px] font-semibold text-[#171717] whitespace-nowrap">{money(group.total)}</p>
+                    <p className="text-[11px] font-semibold text-[#171717] whitespace-nowrap">{formatMoney(group.total)}</p>
                   </div>
                 ))
               )}
@@ -433,7 +428,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                 }`}
               >
                 {results.every((r) => r.success)
-                  ? `All ${results.length} LPO${results.length === 1 ? '' : 's'} emailed successfully.`
+                  ? `All ${formatNumber(results.length)} LPO${results.length === 1 ? '' : 's'} emailed successfully.`
                   : 'Some LPOs were not sent. Fix the issue and retry.'}
               </div>
             )}
@@ -449,7 +444,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                       <XCircle className="w-3 h-3 text-rose-600 mt-0.5 shrink-0" />
                     )}
                     <span className={result.success ? 'text-slate-600' : 'text-rose-600'}>
-                      <strong>{result.supplierName}</strong> · {result.lpoNumber} · {result.itemCount} item(s)
+                      <strong>{result.supplierName}</strong> · {result.lpoNumber} · {formatNumber(result.itemCount)} item(s)
                       {result.error ? ` — ${result.error}` : ' — emailed'}
                     </span>
                   </div>
@@ -480,7 +475,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                     {sending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                     {sending
                       ? 'Sending…'
-                      : `Send ${groups.length} LPO${groups.length === 1 ? '' : 's'}`}
+                      : `Send ${formatNumber(groups.length)} LPO${groups.length === 1 ? '' : 's'}`}
                   </span>
                 </button>
               )}

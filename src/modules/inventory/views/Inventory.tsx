@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Trash2, Edit2 } from 'lucide-react';
+import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface StockRow {
   materialId: string; materialName: string; sku: string; unitOfMeasure: string;
@@ -72,6 +73,10 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
 
   // view details modal
   const [viewing, setViewing] = useState<StockRow | null>(null);
+  /** Movement history for the item open in the View modal. */
+  const [viewingHistory, setViewingHistory] = useState<HistoryEntry[]>([]);
+  const [viewingHistoryLoading, setViewingHistoryLoading] = useState(false);
+  const [viewingHistoryError, setViewingHistoryError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -96,9 +101,58 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
 
   useEffect(() => { load(); }, []);
 
+  /**
+   * Opens the item modal and loads every receipt, transfer and usage of that
+   * ingredient from the ledger (per batch when the row is batch-specific).
+   */
+  const openView = async (row: StockRow) => {
+    setViewing(row);
+    setViewingHistory([]);
+    setViewingHistoryError('');
+    setViewingHistoryLoading(true);
+    try {
+      const res = await axiosClient.get<{ history: HistoryEntry[] }>('/inventory/stock/history', {
+        params: {
+          materialId: row.materialId,
+          ...(row.batchLotId ? { batchLotId: row.batchLotId } : {}),
+        },
+        toast: false,
+      });
+      setViewingHistory(res.data.history);
+    } catch (err: any) {
+      setViewingHistoryError(err?.response?.data?.error || 'Failed to load the movement history.');
+    } finally {
+      setViewingHistoryLoading(false);
+    }
+  };
+
+  /** Available quantity for a material in a warehouse (sums its batches). */
+  const availableIn = (materialId: string, warehouseId: string) =>
+    stock
+      .filter((s) => s.materialId === materialId && s.warehouseId === warehouseId)
+      .reduce((sum, s) => sum + Number(s.quantity), 0);
+
+  const transferAvailable = tr.materialId && tr.fromWarehouseId
+    ? availableIn(tr.materialId, tr.fromWarehouseId)
+    : null;
+
   const doTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tr.materialId || !tr.quantity || !tr.fromWarehouseId || !tr.toWarehouseId) { setError('Complete all fields'); return; }
+    const available = availableIn(tr.materialId, tr.fromWarehouseId);
+    if (available <= 0) {
+      setError('There is no stock left to transfer from the source warehouse.');
+      return;
+    }
+    if (Number(tr.quantity) <= 0) {
+      setError('Quantity must be greater than zero');
+      return;
+    }
+    if (Number(tr.quantity) > available) {
+      setError(`Only ${available} ${tr.unitOfMeasure || 'units'} available in the source warehouse.`);
+      return;
+    }
+    setError('');
     setTransferConfirmation(true);
   };
 
@@ -128,6 +182,18 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
   const doAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adj.materialId || !adj.quantity || !adj.warehouseId) { setError('Complete all fields'); return; }
+    if (adj.operation === 'subtract') {
+      const available = availableIn(adj.materialId, adj.warehouseId);
+      if (available <= 0) {
+        setError('There is no stock in that warehouse to remove.');
+        return;
+      }
+      if (Number(adj.quantity) > available) {
+        setError(`Only ${available} ${adj.unitOfMeasure || 'units'} available — stock cannot go below zero.`);
+        return;
+      }
+    }
+    setError('');
     setAdjustConfirmation(true);
   };
 
@@ -257,7 +323,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                       {s.batchNumber ? <span className="text-[10px] font-mono text-slate-600">{s.batchNumber}</span> : <span className="text-[10px] text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">{s.warehouseName}</td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-500 font-mono">{s.minQuantity ?? 0}</td>
+                    <td className="px-4 py-3 text-right text-xs text-slate-500 font-mono">{formatNumber(s.minQuantity ?? 0)}</td>
                     <td className={`px-4 py-3 text-right text-sm font-bold ${
                       s.quantity <= (s.minQuantity || 0) 
                         ? 'text-rose-600' 
@@ -265,14 +331,14 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                           ? 'text-rose-600' 
                           : 'text-emerald-600'
                     }`}>
-                      {s.quantity}
+                      {formatNumber(s.quantity)}
                       {s.quantity <= (s.minQuantity || 0) && (
                         <span className="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1 py-0.2 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.unitOfMeasure}</td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
-                      <ViewButton onClick={() => setViewing(s)} />
+                      <ViewButton onClick={() => openView(s)} />
                       <button 
                         onClick={() => {
                           setTr({
@@ -284,7 +350,9 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                           });
                           setShowTransfer(true);
                         }} 
-                        className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                        disabled={Number(s.quantity) <= 0}
+                        title={Number(s.quantity) <= 0 ? 'No stock to transfer from this batch' : 'Transfer stock'}
+                        className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Transfer
                       </button>
@@ -370,7 +438,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-semibold text-[#171717]">{label}</p>
                       <span className={`text-[10px] font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        {qty > 0 ? '+' : ''}{qty} {h.unitOfMeasure}
+                        {qty > 0 ? '+' : ''}{formatNumber(qty)} {h.unitOfMeasure}
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-0.5 truncate">
@@ -420,8 +488,15 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 <option value="">To warehouse…</option>
                 {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
-              <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" min="0" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
             </div>
+            {transferAvailable !== null && (
+              <p className={`text-[10px] ${transferAvailable <= 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+                Available in source warehouse: <span className="font-semibold">{formatNumber(transferAvailable)}</span>{' '}
+                {materials.find((m) => m.id === tr.materialId)?.unitOfMeasure ?? ''}
+                {transferAvailable <= 0 ? ' — nothing can be transferred from here.' : ''}
+              </p>
+            )}
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={() => setShowTransfer(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9"><span className="text-white text-xs font-semibold whitespace-nowrap">Transfer (2 entries)</span></button>
@@ -533,7 +608,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Quantity</p>
-                <p className="text-sm font-bold text-emerald-600 mt-1">{editingStockItem.quantity} {editingStockItem.unitOfMeasure}</p>
+                <p className="text-sm font-bold text-emerald-600 mt-1">{formatQty(editingStockItem.quantity, editingStockItem.unitOfMeasure)}</p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Min Quantity (Alert Threshold)</label>
@@ -638,10 +713,55 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
             {
               title: 'Stock',
               fields: [
-                { label: 'On Hand', value: `${viewing.quantity} ${viewing.unitOfMeasure}` },
-                { label: 'Minimum Quantity', value: detailValue(viewing.minQuantity) },
+                { label: 'On Hand', value: formatQty(viewing.quantity, viewing.unitOfMeasure) },
+                { label: 'Minimum Quantity', value: formatNumber(viewing.minQuantity ?? 0) },
                 { label: 'Unit of Measure', value: detailValue(viewing.unitOfMeasure) },
                 { label: 'Bin', value: detailValue(viewing.binId) },
+              ],
+            },
+            {
+              title: `Transaction History${viewingHistoryLoading ? '' : ` (${viewingHistory.length})`}`,
+              fields: [
+                {
+                  label: viewing.batchLotId ? 'Movements for this batch' : 'Movements for this material',
+                  wide: true,
+                  value: viewingHistoryLoading ? (
+                    <div className="flex items-center gap-2 py-3 text-slate-400">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span className="text-[11px]">Loading movements…</span>
+                    </div>
+                  ) : viewingHistoryError ? (
+                    <p className="text-[11px] text-rose-600">{viewingHistoryError}</p>
+                  ) : viewingHistory.length === 0 ? (
+                    <p className="text-[11px] text-slate-400">No movements recorded yet.</p>
+                  ) : (
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-slate-100 divide-y divide-slate-100">
+                      {viewingHistory.map((h) => {
+                        const qty = Number(h.quantity);
+                        const label = EVENT_LABEL[h.eventType] ?? h.eventType.replace(/_/g, ' ');
+                        return (
+                          <div key={h.id} className="flex items-start justify-between gap-3 px-3 py-2">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold text-[#171717]">{label}</p>
+                              <p className="text-[9px] text-slate-400 truncate">
+                                {new Date(h.createdAt).toLocaleString()} · {h.warehouse.name}
+                                {h.batchLot ? ` · ${h.batchLot.batchNumber}` : ''}
+                                {h.referenceType ? ` · ${h.referenceType}` : ''}
+                              </p>
+                              <p className="text-[9px] text-slate-400 truncate">
+                                by {h.createdBy.fullName || h.createdBy.email || '—'}
+                                {h.notes ? ` — ${h.notes}` : ''}
+                              </p>
+                            </div>
+                            <span className={`shrink-0 text-[11px] font-mono font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {qty > 0 ? '+' : ''}{formatNumber(qty)} {h.unitOfMeasure}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ),
+                },
               ],
             },
           ]}

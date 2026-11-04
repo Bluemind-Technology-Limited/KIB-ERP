@@ -6,6 +6,7 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatPercent, formatQty } from '../../../lib/format';
 
 interface FlowItem {
   planItemId: string;
@@ -297,13 +298,13 @@ export default function AuditReport() {
           onClick={() => setTab('flow')}
           className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'flow' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
         >
-          Production flow ({flow?.rows.length ?? 0})
+          Production flow ({formatNumber(flow?.rows.length ?? 0)})
         </button>
         <button
           onClick={() => setTab('activity')}
           className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'activity' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
         >
-          ERP activity ({activity?.rows.length ?? 0})
+          ERP activity ({formatNumber(activity?.rows.length ?? 0)})
         </button>
       </div>
 
@@ -315,20 +316,20 @@ export default function AuditReport() {
         <div className="space-y-4">
           {flow?.summary && (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Kpi label="Plans" value={flow.summary.plans} sub={`${flow.summary.completed} completed`} />
-              <Kpi label="Batches" value={flow.summary.batches} sub="plan items" />
-              <Kpi label="Target" value={flow.summary.totalTarget} sub="finished qty" />
-              <Kpi label="Achieved" value={flow.summary.totalAchieved} sub="finished qty" />
+              <Kpi label="Plans" value={formatNumber(flow.summary.plans)} sub={`${formatNumber(flow.summary.completed)} completed`} />
+              <Kpi label="Batches" value={formatNumber(flow.summary.batches)} sub="plan items" />
+              <Kpi label="Target" value={formatNumber(flow.summary.totalTarget)} sub="finished qty" />
+              <Kpi label="Achieved" value={formatNumber(flow.summary.totalAchieved)} sub="finished qty" />
               <Kpi
                 label="Avg yield"
                 value={
                   flow.summary.avgGrindingYieldPct === null && flow.summary.avgFinishingYieldPct === null
                     ? '—'
-                    : `${flow.summary.avgGrindingYieldPct ?? '—'}% grind / ${flow.summary.avgFinishingYieldPct ?? '—'}% finish`
+                    : `${flow.summary.avgGrindingYieldPct === null ? '—' : formatPercent(flow.summary.avgGrindingYieldPct)} grind / ${flow.summary.avgFinishingYieldPct === null ? '—' : formatPercent(flow.summary.avgFinishingYieldPct)} finish`
                 }
                 sub="grinding / finishing"
               />
-              <Kpi label="Issued / returned" value={`${flow.summary.totalIssued}`} sub={`${flow.summary.totalReturned} returned`} />
+              <Kpi label="Issued / returned" value={formatNumber(flow.summary.totalIssued)} sub={`${formatNumber(flow.summary.totalReturned)} returned`} />
             </div>
           )}
 
@@ -352,8 +353,8 @@ export default function AuditReport() {
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
                         <p className="truncate text-[10px] text-slate-400">
-                          {plan.items.length} product(s) · {plan.issue.issuedIngredients}/
-                          {plan.issue.totalIngredients} issued
+                          {formatNumber(plan.items.length)} product(s) · {formatNumber(plan.issue.issuedIngredients)}/
+                          {formatNumber(plan.issue.totalIngredients)} issued
                           {plan.createdBy ? ` · ${plan.createdBy}` : ''}
                         </p>
                       </div>
@@ -389,20 +390,20 @@ export default function AuditReport() {
                                   <p className="text-[11px] font-bold text-slate-700">{item.productName ?? '—'}</p>
                                   <p className="text-[9px] font-mono text-slate-400">{item.sku ?? ''}</p>
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-600">{item.targetQuantity}</td>
+                                <td className="px-3 py-2 text-[11px] text-slate-600">{formatNumber(item.targetQuantity)}</td>
                                 <td className="px-3 py-2 text-[11px] text-slate-600">
-                                  {item.grinding ? `${item.grinding.achieved} / in ${item.grinding.input}` : '—'}
+                                  {item.grinding ? `${formatNumber(item.grinding.achieved)} / in ${formatNumber(item.grinding.input)}` : '—'}
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-600">
-                                  {item.achievedQuantity ?? '—'}
+                                  {item.achievedQuantity == null ? '—' : formatNumber(item.achievedQuantity)}
                                 </td>
                                 <td className="px-3 py-2 text-[10px] text-slate-500">
                                   {item.grindingYieldPct !== null && (
-                                    <span>g {item.grindingYieldPct}%</span>
+                                    <span>g {formatPercent(item.grindingYieldPct)}</span>
                                   )}
                                   {item.grindingYieldPct !== null && item.finishingYieldPct !== null && ' · '}
                                   {item.finishingYieldPct !== null && (
-                                    <span>f {item.finishingYieldPct}%</span>
+                                    <span>f {formatPercent(item.finishingYieldPct)}</span>
                                   )}
                                   {item.grindingYieldPct === null && item.finishingYieldPct === null && '—'}
                                 </td>
@@ -412,7 +413,7 @@ export default function AuditReport() {
                                   ) : (
                                     <span className={item.variance < 0 ? 'font-semibold text-rose-600' : 'font-semibold text-emerald-700'}>
                                       {item.variance > 0 ? '+' : ''}
-                                      {item.variance} ({item.variancePct}%)
+                                      {formatNumber(item.variance)} ({formatPercent(item.variancePct)})
                                     </span>
                                   )}
                                 </td>
@@ -473,7 +474,7 @@ export default function AuditReport() {
                                 <div key={rec.id} className="flex flex-wrap items-center justify-between gap-2">
                                   <span className="text-[10px] text-slate-600">
                                     {rec.label}
-                                    {rec.yieldPct !== null ? ` · yield ${rec.yieldPct}%` : ''}
+                                    {rec.yieldPct !== null ? ` · yield ${formatPercent(rec.yieldPct)}` : ''}
                                   </span>
                                   <div className="flex items-center gap-2">
                                     <span className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${stageStatusBadge[rec.status] ?? stageStatusBadge.SUBMITTED}`}>
@@ -508,8 +509,8 @@ export default function AuditReport() {
                             <div key={`${ing.sku}-${idx}`} className="flex items-center justify-between text-[10px]">
                               <span className="truncate text-slate-600">{ing.material ?? ing.sku}</span>
                               <span className="ml-2 shrink-0 font-mono text-slate-500">
-                                req {ing.required} · iss {ing.issued}
-                                {ing.returned > 0 && <span className="text-amber-600"> · ret {ing.returned}</span>}
+                                req {formatNumber(ing.required)} · iss {formatNumber(ing.issued)}
+                                {ing.returned > 0 && <span className="text-amber-600"> · ret {formatNumber(ing.returned)}</span>}
                               </span>
                             </div>
                           ))}
@@ -537,7 +538,7 @@ export default function AuditReport() {
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-600">{m.material ?? '—'}</td>
                                   <td className="px-3 py-1.5 text-[10px] font-mono text-slate-600">
-                                    {m.quantity} {m.unitOfMeasure}
+                                    {formatQty(m.quantity, m.unitOfMeasure)}
                                   </td>
                                   <td className="px-3 py-1.5 text-[10px] text-slate-400">{m.warehouse ?? '—'}</td>
                                 </tr>
@@ -557,9 +558,9 @@ export default function AuditReport() {
         <div className="space-y-4">
           {activity?.summary && (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Kpi label="Events" value={activity.summary.total} sub="in range" />
+              <Kpi label="Events" value={formatNumber(activity.summary.total)} sub="in range" />
               {Object.entries(activity.summary.byModule).map(([mod, count]) => (
-                <Kpi key={mod} label={mod} value={count} sub="events" />
+                <Kpi key={mod} label={mod} value={formatNumber(count)} sub="events" />
               ))}
             </div>
           )}
@@ -603,7 +604,7 @@ export default function AuditReport() {
                         </td>
                         <td className="px-4 py-2.5 text-[10px] text-slate-500">{r.actor ?? '—'}</td>
                         <td className="px-4 py-2.5 text-right text-[10px] font-mono text-slate-600">
-                          {r.amount === null ? '—' : r.amount}
+                          {r.amount === null ? '—' : formatNumber(r.amount)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <ViewButton onClick={() => setViewing(r)} />
@@ -649,7 +650,7 @@ export default function AuditReport() {
               fields: [
                 { label: 'Reference type', value: detailValue(viewing.referenceType) },
                 { label: 'Reference ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.referenceId)}</span> },
-                { label: 'Amount', value: viewing.amount === null ? '—' : viewing.amount },
+                { label: 'Amount', value: viewing.amount === null ? '—' : formatNumber(viewing.amount) },
                 { label: 'Event ID', value: <span className="font-mono text-[10px]">{detailValue(viewing.id)}</span> },
               ],
             },

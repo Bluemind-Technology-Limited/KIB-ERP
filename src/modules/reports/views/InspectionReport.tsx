@@ -5,6 +5,7 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface ReportRow {
   id: string;
@@ -235,19 +236,19 @@ export default function InspectionReport() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
               <p className="mb-1 text-[9px] font-semibold text-slate-500">Total checks</p>
-              <p className="text-2xl font-bold text-[#171717]">{summary.totalChecks}</p>
+              <p className="text-2xl font-bold text-[#171717]">{formatNumber(summary.totalChecks)}</p>
             </div>
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
               <p className="mb-1 text-[9px] font-semibold text-emerald-600">Passed</p>
-              <p className="text-2xl font-bold text-emerald-700">{summary.passed}</p>
+              <p className="text-2xl font-bold text-emerald-700">{formatNumber(summary.passed)}</p>
             </div>
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
               <p className="mb-1 text-[9px] font-semibold text-rose-600">Failed</p>
-              <p className="text-2xl font-bold text-rose-700">{summary.failed}</p>
+              <p className="text-2xl font-bold text-rose-700">{formatNumber(summary.failed)}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="mb-1 text-[9px] font-semibold text-slate-500">Pending</p>
-              <p className="text-2xl font-bold text-slate-700">{summary.pending}</p>
+              <p className="text-2xl font-bold text-slate-700">{formatNumber(summary.pending)}</p>
             </div>
           </div>
 
@@ -255,10 +256,10 @@ export default function InspectionReport() {
             <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Sources</p>
               <div className="space-y-1 text-xs text-slate-600">
-                <div className="flex justify-between"><span>Consignment checks</span><b>{summary.consignmentChecks}</b></div>
-                <div className="flex justify-between"><span>Batch inspections</span><b>{summary.batchInspections}</b></div>
-                <div className="flex justify-between"><span>Quantity changes</span><b>{summary.quantityAdjustments}</b></div>
-                <div className="flex justify-between"><span>Pending approvals</span><b>{summary.pendingQuantityAdjustments}</b></div>
+                <div className="flex justify-between"><span>Consignment checks</span><b>{formatNumber(summary.consignmentChecks)}</b></div>
+                <div className="flex justify-between"><span>Batch inspections</span><b>{formatNumber(summary.batchInspections)}</b></div>
+                <div className="flex justify-between"><span>Quantity changes</span><b>{formatNumber(summary.quantityAdjustments)}</b></div>
+                <div className="flex justify-between"><span>Pending approvals</span><b>{formatNumber(summary.pendingQuantityAdjustments)}</b></div>
               </div>
             </div>
             <div className="rounded-xl border border-[#E9E9E9] bg-white p-4 lg:col-span-2">
@@ -275,7 +276,7 @@ export default function InspectionReport() {
                         style={{ width: `${summary.totalChecks ? (count / summary.totalChecks) * 100 : 0}%` }}
                       />
                     </div>
-                    <span className="w-8 shrink-0 text-right text-[11px] font-semibold text-slate-700">{count}</span>
+                    <span className="w-8 shrink-0 text-right text-[11px] font-semibold text-slate-700">{formatNumber(count)}</span>
                   </div>
                 ))}
                 {topCheckTypes.length === 0 && <p className="text-xs text-slate-400">No checks in range.</p>}
@@ -291,13 +292,13 @@ export default function InspectionReport() {
           onClick={() => setTab('checks')}
           className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'checks' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
         >
-          Checks ({items.length})
+          Checks ({formatNumber(items.length)})
         </button>
         <button
           onClick={() => setTab('adjustments')}
           className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'adjustments' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
         >
-          Quantity changes ({adjustments.length})
+          Quantity changes ({formatNumber(adjustments.length)})
         </button>
       </div>
 
@@ -352,7 +353,7 @@ export default function InspectionReport() {
                       <td className="px-4 py-3 text-right">
                         {row.attachmentCount > 0 ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#AA3BFF]">
-                            <Paperclip className="h-3 w-3" /> {row.attachmentCount}
+                            <Paperclip className="h-3 w-3" /> {formatNumber(row.attachmentCount)}
                           </span>
                         ) : (
                           <span className="text-[10px] text-slate-300">—</span>
@@ -397,7 +398,7 @@ export default function InspectionReport() {
                     </td>
                     <td className="px-4 py-3 text-[10px] text-slate-500">{row.consignment?.consignmentNumber ?? '—'}</td>
                     <td className="px-4 py-3 text-[11px] text-slate-600">
-                      {row.oldQuantity} → <b>{row.newQuantity}</b>
+                      {formatNumber(row.oldQuantity)} → <b>{formatNumber(row.newQuantity)}</b>
                     </td>
                     <td className="px-4 py-3 text-[10px] text-slate-500">{(row.reasonCode ?? '—').replace('_', ' ')}</td>
                     <td className="px-4 py-3 text-[11px] text-slate-500">{row.requestedBy?.fullName ?? '—'}</td>
@@ -464,7 +465,7 @@ export default function InspectionReport() {
                 { label: 'Result', value: detailValue(viewing.result) },
                 { label: 'Approval status', value: detailValue(viewing.approvalStatus) },
                 { label: 'Checked by', value: detailValue(viewing.checkedBy) },
-                { label: 'Attachments', value: detailValue(viewing.attachmentCount) },
+                { label: 'Attachments', value: formatNumber(viewing.attachmentCount) },
               ],
             },
             {
@@ -502,9 +503,9 @@ export default function InspectionReport() {
             {
               title: 'Change',
               fields: [
-                { label: 'Old quantity', value: detailValue(viewingAdjustment.oldQuantity) },
-                { label: 'New quantity', value: detailValue(viewingAdjustment.newQuantity) },
-                { label: 'Difference', value: detailValue(viewingAdjustment.difference) },
+                { label: 'Old quantity', value: formatNumber(viewingAdjustment.oldQuantity) },
+                { label: 'New quantity', value: formatNumber(viewingAdjustment.newQuantity) },
+                { label: 'Difference', value: formatNumber(viewingAdjustment.difference) },
                 { label: 'Reason code', value: (viewingAdjustment.reasonCode ?? '—').replace('_', ' ') },
               ],
             },

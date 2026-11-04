@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface Material {
   id: string;
@@ -289,18 +290,18 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     <div className="flex-1">
                       <p className="text-xs font-bold text-[#171717] max-w-[220px] truncate" title={bom.productName}>{bom.productName}</p>
                       <p className="text-[10px] text-slate-400 max-w-[280px] truncate">
-                        {bom.finishedSku?.name ?? '—'} · Yield {bom.expectedYield ?? '—'} {bom.yieldUnit ?? ''} · {ingCount} ingredients
+                        {bom.finishedSku?.name ?? '—'} · Yield {bom.expectedYield != null ? formatQty(bom.expectedYield, bom.yieldUnit) : '—'} · {formatNumber(ingCount)} ingredients
                       </p>
                       {!isOpen && ingCount > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {bomIngredients.slice(0, 3).map((ing) => (
                             <span key={ing.id} className="text-[9px] text-slate-500 bg-slate-100/50 px-1.5 py-0.5 rounded">
-                              {ing.material.name} {ing.isPercentage ? `${ing.quantity}%` : `${ing.quantity} ${ing.unitOfMeasure}`}
+                              {ing.material.name} {ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)}
                             </span>
                           ))}
                           {ingCount > 3 && (
                             <span className="text-[9px] text-slate-400 px-1.5 py-0.5">
-                              +{ingCount - 3} more
+                              +{formatNumber(ingCount - 3)} more
                             </span>
                           )}
                         </div>
@@ -341,7 +342,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-slate-400">
-                            Yield: <b className="text-slate-600">{bom.expectedYield}</b> {bom.yieldUnit}
+                            Yield: <b className="text-slate-600">{bom.expectedYield != null ? formatNumber(bom.expectedYield) : '—'}</b> {bom.yieldUnit}
                           </span>
                           {bom.status === 'DRAFT' && (
                             <button onClick={() => approveFormulation(bom.id)} className="btn-3d px-3 h-7">
@@ -384,7 +385,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                                     </span>
                                   </td>
                                   <td className="px-2 py-2 text-right text-[11px] font-mono text-slate-600">
-                                    {ing.isPercentage ? `${ing.quantity}%` : ing.quantity}
+                                    {ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatNumber(ing.quantity)}
                                   </td>
                                   <td className="px-2 py-2 text-[11px] text-slate-500">{ing.unitOfMeasure}</td>
                                 </tr>
@@ -464,7 +465,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ingredients *</label>
-                <span className="text-[9px] text-slate-400">{ingredients.filter((i) => i.materialId && i.quantity).length} added</span>
+                <span className="text-[9px] text-slate-400">{formatNumber(ingredients.filter((i) => i.materialId && i.quantity).length)} added</span>
               </div>
 
               <div className="space-y-2">
@@ -591,9 +592,9 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             {
               title: 'Yield',
               fields: [
-                { label: 'Expected yield', value: detailValue(viewing.expectedYield) },
+                { label: 'Expected yield', value: viewing.expectedYield != null ? formatNumber(viewing.expectedYield) : detailValue(viewing.expectedYield) },
                 { label: 'Yield unit', value: detailValue(viewing.yieldUnit) },
-                { label: 'Ingredients', value: `${viewing.ingredients?.length ?? 0}` },
+                { label: 'Ingredients', value: formatNumber(viewing.ingredients?.length ?? 0) },
               ],
             },
             {
@@ -604,7 +605,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                   wide: true,
                   value: viewing.ingredients?.length
                     ? viewing.ingredients
-                        .map((ing) => `${ing.material.name} (${ing.isPercentage ? `${ing.quantity}%` : `${ing.quantity} ${ing.unitOfMeasure}`})`)
+                        .map((ing) => `${ing.material.name} (${ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)})`)
                         .join(' · ')
                     : '—',
                 },

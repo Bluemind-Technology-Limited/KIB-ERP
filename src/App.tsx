@@ -5,6 +5,7 @@ import Login from './modules/auth/views/Login';
 import DashboardLayout from './layouts/DashboardLayout';
 import ExecutiveOverview from './modules/admin/views/ExecutiveOverview';
 import ManageUsers from './modules/admin/views/ManageUsers';
+import AccountSettings from './modules/admin/views/AccountSettings';
 import { RoleGuard, rolePermissions } from './components/routing/RoleGuard';
 import Warehouses from './modules/masterdata/views/Warehouses';
 import Materials from './modules/masterdata/views/Materials';
@@ -44,6 +45,7 @@ import CostManagementDashboard from './modules/costManagement/views/CostManageme
 const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string }> = {
   executive: { path: '/overview', parent: 'Dashboards', label: 'Overview' },
   'admin-users': { path: '/users', parent: 'Dashboards', label: 'Manage Users' },
+  'account-settings': { path: '/settings/account', parent: 'Account', label: 'Account Settings' },
   'md-warehouses': { path: '/master-data/warehouses', parent: 'Master Data', label: 'Warehouses' },
   'md-materials': { path: '/master-data/materials', parent: 'Master Data', label: 'Materials' },
   'md-suppliers': { path: '/master-data/suppliers', parent: 'Master Data', label: 'Suppliers' },
@@ -108,6 +110,12 @@ export default function App() {
     setSearchQuery('');
   }, [activeTab]);
 
+  // Browser tab follows the page in focus: "{current page} | KIB ERP".
+  useEffect(() => {
+    const label = VIEW_ROUTES[activeTab]?.label;
+    document.title = label ? `${label} | KIB ERP` : user ? 'KIB ERP' : 'Sign In | KIB ERP';
+  }, [activeTab, user]);
+
   useEffect(() => {
     // Global tactile audio feedback synthesis listener
     const playClickSound = () => {
@@ -157,6 +165,8 @@ export default function App() {
   // Redirect to the first permitted tab if the current route isn't allowed for the role
   useEffect(() => {
     if (!user) return;
+    // Account settings is available to every signed-in user.
+    if (activeTab === 'account-settings') return;
     const allowed = rolePermissions[user.role] ?? [];
     if (!allowed.includes(activeTab)) {
       navigate(VIEW_ROUTES[allowed[0] || 'executive'].path, { replace: true });
@@ -179,6 +189,8 @@ export default function App() {
             <ManageUsers searchQuery={searchQuery} />
           </RoleGuard>
         );
+      case 'account-settings':
+        return <AccountSettings />;
       case 'md-warehouses':
         return (
           <RoleGuard userRole={user.role} viewId="md-warehouses">

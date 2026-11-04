@@ -5,6 +5,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatPercent } from '../../../lib/format';
 
 interface AuditEntry {
   id: string;
@@ -195,7 +196,7 @@ export default function AuditTrail() {
                         </span>
                         <div>
                           <p className="text-xs font-semibold text-slate-700">{timeline.entityId.substring(0, 8)}…</p>
-                          <p className="text-[10px] text-slate-400">{timeline.totalEvents} events</p>
+                          <p className="text-[10px] text-slate-400">{formatNumber(timeline.totalEvents)} events</p>
                         </div>
                       </div>
                       {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
@@ -226,7 +227,7 @@ export default function AuditTrail() {
                               onClick={() => openTimeline(timeline)}
                               className="w-full text-center text-[10px] font-semibold text-[#AA3BFF] hover:underline py-2"
                             >
-                              View all {timeline.totalEvents} events
+                              View all {formatNumber(timeline.totalEvents)} events
                             </button>
                           )}
                         </div>
@@ -252,8 +253,8 @@ export default function AuditTrail() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Approval Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-emerald-600">{(approvalMetrics?.approvalRate || 0).toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{approvalMetrics?.totalApprovals || 0} approved</span>
+                    <span className="text-lg font-bold text-emerald-600">{formatPercent(approvalMetrics?.approvalRate || 0)}</span>
+                    <span className="text-[9px] text-slate-400">{formatNumber(approvalMetrics?.totalApprovals || 0)} approved</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -265,8 +266,8 @@ export default function AuditTrail() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Rejection Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-rose-600">{(100 - (approvalMetrics?.approvalRate || 0)).toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{approvalMetrics?.totalRejections || 0} rejected</span>
+                    <span className="text-lg font-bold text-rose-600">{formatPercent(100 - (approvalMetrics?.approvalRate || 0))}</span>
+                    <span className="text-[9px] text-slate-400">{formatNumber(approvalMetrics?.totalRejections || 0)} rejected</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -280,7 +281,7 @@ export default function AuditTrail() {
                   {approvalMetrics?.entityCounts && Object.entries(approvalMetrics.entityCounts).map(([entity, count]) => (
                     <div key={entity} className="flex justify-between text-[9px]">
                       <span className="text-slate-600 capitalize">{entity}:</span>
-                      <span className="font-mono text-slate-700">{count}</span>
+                      <span className="font-mono text-slate-700">{formatNumber(count)}</span>
                     </div>
                   ))}
                 </div>
@@ -297,8 +298,8 @@ export default function AuditTrail() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-600">Completion Rate</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-lg font-bold text-[#AA3BFF]">{(productionMetrics?.completionRate || 0).toFixed(1)}%</span>
-                    <span className="text-[9px] text-slate-400">{productionMetrics?.totalCompleted || 0} orders</span>
+                    <span className="text-lg font-bold text-[#AA3BFF]">{formatPercent(productionMetrics?.completionRate || 0)}</span>
+                    <span className="text-[9px] text-slate-400">{formatNumber(productionMetrics?.totalCompleted || 0)} orders</span>
                   </div>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -309,17 +310,17 @@ export default function AuditTrail() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                   <p className="text-[9px] text-slate-500">Average Yield</p>
-                  <p className="text-lg font-bold text-slate-700">{(productionMetrics?.averageYield || 0).toFixed(1)}</p>
+                  <p className="text-lg font-bold text-slate-700">{formatNumber(productionMetrics?.averageYield || 0, 1)}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                   <p className="text-[9px] text-slate-500">Avg Waste</p>
-                  <p className="text-lg font-bold text-rose-600">{(productionMetrics?.averageWaste || 0).toFixed(2)}%</p>
+                  <p className="text-lg font-bold text-rose-600">{formatPercent(productionMetrics?.averageWaste || 0, 2)}</p>
                 </div>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
                 <p className="text-[9px] text-slate-500">Average Lead Time</p>
-                <p className="text-sm font-bold text-slate-700">{Math.round(productionMetrics?.averageLeadTime || 0)} hours</p>
+                <p className="text-sm font-bold text-slate-700">{formatNumber(Math.round(productionMetrics?.averageLeadTime || 0))} hours</p>
               </div>
             </div>
           )}
@@ -346,7 +347,7 @@ export default function AuditTrail() {
                 <div key={user.userId} className="px-4 py-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-bold text-slate-700">{user.userName}</p>
-                    <span className="text-[10px] font-semibold text-slate-500">{user.actionsCount} actions</span>
+                    <span className="text-[10px] font-semibold text-slate-500">{formatNumber(user.actionsCount)} actions</span>
                   </div>
                   <p className="text-[9px] text-slate-400">Last: {new Date(user.lastAction).toLocaleString()}</p>
                   {user.days.length > 0 && (
@@ -355,13 +356,13 @@ export default function AuditTrail() {
                         <div
                           key={day.date}
                           className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-[9px] font-semibold hover:bg-slate-50 cursor-pointer"
-                          title={`${day.date}: ${day.actionCount} actions`}
+                          title={`${day.date}: ${formatNumber(day.actionCount)} actions`}
                           style={{
                             backgroundColor: day.actionCount > 0 ? `rgba(170, 59, 255, ${Math.min(day.actionCount / 10, 1)})` : '#f8f8f8',
                             color: day.actionCount > 5 ? 'white' : '#666'
                           }}
                         >
-                          {day.actionCount}
+                          {formatNumber(day.actionCount)}
                         </div>
                       ))}
                     </div>

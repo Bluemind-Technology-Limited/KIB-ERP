@@ -5,7 +5,7 @@ import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 
 interface Material {
@@ -330,9 +330,12 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 { label: 'Category', value: detailValue(viewing.category) },
                 {
                   label: 'Traceability code',
-                  value: viewing.traceabilityCode ? <span className="font-mono">{viewing.traceabilityCode}</span> : '—',
+                  value: viewing.traceabilityCode ? (
+                    <span className="font-mono">{viewing.traceabilityCode}</span>
+                  ) : (
+                    <span className="text-slate-400">Not set</span>
+                  ),
                 },
-                { label: 'Barcode', value: viewing.barcode ? <span className="font-mono">{viewing.barcode}</span> : '—' },
               ],
             },
             {
@@ -340,7 +343,6 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               fields: [
                 { label: 'Unit of measure', value: detailValue(viewing.unitOfMeasure) },
                 { label: 'Lot tracking', value: viewing.requiresLot ? 'Lot tracked' : 'No lot' },
-                { label: 'Default expiry', value: detailDate(viewing.defaultExpiryDate) },
               ],
             },
             {

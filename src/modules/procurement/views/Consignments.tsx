@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 interface Material {
   id: string;
@@ -305,13 +306,13 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                       <p className="text-xs font-bold text-[#171717]">{csn.consignmentNumber}</p>
                       <p className="text-[10px] text-slate-400">
                         {csn.po ? `${csn.po.number} · ` : csn.poNumbers ? `${csn.poNumbers} · ` : ''}
-                        {csn.supplier.name} → {csn.warehouse.name} · {csn.items.length} items · Received {csn.receivedAt ? new Date(csn.receivedAt).toLocaleDateString() : '—'}
+                        {csn.supplier.name} → {csn.warehouse.name} · {formatNumber(csn.items.length)} items · Received {csn.receivedAt ? new Date(csn.receivedAt).toLocaleDateString() : '—'}
                       </p>
                       {orderedTotal > 0 && (
                         <p className="text-[10px] text-slate-500 mt-0.5">
-                          PO received <b>{receivedTotal.toLocaleString()}</b> of {orderedTotal.toLocaleString()}
+                          PO received <b>{formatNumber(receivedTotal)}</b> of {formatNumber(orderedTotal)}
                           {outstandingTotal > 0 ? (
-                            <span className="text-amber-600 font-semibold"> · {outstandingTotal.toLocaleString()} still outstanding</span>
+                            <span className="text-amber-600 font-semibold"> · {formatNumber(outstandingTotal)} still outstanding</span>
                           ) : (
                             <span className="text-emerald-600 font-semibold"> · complete</span>
                           )}
@@ -369,14 +370,14 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                 <div className="flex-1">
                                   <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
                                   <p className="text-[10px] text-slate-400 mt-1">
-                                    Arrived in this shipment: <b>{Number(item.quantity)}</b> {item.unitOfMeasure}
+                                    Arrived in this shipment: <b>{formatNumber(item.quantity)}</b> {item.unitOfMeasure}
                                   </p>
                                   {item.poItem && (
                                     <p className="text-[10px] text-slate-400 mt-0.5">
-                                      PO line: <b>{Number(item.poItem.receivedQty)}</b> of {Number(item.poItem.quantity)} received
+                                      PO line: <b>{formatNumber(item.poItem.receivedQty)}</b> of {formatNumber(item.poItem.quantity)} received
                                       {Number(item.poItem.quantity) > Number(item.poItem.receivedQty) ? (
                                         <span className="text-amber-600 font-semibold">
-                                          {' '}· {Number(item.poItem.quantity) - Number(item.poItem.receivedQty)} still outstanding
+                                          {' '}· {formatNumber(Number(item.poItem.quantity) - Number(item.poItem.receivedQty))} still outstanding
                                         </span>
                                       ) : (
                                         <span className="text-emerald-600 font-semibold"> · complete</span>
@@ -384,7 +385,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                     </p>
                                   )}
                                   <p className="text-[10px] text-slate-400 mt-0.5">
-                                    Distributed: <b>{Number(item.distributedQty)}</b>
+                                    Distributed: <b>{formatNumber(item.distributedQty)}</b>
                                   </p>
                                   {checks.length > 0 && (
                                     <p className="text-[9px] text-slate-400 mt-1">
@@ -400,7 +401,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                   </span>
                                   {item.quantity > item.distributedQty && (
                                     <div className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                                      {Number(item.quantity - item.distributedQty).toFixed(2)} pending
+                                      {formatNumber(item.quantity - item.distributedQty, 2)} pending
                                     </div>
                                   )}
                                 </div>
@@ -456,7 +457,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                   <div key={item.id} className="rounded-lg border border-slate-100 p-3 space-y-2">
                     <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
                     <p className="text-[10px] text-slate-400">
-                      Remaining: <b>{Number(item.quantity - item.distributedQty).toFixed(2)}</b> {item.unitOfMeasure}
+                      Remaining: <b>{formatNumber(item.quantity - item.distributedQty, 2)}</b> {item.unitOfMeasure}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
@@ -481,7 +482,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                           step="0.0001"
                           value={distributions[idx]?.quantity || ''}
                           onChange={(e) => setDistributions((prev) => [...prev.slice(0, idx), { ...prev[idx], quantity: e.target.value }, ...prev.slice(idx + 1)])}
-                          placeholder={Number(item.quantity - item.distributedQty).toFixed(2)}
+                          placeholder={formatNumber(item.quantity - item.distributedQty, 2)}
                           className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#00B4D8]"
                         />
                       </div>

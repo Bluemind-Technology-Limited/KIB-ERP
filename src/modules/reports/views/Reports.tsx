@@ -5,6 +5,7 @@ import { TableSkeleton, Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatMoney, formatNumber, formatPercent, formatQty } from '../../../lib/format';
 
 interface EfficiencyRow {
   orderNumber: string;
@@ -169,19 +170,21 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Orders</p>
-            <p className="text-xl font-bold text-[#171717]">{efficiency.summary.totalOrders ?? 0}</p>
+            <p className="text-xl font-bold text-[#171717]">{formatNumber(efficiency.summary.totalOrders ?? 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Completed</p>
-            <p className="text-xl font-bold text-[#171717]">{efficiency.summary.completedOrders ?? 0}</p>
+            <p className="text-xl font-bold text-[#171717]">{formatNumber(efficiency.summary.completedOrders ?? 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">In Progress</p>
-            <p className="text-xl font-bold text-amber-600">{efficiency.summary.inProgress ?? 0}</p>
+            <p className="text-xl font-bold text-amber-600">{formatNumber(efficiency.summary.inProgress ?? 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Yield</p>
-            <p className="text-xl font-bold text-emerald-600">{efficiency.summary.avgYieldPct ?? '—'}%</p>
+            <p className="text-xl font-bold text-emerald-600">
+              {efficiency.summary.avgYieldPct == null ? '—' : formatPercent(efficiency.summary.avgYieldPct)}
+            </p>
           </div>
         </div>
       )}
@@ -189,12 +192,12 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
         <div className="grid grid-cols-2 gap-3 max-w-md">
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Materials</p>
-            <p className="text-xl font-bold text-[#171717]">{valuation.summary.materials ?? 0}</p>
+            <p className="text-xl font-bold text-[#171717]">{formatNumber(valuation.summary.materials ?? 0)}</p>
           </div>
           <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Value</p>
             <p className="text-xl font-bold text-emerald-600">
-              {valuation.summary.totalValue?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }) ?? '₦0.00'}
+              {formatMoney(valuation.summary.totalValue)}
             </p>
           </div>
         </div>
@@ -230,12 +233,14 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                       <td className="px-4 py-3">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[r.status]}`}>{r.status}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">{r.targetQuantity}</td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">{r.actualYield ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">{formatNumber(r.targetQuantity)}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
+                        {r.actualYield == null ? '—' : formatNumber(r.actualYield)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         {r.yieldPct !== null ? (
                           <span className={`text-xs font-bold font-mono ${r.yieldPct >= 95 ? 'text-emerald-600' : r.yieldPct >= 80 ? 'text-amber-600' : 'text-rose-600'}`}>
-                            {r.yieldPct}%
+                            {formatPercent(r.yieldPct)}
                           </span>
                         ) : (
                           <span className="text-[10px] text-slate-300">—</span>
@@ -283,13 +288,13 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                       </td>
                       <td className="px-4 py-3 text-[10px] font-mono text-slate-500">{r.sku}</td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-600">
-                        {r.quantity} <span className="text-[9px] font-normal text-slate-400">{r.unitOfMeasure}</span>
+                        {formatNumber(r.quantity)} <span className="text-[9px] font-normal text-slate-400">{r.unitOfMeasure}</span>
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
-                        {r.unitCost ? r.unitCost.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }) : '—'}
+                        {r.unitCost ? formatMoney(r.unitCost) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono font-bold text-emerald-600">
-                        {r.value.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}
+                        {formatMoney(r.value)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <ViewButton onClick={() => setViewingValuation(r)} />
@@ -325,11 +330,11 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
             {
               title: 'Output',
               fields: [
-                { label: 'Target quantity', value: detailValue(viewing.targetQuantity) },
-                { label: 'Actual yield', value: detailValue(viewing.actualYield) },
+                { label: 'Target quantity', value: formatNumber(viewing.targetQuantity) },
+                { label: 'Actual yield', value: viewing.actualYield == null ? '—' : formatNumber(viewing.actualYield) },
                 {
                   label: 'Yield %',
-                  value: viewing.yieldPct === null ? '—' : `${viewing.yieldPct}%`,
+                  value: viewing.yieldPct === null ? '—' : formatPercent(viewing.yieldPct),
                 },
                 { label: 'Status', value: detailValue(viewing.status) },
               ],
@@ -355,16 +360,14 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
             {
               title: 'Stock value',
               fields: [
-                { label: 'On hand', value: `${viewingValuation.quantity} ${viewingValuation.unitOfMeasure}` },
+                { label: 'On hand', value: formatQty(viewingValuation.quantity, viewingValuation.unitOfMeasure) },
                 {
                   label: 'Unit cost',
-                  value: viewingValuation.unitCost
-                    ? viewingValuation.unitCost.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })
-                    : '—',
+                  value: viewingValuation.unitCost ? formatMoney(viewingValuation.unitCost) : '—',
                 },
                 {
                   label: 'Total value',
-                  value: viewingValuation.value.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' }),
+                  value: formatMoney(viewingValuation.value),
                   wide: true,
                 },
               ],

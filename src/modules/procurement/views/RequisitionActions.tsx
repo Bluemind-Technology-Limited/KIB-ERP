@@ -6,6 +6,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -291,7 +292,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                   </div>
                   <p className="text-[10px] text-slate-400">Requested by: {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
                   <p className="text-[10px] text-slate-500 mb-2">
-                    {r.items?.map((i: any) => `${i.material?.name} (${i.quantity} ${i.unitOfMeasure})`).join(', ')}
+                    {r.items?.map((i: any) => `${i.material?.name} (${formatNumber(i.quantity)} ${i.unitOfMeasure})`).join(', ')}
                   </p>
                   {r.notes && <p className="text-[9px] text-slate-500 italic">Notes: {r.notes}</p>}
                 </div>

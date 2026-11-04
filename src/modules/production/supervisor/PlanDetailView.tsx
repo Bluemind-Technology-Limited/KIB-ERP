@@ -5,6 +5,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import BatchAllocationTable from './BatchAllocationTable';
 import DailyReconciliationForm from './DailyReconciliationForm';
 import ReconciliationHistory from './ReconciliationHistory';
+import { formatNumber, formatPercent, formatQty } from '../../../lib/format';
 
 interface LineItem {
   id: string;
@@ -124,7 +125,7 @@ export default function PlanDetailView({
             }`}
           >
             {(executionStatus?.variancePercentage || 0) > 0 ? '+' : ''}
-            {(executionStatus?.variancePercentage || 0).toFixed(1)}%
+            {formatPercent(executionStatus?.variancePercentage || 0, 1)}
           </p>
         </div>
       </div>
@@ -148,8 +149,8 @@ export default function PlanDetailView({
                       {idx + 1}. {productFor(item)}
                     </p>
                     <p className="text-[9px] text-slate-500 mt-1">
-                      Target: {target.toFixed(2)} {unitFor(item)} · Ground:{' '}
-                      {Number(item.groundQuantity ?? 0).toFixed(2)} · Output: {achieved.toFixed(2)}{' '}
+                      Target: {formatQty(target, unitFor(item), 2)} · Ground:{' '}
+                      {formatNumber(Number(item.groundQuantity ?? 0), 2)} · Output: {formatNumber(achieved, 2)}{' '}
                       {unitFor(item)}
                     </p>
                   </div>
@@ -165,7 +166,7 @@ export default function PlanDetailView({
                     }`}
                   >
                     {diff > 0 ? '+' : ''}
-                    {diff.toFixed(2)}
+                    {formatNumber(diff, 2)}
                   </span>
                 </div>
               </div>
@@ -194,7 +195,7 @@ export default function PlanDetailView({
               >
                 <span className="text-[11px] font-semibold text-slate-700">{productFor(item)}</span>
                 <span className="font-mono text-[11px] font-bold text-[#171717]">
-                  {Number(item.carryoverAvailable ?? 0).toFixed(2)} {unitFor(item)}
+                  {formatQty(Number(item.carryoverAvailable ?? 0), unitFor(item), 2)}
                 </span>
               </div>
             ))}

@@ -88,6 +88,16 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     load();
   }, [filter, resultFilter]);
 
+  /** Reload the list and return one inspection, so the open modal stays fresh. */
+  const refreshOne = async (id: string) => {
+    const res = await axiosClient.get<{ inspections: Inspection[] }>('/qa/inspections', {
+      params: { type: filter || undefined, result: resultFilter || undefined },
+      toast: false,
+    });
+    setInspections(res.data.inspections);
+    return res.data.inspections.find((i) => i.id === id) ?? null;
+  };
+
   const openReview = (inspection: Inspection) => {
     setReviewing(inspection);
     setReviewForm({
@@ -114,9 +124,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       await axiosClient.patch(`/qa/inspections/${reviewing.id}/comment`, {
         notes: reviewForm.notes,
       });
-      await load();
-      const refreshed = (await axiosClient.get<{ inspections: Inspection[] }>('/qa/inspections'))
-        .data.inspections.find((i) => i.id === reviewing.id);
+      const refreshed = await refreshOne(reviewing.id);
       if (refreshed) {
         setReviewing(refreshed);
         setReviewForm((prev) => ({ ...prev, notes: refreshed.notes ?? '' }));
@@ -190,7 +198,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
         mimeType: contentType,
         fileSize: file.size,
       });
-      await load();
+      const refreshed = await refreshOne(inspection.id);
+      if (refreshed && reviewing?.id === inspection.id) setReviewing(refreshed);
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Failed to upload the review document.');
     } finally {
@@ -204,8 +213,13 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     setError('');
     try {
       await axiosClient.delete(`/qa/inspections/${docToDelete.id}/review-document`);
+      const deletedId = docToDelete.id;
       setDocToDelete(null);
-      await load();
+      const refreshed = await refreshOne(deletedId);
+      if (refreshed) {
+        if (reviewing?.id === deletedId) setReviewing(refreshed);
+        if (viewing?.id === deletedId) setViewing(refreshed);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Failed to remove the review document.');
     } finally {
@@ -262,7 +276,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       {/* 2. Inspections Table */}
       <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={8} rows={6} />
+          <TableSkeleton cols={7} rows={6} />
         ) : filtered.length === 0 ? (
           <EmptyState title="No inspections found." />
         ) : (
@@ -275,7 +289,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                   <th className="px-4 py-3 font-semibold">Type</th>
                   <th className="px-4 py-3 font-semibold">Batch Status</th>
                   <th className="px-4 py-3 font-semibold">Result</th>
-                  <th className="px-4 py-3 font-semibold">Review Document</th>
                   <th className="px-4 py-3 font-semibold">Comments</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -296,18 +309,20 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className={`text-[10px] font-mono ${pendingBatch(i) ? 'text-amber-600' : 'text-slate-600'}`}>
                           {i.batchLot?.batchNumber ?? '—'}
                         </span>
                         {pendingBatch(i) && i.result === 'PENDING' && (
-                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
                             Assign
                           </span>
                         )}
                       </div>
-                      {i.referenceLabel && <p className="text-[9px] text-slate-400">Ref: {i.referenceLabel}</p>}
+                      <p className="text-[9px] text-slate-400 whitespace-nowrap mt-0.5">
+                        Ref: {i.referenceLabel ?? '—'}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-sky-50 text-sky-700 border-sky-200">
@@ -321,65 +336,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${resultBadge[i.result]}`}>{i.result}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {i.reviewDocumentUrl ? (
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={i.reviewDocumentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={i.reviewDocumentName ?? 'Open review document'}
-                            className="inline-flex items-center gap-1 max-w-[130px] text-[10px] font-semibold text-[#171717] hover:text-[#EA4335]"
-                          >
-                            <Paperclip className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{i.reviewDocumentName ?? 'Document'}</span>
-                            <ExternalLink className="w-3 h-3 shrink-0" />
-                          </a>
-                          <label
-                            className={`inline-flex items-center justify-center w-6 h-6 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer ${busyId === i.id ? 'opacity-60 pointer-events-none' : ''}`}
-                            title="Replace document"
-                          >
-                            {busyId === i.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                            <input
-                              type="file"
-                              className="hidden"
-                              disabled={busyId === i.id}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                e.target.value = '';
-                                if (file) void uploadReviewDoc(i, file);
-                              }}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setDocToDelete(i)}
-                            disabled={busyId === i.id}
-                            className="inline-flex items-center justify-center w-6 h-6 rounded border border-rose-200 text-rose-500 hover:bg-rose-50"
-                            title="Delete document"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <label
-                          className={`inline-flex items-center gap-1 px-2 h-7 rounded-lg border border-slate-200 text-[10px] font-semibold cursor-pointer hover:bg-slate-50 ${busyId === i.id ? 'opacity-60 pointer-events-none' : 'text-slate-600'}`}
-                        >
-                          {busyId === i.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                          {busyId === i.id ? 'Uploading…' : 'Upload'}
-                          <input
-                            type="file"
-                            className="hidden"
-                            disabled={busyId === i.id}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = '';
-                              if (file) void uploadReviewDoc(i, file);
-                            }}
-                          />
-                        </label>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       {i.notes ? (
@@ -433,7 +389,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
             )}
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 grid grid-cols-2 gap-x-4 gap-y-2">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Batch Status</p>
                 <p className="text-[11px] text-[#171717]">{reviewing.batchLot?.status ?? '—'}</p>
@@ -446,7 +402,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Batch Number {pendingBatch(reviewing) ? '*' : ''}
               </label>
@@ -454,42 +410,89 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 value={reviewForm.batchNumber}
                 onChange={(e) => setReviewForm({ ...reviewForm, batchNumber: e.target.value })}
                 placeholder="e.g. A-1-6-26"
-                className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
+                className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
               />
               <p className="text-[9px] text-slate-400">
                 Assigned by QA for traceability — this replaces the provisional lot reference.
               </p>
             </div>
 
-            <div className="space-y-1">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QA Comments</label>
               <textarea
                 value={reviewForm.notes}
                 onChange={(e) => setReviewForm({ ...reviewForm, notes: e.target.value })}
                 rows={3}
                 placeholder="Observations, test results, reasons…"
-                className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+                className="w-full rounded-lg border border-[#E9E9E9] bg-white px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
               />
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Review document</p>
-                {reviewing.reviewDocumentUrl ? (
-                  <a
-                    href={reviewing.reviewDocumentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#171717] hover:text-[#EA4335] truncate"
-                  >
-                    <Paperclip className="w-3 h-3 shrink-0" />
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-2">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Review document</p>
+
+              {reviewing.reviewDocumentUrl ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2">
+                  <span className="inline-flex items-center gap-1 min-w-0 text-[10px] font-semibold text-slate-700">
+                    <Paperclip className="w-3 h-3 shrink-0 text-slate-400" />
                     <span className="truncate">{reviewing.reviewDocumentName ?? 'Document'}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
-                ) : (
-                  <p className="text-[10px] text-slate-400">No document attached — upload it from the table.</p>
-                )}
-              </div>
+                  </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                      href={reviewing.reviewDocumentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View
+                    </a>
+                    <label
+                      className={`inline-flex items-center gap-1 h-6 px-2 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-600 cursor-pointer hover:bg-slate-50 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
+                    >
+                      {busyId === reviewing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {busyId === reviewing.id ? 'Uploading…' : 'Replace'}
+                      <input
+                        type="file"
+                        className="hidden"
+                        disabled={busyId === reviewing.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (file) void uploadReviewDoc(reviewing, file);
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setDocToDelete(reviewing)}
+                      disabled={busyId === reviewing.id}
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-rose-200 text-[9px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label
+                  className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-lg border border-slate-200 bg-white text-[10px] font-semibold text-slate-600 cursor-pointer hover:bg-slate-50 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
+                >
+                  {busyId === reviewing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {busyId === reviewing.id ? 'Uploading…' : 'Upload document'}
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={busyId === reviewing.id}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (file) void uploadReviewDoc(reviewing, file);
+                    }}
+                  />
+                </label>
+              )}
+
+              <p className="text-[9px] text-slate-400">Any format — PDF, Word or image.</p>
             </div>
 
             <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
@@ -564,22 +567,31 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
             {
               title: 'Review document',
               fields: [
-                { label: 'Document', value: viewing.reviewDocumentName ?? '—' },
+                { label: 'Document', value: viewing.reviewDocumentName ?? 'None attached' },
                 { label: 'Uploaded', value: detailDate(viewing.reviewDocumentUploadedAt, true) },
                 {
-                  label: 'Link',
+                  label: 'Actions',
                   wide: true,
                   value: viewing.reviewDocumentUrl ? (
-                    <a
-                      href={viewing.reviewDocumentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[#EA4335] font-semibold hover:underline break-all"
-                    >
-                      {viewing.reviewDocumentUrl} <ExternalLink className="w-3 h-3 shrink-0" />
-                    </a>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <a
+                        href={viewing.reviewDocumentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        <ExternalLink className="w-3 h-3" /> View document
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setDocToDelete(viewing)}
+                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-rose-200 bg-white text-[10px] font-semibold text-rose-600 hover:bg-rose-50"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    </div>
                   ) : (
-                    '—'
+                    <span className="text-slate-400">No document attached</span>
                   ),
                 },
                 { label: 'QA comments', wide: true, value: viewing.notes ?? '—' },

@@ -375,7 +375,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                   {isExpanded && (
                     <div className="pl-4 border-l border-slate-200 ml-5 space-y-0.5 animate-in slide-in-from-top-1 duration-100">
                       {group.items.map((subItem) => {
-                        const SubIcon = subItem.icon;
                         const isSubActive = activeTab === subItem.id;
                         return (
                           <button
@@ -387,7 +386,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                                 : 'text-[#171717]/85 hover:bg-slate-100/60'
                             }`}
                           >
-                            <SubIcon className="w-3 h-3 opacity-40 shrink-0" />
+                            <span
+                              aria-hidden="true"
+                              className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
+                                isSubActive ? 'bg-[#EA4335]' : 'bg-slate-400/60'
+                              }`}
+                            />
                             <span className="truncate">{subItem.name}</span>
                           </button>
                         );

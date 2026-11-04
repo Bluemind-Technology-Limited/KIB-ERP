@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface ProductionOrder {
   id: string;
@@ -214,7 +215,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <p className="text-xs font-semibold text-slate-700 truncate max-w-[180px]" title={productName}>{productName}</p>
                       <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">{Number(o.targetQuantity).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-xs font-mono text-slate-600">{formatNumber(o.targetQuantity, 2)}</td>
                     <td className="px-4 py-3">
                       <p className="text-[11px] text-slate-600 flex items-center gap-1">
                         <Factory className="w-3 h-3 text-slate-400" /> {o.machine?.name ?? '—'}
@@ -301,13 +302,13 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                             <p className="text-[9px] text-slate-400 font-mono">{item.sku}</p>
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono text-slate-600">
-                            {item.projectedQuantity.toFixed(2)} {item.unit}
+                            {formatQty(item.projectedQuantity, item.unit, 2)}
                           </td>
                           <td className="px-3 py-2.5">
                             {item.batchLotId ? (
                               <div className="flex flex-col">
                                 <span className="font-mono font-bold text-indigo-600">{item.batchNumber}</span>
-                                <span className="text-[9px] text-slate-400">Qty: {item.releasedQuantity} {item.unit}</span>
+                                <span className="text-[9px] text-slate-400">Qty: {formatQty(item.releasedQuantity, item.unit)}</span>
                               </div>
                             ) : (
                               <span className="text-rose-400 italic">Not picked</span>
@@ -362,7 +363,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
             <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center justify-between text-xs">
               <span className="text-slate-500 font-medium">Quantity Needed:</span>
               <span className="font-mono font-bold text-slate-700">
-                {releaseForm[pickingIngredientIdx].projectedQuantity.toFixed(2)} {releaseForm[pickingIngredientIdx].unit}
+                {formatQty(releaseForm[pickingIngredientIdx].projectedQuantity, releaseForm[pickingIngredientIdx].unit, 2)}
               </span>
             </div>
 
@@ -370,7 +371,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
               <div className="bg-slate-50/50 border-b border-slate-100 px-3 py-2 flex items-center justify-between">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Available Stock Batches</span>
                 <span className="text-[9px] font-semibold text-slate-400">
-                  {(ingredientBatches[releaseForm[pickingIngredientIdx].materialId] ?? []).length} batches found
+                  {formatNumber((ingredientBatches[releaseForm[pickingIngredientIdx].materialId] ?? []).length)} batches found
                 </span>
               </div>
               <div className="overflow-x-auto">
@@ -393,7 +394,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <tr key={batch.id} className="hover:bg-slate-50/50">
                         <td className="px-3 py-2.5 font-mono font-bold text-slate-700">{batch.batchNumber}</td>
                         <td className="px-3 py-2.5 text-slate-500">{batch.warehouseName}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-600">{Number(batch.quantity).toFixed(2)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-600">{formatNumber(batch.quantity, 2)}</td>
                         <td className="px-3 py-2.5 text-slate-400">
                           {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '—'}
                         </td>
@@ -456,7 +457,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 { label: 'Order Number', value: detailValue(viewing.orderNumber) },
                 { label: 'Product', value: detailValue(viewing.bom?.finishedSku?.name ?? viewing.bom?.productName) },
                 { label: 'SKU', value: detailValue(viewing.bom?.finishedSku?.sku) },
-                { label: 'Target Quantity', value: Number(viewing.targetQuantity).toFixed(2) },
+                { label: 'Target Quantity', value: formatNumber(viewing.targetQuantity, 2) },
               ],
             },
             {
@@ -495,7 +496,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                               <span className="font-mono text-[9px] text-slate-400">{ing.material.sku}</span>
                             </span>
                             <span className="shrink-0 font-mono text-slate-500">
-                              {Number(ing.projectedQuantity).toFixed(2)} {ing.material.unitOfMeasure}
+                              {formatQty(ing.projectedQuantity, ing.material.unitOfMeasure, 2)}
                             </span>
                           </div>
                         ))}

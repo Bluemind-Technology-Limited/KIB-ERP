@@ -3,6 +3,7 @@ import { useCostManagementStore } from '../../../stores/useCostManagementStore';
 import type { EntityType, CostHistoryItem } from '../../../types/costManagement';
 import { toast } from '../../../stores/useToastStore';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
+import { formatMoney, formatPercent } from '../../../lib/format';
 
 export default function CostHistoryViewer() {
   const {
@@ -184,7 +185,7 @@ export default function CostHistoryViewer() {
                                 {item.variance > 0 ? '+' : ''}₦{Math.abs(item.variance).toLocaleString()}
                               </p>
                               <p className={`text-xs font-medium ${getVarianceColor(item.variancePercent)}`}>
-                                {item.variancePercent > 0 ? '+' : ''}{item.variancePercent.toFixed(2)}%
+                                {item.variancePercent > 0 ? '+' : ''}{formatPercent(item.variancePercent, 2)}
                               </p>
                             </div>
                           </td>
@@ -273,10 +274,10 @@ export default function CostHistoryViewer() {
               fields: [
                 { label: 'Field', value: detailValue(viewing.fieldName) },
                 { label: 'Status', value: detailValue(viewing.status) },
-                { label: 'Old value', value: `₦${viewing.oldValue.toLocaleString()}` },
-                { label: 'New value', value: `₦${viewing.newValue.toLocaleString()}` },
-                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}₦${Math.abs(viewing.variance).toLocaleString()}` },
-                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${viewing.variancePercent.toFixed(2)}%` },
+                { label: 'Old value', value: formatMoney(viewing.oldValue) },
+                { label: 'New value', value: formatMoney(viewing.newValue) },
+                { label: 'Variance', value: `${viewing.variance > 0 ? '+' : ''}${formatMoney(Math.abs(viewing.variance))}` },
+                { label: 'Variance %', value: `${viewing.variancePercent > 0 ? '+' : ''}${formatPercent(viewing.variancePercent, 2)}` },
               ],
             },
             {
