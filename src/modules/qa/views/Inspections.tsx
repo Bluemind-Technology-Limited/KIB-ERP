@@ -9,7 +9,6 @@ import {
   Trash2,
   ExternalLink,
   Loader2,
-  MessageSquare,
   ClipboardCheck,
 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
@@ -54,12 +53,24 @@ const batchStatusBadge: Record<string, string> = {
   EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
+/** Local calendar day (YYYY-MM-DD) so it matches an <input type="date"> value. */
+const localDay = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const displayDate = (value?: string | null) =>
+  value ? new Date(value).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
 export default function Inspections({ searchQuery = '' }: { searchQuery?: string }) {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [docToDelete, setDocToDelete] = useState<Inspection | null>(null);
   const [deletingDoc, setDeletingDoc] = useState(false);
@@ -227,13 +238,16 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     }
   };
 
-  const filtered = inspections.filter(
-    (i) =>
-      (i.material?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (i.batchLot?.batchNumber ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (i.notes ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (i.referenceLabel ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = inspections.filter((i) => {
+    const term = searchQuery.toLowerCase();
+    const matchesSearch =
+      (i.material?.name ?? '').toLowerCase().includes(term) ||
+      (i.batchLot?.batchNumber ?? '').toLowerCase().includes(term) ||
+      (i.notes ?? '').toLowerCase().includes(term) ||
+      (i.referenceLabel ?? '').toLowerCase().includes(term);
+    const matchesDate = !dateFilter || localDay(i.inspectedAt ?? i.createdAt) === dateFilter;
+    return matchesSearch && matchesDate;
+  });
 
   const pendingBatch = (i: Inspection) =>
     Boolean(i.batchLot && i.batchLot.batchNumber.startsWith('PENDING-'));
@@ -266,6 +280,25 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
             <option value="PASSED">Passed</option>
             <option value="FAILED">Failed</option>
           </select>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              title="Filter by inspection date"
+              className="h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] px-2 focus:outline-none focus:border-[#EA4335]"
+            />
+            {dateFilter && (
+              <button
+                type="button"
+                onClick={() => setDateFilter('')}
+                className="h-9 px-2 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-500 hover:bg-slate-50"
+                title="Clear date filter"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -287,9 +320,9 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">Batch / Ref</th>
                   <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Batch Status</th>
                   <th className="px-4 py-3 font-semibold">Result</th>
-                  <th className="px-4 py-3 font-semibold">Comments</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -329,6 +362,12 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         {i.inspectionType}
                       </span>
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-[11px] text-slate-600">{displayDate(i.inspectedAt ?? i.createdAt)}</span>
+                      <p className="text-[9px] text-slate-400 mt-0.5">
+                        {i.inspectedAt ? 'Inspected' : 'Received'}
+                      </p>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${batchStatusBadge[i.batchLot?.status ?? ''] ?? batchStatusBadge.ACTIVE}`}>
                         {i.batchLot?.status ?? '—'}
@@ -336,19 +375,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${resultBadge[i.result]}`}>{i.result}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {i.notes ? (
-                        <span
-                          className="inline-flex items-start gap-1 max-w-[180px] text-[10px] text-slate-600"
-                          title={i.notes}
-                        >
-                          <MessageSquare className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
-                          <span className="truncate">{i.notes}</span>
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-300">—</span>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
