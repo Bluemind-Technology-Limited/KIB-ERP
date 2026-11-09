@@ -676,9 +676,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                           {o.planLinked ? (
                             <span
                               className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
-                              title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
+                              title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Ingredients Station`}
                             >
-                              <ClipboardList className="w-3 h-3 shrink-0" /> Issue via Stock Issue
+                              <ClipboardList className="w-3 h-3 shrink-0" /> Issue via Ingredients Station
                             </span>
                           ) : (
                             <button onClick={() => openAction(o, 'release')} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">

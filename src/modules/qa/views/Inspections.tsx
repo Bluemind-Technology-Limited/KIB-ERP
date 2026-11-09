@@ -3,7 +3,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  Search,
   Paperclip,
   Upload,
   Trash2,
@@ -30,7 +29,7 @@ interface Inspection {
   createdAt: string;
   referenceLabel?: string | null;
   material?: { name: string; sku: string; unitOfMeasure: string } | null;
-  batchLot?: { id: string; batchNumber: string; status: string } | null;
+  batchLot?: { id: string; batchNumber: string; qcBatchNumber?: string | null; lotCode?: string | null; status: string } | null;
   inspector?: { fullName?: string } | null;
   reviewDocumentUrl?: string | null;
   reviewDocumentKey?: string | null;
@@ -68,7 +67,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -77,14 +75,14 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [viewing, setViewing] = useState<Inspection | null>(null);
   /** QA review modal — batch number (traceability) + comments for one item. */
   const [reviewing, setReviewing] = useState<Inspection | null>(null);
-  const [reviewForm, setReviewForm] = useState({ batchNumber: '', notes: '' });
+  const [reviewForm, setReviewForm] = useState({ qcBatchNumber: '', notes: '' });
   const [savingReview, setSavingReview] = useState<'comment' | 'release' | 'reject' | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
       const res = await axiosClient.get<{ inspections: Inspection[] }>('/qa/inspections', {
-        params: { type: filter || undefined, result: resultFilter || undefined },
+        params: { result: resultFilter || undefined },
       });
       setInspections(res.data.inspections);
       setError('');
@@ -97,12 +95,12 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
 
   useEffect(() => {
     load();
-  }, [filter, resultFilter]);
+  }, [resultFilter]);
 
   /** Reload the list and return one inspection, so the open modal stays fresh. */
   const refreshOne = async (id: string) => {
     const res = await axiosClient.get<{ inspections: Inspection[] }>('/qa/inspections', {
-      params: { type: filter || undefined, result: resultFilter || undefined },
+      params: { result: resultFilter || undefined },
       toast: false,
     });
     setInspections(res.data.inspections);
@@ -112,10 +110,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const openReview = (inspection: Inspection) => {
     setReviewing(inspection);
     setReviewForm({
-      batchNumber:
-        inspection.batchLot && !inspection.batchLot.batchNumber.startsWith('PENDING-')
-          ? inspection.batchLot.batchNumber
-          : '',
+      qcBatchNumber: inspection.batchLot?.qcBatchNumber ?? '',
       notes: inspection.notes ?? '',
     });
     setError('');
@@ -151,8 +146,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     if (!reviewing) return;
     if (action === 'release') {
       const lot = reviewing.batchLot;
-      if (lot && lot.batchNumber.startsWith('PENDING-') && !reviewForm.batchNumber.trim()) {
-        setError('Assign a batch number before releasing this item.');
+      if (reviewing.inspectionType === 'GRN' && lot && !reviewForm.qcBatchNumber.trim()) {
+        setError('Enter the QC Ingredient Batch Number before releasing this item.');
         return;
       }
     }
@@ -160,7 +155,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     setError('');
     try {
       await axiosClient.post(`/qa/inspections/${reviewing.id}/${action}`, {
-        batchNumber: reviewForm.batchNumber.trim() || undefined,
+        qcBatchNumber: reviewForm.qcBatchNumber.trim() || undefined,
         notes: reviewForm.notes.trim() || undefined,
       });
       setReviewing(null);
@@ -249,9 +244,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     return matchesSearch && matchesDate;
   });
 
-  const pendingBatch = (i: Inspection) =>
-    Boolean(i.batchLot && i.batchLot.batchNumber.startsWith('PENDING-'));
-
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -261,15 +253,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
           <PageDescription>Check received consignment items: attach documents, record comments and assign batch numbers.</PageDescription>
         </div>
         <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Type (GRN / FINISHED_BATCH)"
-              className="pl-9 pr-3 h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] w-44 focus:outline-none focus:border-[#EA4335]"
-            />
-          </div>
           <select
             value={resultFilter}
             onChange={(e) => setResultFilter(e.target.value)}
@@ -309,7 +292,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       {/* 2. Inspections Table */}
       <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={7} rows={6} />
+          <TableSkeleton cols={6} rows={6} />
         ) : filtered.length === 0 ? (
           <EmptyState title="No inspections found." />
         ) : (
@@ -319,7 +302,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">Batch / Ref</th>
-                  <th className="px-4 py-3 font-semibold">Type</th>
                   <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Batch Status</th>
                   <th className="px-4 py-3 font-semibold">Result</th>
@@ -344,23 +326,24 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <span className={`text-[10px] font-mono ${pendingBatch(i) ? 'text-amber-600' : 'text-slate-600'}`}>
-                          {i.batchLot?.batchNumber ?? '—'}
+                        <span className={`text-[10px] font-mono ${i.batchLot?.lotCode ? 'text-slate-600' : 'text-amber-600'}`}>
+                          {i.batchLot?.lotCode ?? i.batchLot?.batchNumber ?? '—'}
                         </span>
-                        {pendingBatch(i) && i.result === 'PENDING' && (
+                        {i.result === 'PENDING' && i.inspectionType === 'GRN' && !i.batchLot?.qcBatchNumber && (
                           <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
                             Assign
                           </span>
                         )}
                       </div>
+                      {i.batchLot?.qcBatchNumber && (
+                        <p className="text-[9px] whitespace-nowrap mt-0.5">
+                          <span className="text-slate-400">QC: </span>
+                          <span className="font-mono font-semibold text-emerald-700">{i.batchLot.qcBatchNumber}</span>
+                        </p>
+                      )}
                       <p className="text-[9px] text-slate-400 whitespace-nowrap mt-0.5">
                         Ref: {i.referenceLabel ?? '—'}
                       </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-sky-50 text-sky-700 border-sky-200">
-                        {i.inspectionType}
-                      </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="text-[11px] text-slate-600">{displayDate(i.inspectedAt ?? i.createdAt)}</span>
@@ -404,8 +387,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-[#171717] truncate">{reviewing.material?.name ?? 'Inspection'}</h3>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {reviewing.material?.sku ?? ''} · {reviewing.inspectionType}
-                  {reviewing.referenceLabel ? ` · ${reviewing.referenceLabel}` : ''}
+                  {reviewing.material?.sku ?? ''}
+                  {reviewing.referenceLabel ? ` · ${reviewing.referenceLabel}` : ' · GRN'}
                 </p>
               </div>
               <button type="button" onClick={closeReview} disabled={!!savingReview} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -421,25 +404,25 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 <p className="text-[11px] text-[#171717]">{reviewing.batchLot?.status ?? '—'}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Current Batch Ref</p>
-                <p className={`text-[11px] font-mono ${pendingBatch(reviewing) ? 'text-amber-600' : 'text-[#171717]'}`}>
-                  {reviewing.batchLot?.batchNumber ?? '—'}
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Lot Code</p>
+                <p className={`text-[11px] font-mono ${reviewing.batchLot?.lotCode ? 'text-[#171717]' : 'text-amber-600'}`}>
+                  {reviewing.batchLot?.lotCode ?? 'Not set'}
                 </p>
               </div>
             </div>
 
             <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Batch Number {pendingBatch(reviewing) ? '*' : ''}
+                QC Ingredient Batch Number {reviewing.inspectionType === 'GRN' ? '*' : ''}
               </label>
               <input
-                value={reviewForm.batchNumber}
-                onChange={(e) => setReviewForm({ ...reviewForm, batchNumber: e.target.value })}
-                placeholder="e.g. A-1-6-26"
+                value={reviewForm.qcBatchNumber}
+                onChange={(e) => setReviewForm({ ...reviewForm, qcBatchNumber: e.target.value })}
+                placeholder="e.g. 800151"
                 className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
               />
               <p className="text-[9px] text-slate-400">
-                Assigned by QA for traceability — this replaces the provisional lot reference.
+                Assigned by QA to the reviewed ingredient batch. It does not change the lot code above.
               </p>
             </div>
 
@@ -574,7 +557,6 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
             {
               title: 'Inspection',
               fields: [
-                { label: 'Type', value: viewing.inspectionType },
                 { label: 'Reference', value: viewing.referenceLabel ?? '—' },
                 { label: 'Inspected by', value: viewing.inspector?.fullName ?? '—' },
                 { label: 'Inspected at', value: detailDate(viewing.inspectedAt, true) },
@@ -584,10 +566,19 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
             {
               title: 'Batch',
               fields: [
-                { label: 'Batch number', value: viewing.batchLot?.batchNumber ?? '—' },
+                { label: 'Lot code', value: viewing.batchLot?.lotCode ?? 'Not set' },
+                {
+                  label: 'QC ingredient batch number',
+                  value: viewing.batchLot?.qcBatchNumber ? (
+                    <span className="font-mono font-semibold text-emerald-700">{viewing.batchLot.qcBatchNumber}</span>
+                  ) : (
+                    <span className="text-slate-400">Not set</span>
+                  ),
+                },
                 { label: 'Batch status', value: viewing.batchLot?.status ?? '—' },
                 { label: 'Material', value: viewing.material?.name ?? '—' },
                 { label: 'SKU', value: viewing.material?.sku ?? '—' },
+                { label: 'Receiving reference', value: viewing.batchLot?.batchNumber ?? '—' },
               ],
             },
             {

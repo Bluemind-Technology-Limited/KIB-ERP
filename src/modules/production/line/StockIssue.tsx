@@ -219,7 +219,7 @@ export default function StockIssue() {
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Stock Issue — Production</h2>
+          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Ingredients Station</h2>
           <PageDescription>Required ingredients for each plan. Select a warehouse and deduct the quantities.</PageDescription>
         </div>
         <button

@@ -3,6 +3,7 @@ import { AlertCircle, ChevronDown, ChevronRight, Cog, Loader, RefreshCw } from '
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber } from '../../../lib/format';
 
@@ -45,7 +46,7 @@ interface Plan {
 interface FormState {
   inputQuantity: string;
   achievedQuantity: string;
-  batchNumber: string;
+  grindingBatchNumber: string;
   productionDate: string;
   machineId: string;
   remarks: string;
@@ -53,9 +54,18 @@ interface FormState {
   inputs: Record<string, { quantity: string; batchLotId: string }>;
 }
 
+interface GrindingSequence {
+  lastNumber: number | null;
+  nextNumber: number | null;
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 
-function emptyForm(item: PlanItem, ingredients: AggregatedIngredient[]): FormState {
+function emptyForm(
+  item: PlanItem,
+  ingredients: AggregatedIngredient[],
+  grindingBatchNumber = ''
+): FormState {
   const remainders: Record<string, string> = {};
   const inputs: Record<string, { quantity: string; batchLotId: string }> = {};
   for (const agg of ingredients) {
@@ -65,7 +75,7 @@ function emptyForm(item: PlanItem, ingredients: AggregatedIngredient[]): FormSta
   return {
     inputQuantity: String(item.targetQuantity ?? ''),
     achievedQuantity: String(item.targetQuantity ?? ''),
-    batchNumber: '',
+    grindingBatchNumber,
     productionDate: today(),
     machineId: '',
     remarks: '',
@@ -87,16 +97,24 @@ export default function GrindingStation() {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
+  /** Continuous grinding batch serial (seeded by the grinding manager). */
+  const [sequence, setSequence] = useState<GrindingSequence>({ lastNumber: null, nextNumber: null });
+  const [sequenceEditorOpen, setSequenceEditorOpen] = useState(false);
+  const [sequenceInput, setSequenceInput] = useState('');
+  const [savingSequence, setSavingSequence] = useState(false);
+  const [sequenceError, setSequenceError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [queueRes, machineRes] = await Promise.all([
+      const [queueRes, machineRes, seqRes] = await Promise.all([
         axiosClient.get('/production-line/queue', { params: { station: 'GRINDING' } }),
         axiosClient.get('/production/machines').catch(() => ({ data: { machines: [] } })),
+        axiosClient.get<GrindingSequence>('/production-line/grinding-batch-sequence').catch(() => ({ data: { lastNumber: null, nextNumber: null } })),
       ]);
       setPlans(queueRes.data.plans || []);
       setMachines(machineRes.data.machines || []);
+      setSequence(seqRes.data);
       setError('');
     } catch (err: any) {
       setError(apiError(err, 'Failed to load the grinding queue'));
@@ -116,9 +134,13 @@ export default function GrindingStation() {
     }
     setExpandedId(plan.id);
     const next: Record<string, FormState> = {};
+    let offset = 0;
     for (const item of plan.items) {
       if (item.grindingRecord) continue;
-      next[item.id] = emptyForm(item, plan.aggregatedIngredients);
+      const prefilled =
+        sequence.nextNumber === null ? '' : String(sequence.nextNumber + offset);
+      next[item.id] = emptyForm(item, plan.aggregatedIngredients, prefilled);
+      offset += 1;
     }
     setForms(next);
 
@@ -132,6 +154,36 @@ export default function GrindingStation() {
 
   const update = (itemId: string, patch: Partial<FormState>) =>
     setForms((prev) => ({ ...prev, [itemId]: { ...prev[itemId], ...patch } }));
+
+  const openSequenceEditor = () => {
+    setSequenceInput(sequence.lastNumber === null ? '' : String(sequence.lastNumber));
+    setSequenceError('');
+    setSequenceEditorOpen(true);
+  };
+
+  const saveSequence = async () => {
+    const value = Number(sequenceInput);
+    if (!Number.isInteger(value) || value < 0) {
+      setSequenceError('Enter the last grinding batch number as a whole number.');
+      return;
+    }
+    setSavingSequence(true);
+    setSequenceError('');
+    try {
+      const res = await axiosClient.put<GrindingSequence>('/production-line/grinding-batch-sequence', {
+        lastNumber: value,
+      });
+      setSequence(res.data);
+      setSequenceEditorOpen(false);
+      // Re-prefill the open batches from the new counter.
+      setForms({});
+      setExpandedId(null);
+    } catch (err: any) {
+      setSequenceError(apiError(err, 'Failed to update the grinding batch sequence'));
+    } finally {
+      setSavingSequence(false);
+    }
+  };
 
   const submit = async (plan: Plan, item: PlanItem) => {
     const form = forms[item.id];
@@ -166,7 +218,7 @@ export default function GrindingStation() {
         remainders,
         inputs,
         machineId: form.machineId || null,
-        batchNumber: form.batchNumber || null,
+        grindingBatchNumber: form.grindingBatchNumber ? Number(form.grindingBatchNumber) : null,
         productionDate: form.productionDate,
         remarks: form.remarks || undefined,
       });
@@ -292,13 +344,30 @@ export default function GrindingStation() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                                Batch no.
-                              </label>
+                              <div className="flex items-center justify-between gap-1">
+                                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                                  Grinding batch no.
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={openSequenceEditor}
+                                  className="text-[9px] font-semibold text-[#AA3BFF] hover:underline"
+                                >
+                                  Set last
+                                </button>
+                              </div>
+                              <p className="text-[9px] text-slate-400">
+                                Last batch number:{' '}
+                                <span className="font-mono font-semibold text-slate-600">
+                                  {sequence.lastNumber === null ? 'Not set' : formatNumber(sequence.lastNumber, 0)}
+                                </span>
+                              </p>
                               <input
-                                value={form.batchNumber}
-                                onChange={(e) => update(item.id, { batchNumber: e.target.value })}
-                                placeholder="Optional"
+                                type="number"
+                                min="1"
+                                value={form.grindingBatchNumber}
+                                onChange={(e) => update(item.id, { grindingBatchNumber: e.target.value })}
+                                placeholder={sequence.nextNumber === null ? 'Enter number' : String(sequence.nextNumber)}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
                             </div>
@@ -471,6 +540,76 @@ export default function GrindingStation() {
             );
           })}
         </div>
+      )}
+
+      {sequenceEditorOpen && (
+        <Modal onClose={() => !savingSequence && setSequenceEditorOpen(false)}>
+          <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-[#171717]">Grinding batch number</h3>
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Set the last number already used. The next batch continues from there.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSequenceEditorOpen(false)}
+                disabled={savingSequence}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Last batch number
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={sequenceInput}
+                onChange={(e) => setSequenceInput(e.target.value)}
+                placeholder="e.g. 800150"
+                className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs font-mono focus:outline-none focus:border-[#AA3BFF]"
+              />
+              <p className="text-[9px] text-slate-400">
+                Next batch:{' '}
+                <span className="font-mono font-semibold text-slate-600">
+                  {sequenceInput === '' || Number.isNaN(Number(sequenceInput))
+                    ? '—'
+                    : formatNumber(Number(sequenceInput) + 1, 0)}
+                </span>
+              </p>
+            </div>
+
+            {sequenceError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+                {sequenceError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-2">
+              <button
+                type="button"
+                onClick={() => setSequenceEditorOpen(false)}
+                disabled={savingSequence}
+                className="h-9 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveSequence}
+                disabled={savingSequence}
+                className="h-9 rounded-lg bg-[#AA3BFF] px-4 text-xs font-semibold text-white hover:bg-[#9a2ff5] disabled:opacity-50"
+              >
+                {savingSequence ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -83,7 +83,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       icon: FlaskConical,
       items: [
         { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
-        { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
+        { id: 'prod-issue', name: 'Ingredients Station', icon: Boxes },
         { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
         { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
         { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
@@ -140,7 +140,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
     { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
-    { id: 'prod-issue', name: 'Stock Issue', icon: Boxes },
+    { id: 'prod-issue', name: 'Ingredients Station', icon: Boxes },
     { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
     { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },

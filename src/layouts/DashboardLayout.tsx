@@ -93,7 +93,7 @@ export default function DashboardLayout({
       case 'prod-trace':
         return { parent: 'Production', current: 'Traceability' };
       case 'prod-issue':
-        return { parent: 'Production', current: 'Stock Issue' };
+        return { parent: 'Production', current: 'Ingredients Station' };
       case 'prod-grinding':
         return { parent: 'Production', current: 'Grinding Station' };
       case 'prod-finishing':

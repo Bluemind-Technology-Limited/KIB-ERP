@@ -234,9 +234,9 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                         {o.planLinked ? (
                           <span
                             className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
-                            title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Stock Issue station`}
+                            title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Ingredients Station`}
                           >
-                            <ClipboardList className="w-3 h-3" /> Issue via Stock Issue
+                            <ClipboardList className="w-3 h-3" /> Issue via Ingredients Station
                           </span>
                         ) : (
                           <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
@@ -475,7 +475,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
               title: 'Plan',
               fields: [
                 { label: 'Plan Number', value: detailValue(viewing.planNumber) },
-                { label: 'Plan Linked', value: viewing.planLinked ? 'Yes — issue via Stock Issue' : 'No' },
+                { label: 'Plan Linked', value: viewing.planLinked ? 'Yes — issue via Ingredients Station' : 'No' },
               ],
             },
             {

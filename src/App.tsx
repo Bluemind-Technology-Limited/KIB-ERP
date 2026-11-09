@@ -64,7 +64,7 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'prod-daily-records': { path: '/production/daily-records', parent: 'Production', label: 'Daily Records' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
   'prod-supervisor': { path: '/production/supervisor', parent: 'Production', label: 'Production Supervisor' },
-  'prod-issue': { path: '/production/stock-issue', parent: 'Production', label: 'Stock Issue' },
+  'prod-issue': { path: '/production/stock-issue', parent: 'Production', label: 'Ingredients Station' },
   'prod-grinding': { path: '/production/grinding', parent: 'Production', label: 'Grinding Station' },
   'prod-finishing': { path: '/production/finishing', parent: 'Production', label: 'Production Station' },
   'machines': { path: '/machines', parent: 'Assets', label: 'Machines & Assets' },
