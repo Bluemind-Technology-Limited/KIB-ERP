@@ -7,7 +7,7 @@ import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
 import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
-import { IngredientRequirementsPanel } from '../components/IngredientRequirementsPanel';
+import { IngredientRequirementsPanel, type RequirementsResponse } from '../components/IngredientRequirementsPanel';
 
 interface AggregatedIngredient {
   id: string;
@@ -24,6 +24,7 @@ interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
+  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
   bom: { productName: string; finishedSku?: { name: string; sku: string } | null };
 }
 
@@ -37,6 +38,17 @@ interface Plan {
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
   stationWorkOrders?: StationBalance[];
+  releasedAt?: string | null;
+  outstandingClosedAt?: string | null;
+  outstandingCloseReason?: string | null;
+  ingredientIssues?: Array<{
+    id: string;
+    materialId: string;
+    quantity: string | number;
+    unitOfMeasure: string;
+    issuedAt: string;
+    material?: { name: string; sku: string } | null;
+  }>;
   progress: {
     issue: { totalIngredients: number; issuedIngredients: number; complete: boolean };
     grinding: { totalItems: number; done: number; complete: boolean };
@@ -83,6 +95,10 @@ export default function StockIssue() {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [calcOpenId, setCalcOpenId] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState<Record<string, RequirementsResponse>>({});
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyPlans, setHistoryPlans] = useState<Plan[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [warehouseId, setWarehouseId] = useState('');
   const [lines, setLines] = useState<Record<string, { quantity: string; batchLotId: string }>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -132,6 +148,39 @@ export default function StockIssue() {
     () => plans.find((p) => p.id === expandedId) ?? null,
     [plans, expandedId]
   );
+
+  const dashboardRows = useMemo(() => {
+    if (!expandedPlan) return [];
+    const data = requirements[expandedPlan.id];
+    if (!data) return [];
+
+    const aggregated = new Map(
+      expandedPlan.aggregatedIngredients.map((row) => [row.materialId, row])
+    );
+    const expectedTotal = new Map(
+      data.consolidated.map((row) => [row.materialId, Number(row.totalRequired)])
+    );
+
+    return data.formulas.flatMap((formula) =>
+      formula.ingredients.map((line) => {
+        const agg = aggregated.get(line.materialId);
+        const materialExpected = expectedTotal.get(line.materialId) ?? Number(line.totalRequired);
+        const issued = Number(agg?.issuedQuantity ?? 0);
+        const share = materialExpected > 0 ? Number(line.totalRequired) / materialExpected : 0;
+        const prepared = issued * share;
+        const outstanding = Math.max(0, Number(line.totalRequired) - prepared);
+        return {
+          ...line,
+          formula,
+          prepared,
+          transferred: prepared,
+          outstanding,
+          status:
+            outstanding <= 0.0001 ? 'Completed' : prepared > 0 ? 'In Progress' : 'Pending',
+        };
+      })
+    );
+  }, [expandedPlan, requirements]);
 
   // Buffer memory: when a warehouse is picked, default every line to the oldest
   // available batch so existing stock is consumed before anything newer.
@@ -183,6 +232,33 @@ export default function StockIssue() {
     } catch {
       setStock([]);
     }
+
+    if (!requirements[plan.id]) {
+      axiosClient
+        .get<RequirementsResponse>(`/production/production-plans/${plan.id}/ingredient-requirements`)
+        .then((res) => setRequirements((prev) => ({ ...prev, [plan.id]: res.data })))
+        .catch(() => {});
+    }
+  };
+
+  const toggleHistory = async () => {
+    if (showHistory) {
+      setShowHistory(false);
+      return;
+    }
+    setShowHistory(true);
+    if (historyPlans.length > 0) return;
+    setHistoryLoading(true);
+    try {
+      const res = await axiosClient.get('/production-line/plans', {
+        params: { status: 'COMPLETED' },
+      });
+      setHistoryPlans(res.data.plans || []);
+    } catch (err: any) {
+      setError(apiError(err, 'Failed to load ingredient preparation history'));
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const submit = async (plan: Plan) => {
@@ -233,6 +309,13 @@ export default function StockIssue() {
           className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </button>
+        <button
+          onClick={toggleHistory}
+          className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          {showHistory ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          History
         </button>
       </div>
 
@@ -304,6 +387,107 @@ export default function StockIssue() {
                   <div className="space-y-4 border-t border-slate-100 px-4 py-4">
                     <StationFlowPanel stations={plan.stationWorkOrders} activeStation="INGREDIENT" />
 
+                    {/* Station dashboard — expected vs prepared/transferred per formula */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Ingredient requirement dashboard
+                        </p>
+                        {requirements[plan.id] && (
+                          <p className="text-[9px] text-slate-400">
+                            Actual prepared/transferred allocated across formulas by expected share
+                          </p>
+                        )}
+                      </div>
+
+                      {!requirements[plan.id] ? (
+                        <div className="space-y-2 p-3">
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-2/3" />
+                        </div>
+                      ) : dashboardRows.length === 0 ? (
+                        <p className="px-3 py-4 text-center text-[11px] text-slate-400">
+                          No ingredient requirements generated for this plan.
+                        </p>
+                      ) : (
+                        <div className="max-h-80 overflow-auto">
+                          <table className="w-full min-w-[1100px] text-left">
+                            <thead className="sticky top-0 bg-white">
+                              <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                                <th className="px-3 py-2 font-semibold">Production date</th>
+                                <th className="px-3 py-2 font-semibold">Order</th>
+                                <th className="px-3 py-2 font-semibold">Product</th>
+                                <th className="px-3 py-2 font-semibold">Batch code</th>
+                                <th className="px-3 py-2 font-semibold">Ingredient</th>
+                                <th className="px-3 py-2 font-semibold">Per batch</th>
+                                <th className="px-3 py-2 text-right font-semibold">Batches</th>
+                                <th className="px-3 py-2 font-semibold">Expected</th>
+                                <th className="px-3 py-2 font-semibold">Prepared</th>
+                                <th className="px-3 py-2 font-semibold">Transferred</th>
+                                <th className="px-3 py-2 font-semibold">Outstanding</th>
+                                <th className="px-3 py-2 font-semibold">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dashboardRows.map((row) => (
+                                <tr
+                                  key={`${row.formula.planItemId}-${row.materialId}`}
+                                  className="border-b border-slate-50 last:border-0"
+                                >
+                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-500">
+                                    {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : '—'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] text-slate-500">
+                                    {plan.planNumber}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                    {row.formula.productName}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] text-[#0077A8]">
+                                    {row.formula.batchCode ?? 'Pending QA'}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-700">{row.name}</td>
+                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-500">
+                                    {row.isPercentage
+                                      ? `${formatNumber(row.quantityPerBatch)}%`
+                                      : formatQty(row.perBatchRequired, row.unitOfMeasure)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
+                                    {formatNumber(row.batchCount)}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                    {formatQty(row.totalRequired, row.unitOfMeasure)}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-600">
+                                    {formatQty(row.prepared, row.unitOfMeasure)}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-600">
+                                    {formatQty(row.transferred, row.unitOfMeasure)}
+                                  </td>
+                                  <td className={`whitespace-nowrap px-3 py-2 text-[10px] font-bold ${row.outstanding > 0.0001 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                    {formatQty(row.outstanding, row.unitOfMeasure)}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span
+                                      className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                                        row.status === 'Completed'
+                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                          : row.status === 'In Progress'
+                                            ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                                      }`}
+                                    >
+                                      {row.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Requirement calculation — shows exactly how the quantities were derived */}
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                       <button
@@ -341,7 +525,9 @@ export default function StockIssue() {
                         {plan.items
                           .map(
                             (i) =>
-                              `${i.bom?.finishedSku?.name ?? i.bom?.productName}: ${formatNumber(i.targetQuantity)}`
+                              `${i.bom?.finishedSku?.name ?? i.bom?.productName}: ${formatNumber(i.targetQuantity)}${
+                                i.batchLot?.lotCode ? ` · ${i.batchLot.lotCode}` : ''
+                              }`
                           )
                           .join(' · ')}
                       </p>
@@ -477,6 +663,76 @@ export default function StockIssue() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {showHistory && (
+        <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <p className="text-[11px] font-bold text-[#171717]">Ingredient preparation history</p>
+            <p className="text-[10px] text-slate-400">
+              Completed production orders and the ingredient lots issued to them.
+            </p>
+          </div>
+
+          {historyLoading ? (
+            <div className="space-y-2 p-4">
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ) : historyPlans.length === 0 ? (
+            <EmptyState title="No completed production orders yet" hint="Completed plans appear here with their issued ingredients." />
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {historyPlans.map((plan) => (
+                <div key={plan.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-mono text-[11px] font-bold text-[#171717]">{plan.planNumber}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : '—'} ·{' '}
+                        {plan.items.map((item) => item.bom?.finishedSku?.name ?? item.bom?.productName).join(', ')}
+                      </p>
+                    </div>
+                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8px] font-bold uppercase text-emerald-700">
+                      Completed
+                    </span>
+                  </div>
+
+                  {plan.ingredientIssues?.length ? (
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="w-full min-w-[520px] text-left">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
+                            <th className="py-1.5 pr-3 font-semibold">Ingredient</th>
+                            <th className="px-3 py-1.5 font-semibold">Quantity issued</th>
+                            <th className="py-1.5 pl-3 text-right font-semibold">Issued at</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {plan.ingredientIssues.map((issue) => (
+                            <tr key={issue.id} className="border-b border-slate-50 last:border-0">
+                              <td className="py-1.5 pr-3 text-[10px] text-slate-600">
+                                {issue.material?.name ?? issue.materialId}
+                              </td>
+                              <td className="px-3 py-1.5 text-[10px] font-semibold text-slate-700">
+                                {formatQty(issue.quantity, issue.unitOfMeasure)}
+                              </td>
+                              <td className="py-1.5 pl-3 text-right text-[9px] text-slate-400">
+                                {new Date(issue.issuedAt).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-[10px] text-slate-400">No issue lines recorded.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

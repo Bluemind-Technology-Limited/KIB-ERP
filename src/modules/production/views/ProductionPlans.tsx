@@ -55,6 +55,15 @@ interface ProductionPlanItem {
   actualYield?: number | null;
   sequence: number;
   bom: Bom;
+  batchLot?: {
+    id: string;
+    batchNumber: string;
+    lotCode?: string | null;
+    setNumber?: number | null;
+    status: string;
+  } | null;
+  batchApprovedAt?: string | null;
+  batchApprovedBy?: { id: string; fullName: string } | null;
 }
 
 interface AggregatedIngredient {
@@ -430,8 +439,13 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                         <div className="space-y-0.5 max-w-[240px]">
                           {plan.items.map((item, idx) => (
                             <div key={item.id} className="text-[10px] text-slate-600 truncate">
-                              <span className="font-mono text-slate-400">#{idx + 1}</span>{' '}
-                              {item.bom.productName}
+                              <div>
+                                <span className="font-mono text-slate-400">#{idx + 1}</span>{' '}
+                                {item.bom.productName}
+                              </div>
+                              <div className="font-mono text-[9px] text-slate-400">
+                                {item.batchLot?.lotCode ?? item.batchLot?.batchNumber ?? 'Batch code pending'}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -837,6 +851,26 @@ export default function ProductionPlans({ searchQuery = '' }: { searchQuery?: st
                             {item.actualYield != null
                               ? ` · Actual: ${formatQty(item.actualYield, item.bom.yieldUnit)}`
                               : ''}
+                          </p>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[9px] text-slate-400">
+                            <span className="font-mono text-[10px] font-semibold text-[#0077A8]">
+                              {item.batchLot?.lotCode ?? 'Batch code pending'}
+                            </span>
+                            <span
+                              className={`rounded border px-1 py-0.5 text-[8px] font-bold uppercase ${
+                                item.batchLot?.status === 'REJECTED'
+                                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                  : item.batchApprovedAt
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {item.batchLot?.status === 'REJECTED'
+                                ? 'Rejected'
+                                : item.batchApprovedAt
+                                  ? 'QA approved'
+                                  : 'Awaiting QA'}
+                            </span>
                           </p>
                           {item.bom.ingredients?.length ? (
                             <p className="text-[9px] text-slate-400 mt-0.5">

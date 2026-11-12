@@ -39,6 +39,9 @@ export interface RequirementFormula {
   yieldUnit: string;
   targetQuantity: number;
   batchCount: number;
+  batchCode?: string | null;
+  batchStatus?: string | null;
+  batchApprovedAt?: string | null;
   ingredients: RequirementIngredient[];
   totalWeightKg: number;
 }
@@ -283,6 +286,11 @@ export function IngredientRequirementsPanel({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {formula.batchCode && (
+                    <span className="hidden rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-500 sm:inline">
+                      {formula.batchCode}
+                    </span>
+                  )}
                   <span className="rounded-md border border-[#00B4D8]/30 bg-[#00B4D8]/10 px-2 py-0.5 text-[10px] font-bold text-[#0077A8]">
                     {formatNumber(formula.batchCount)} batches
                   </span>

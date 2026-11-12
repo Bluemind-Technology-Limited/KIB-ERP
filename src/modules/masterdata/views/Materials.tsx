@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { toast } from '../../../stores/useToastStore';
 
 interface Material {
   id: string;
@@ -95,6 +96,13 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   const [createConfirmation, setCreateConfirmation] = useState(false);
   const [updateConfirmation, setUpdateConfirmation] = useState(false);
+  const [packChangeConfirmation, setPackChangeConfirmation] = useState<{
+    payload: Record<string, unknown>;
+    message: string;
+    currentPack?: { unitOfMeasure?: string; packSize?: number; packUnit?: string };
+    requestedPack?: { unitOfMeasure?: string; packSize?: number; packUnit?: string };
+    usage?: number;
+  } | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -139,7 +147,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     const payload = { ...form, packSize: Number(form.packSize) };
     try {
       if (editing) {
-        await axiosClient.patch(`/master-data/materials/${editing.id}`, payload);
+        await axiosClient.patch(`/master-data/materials/${editing.id}`, payload, { toast: false });
+        toast.success('Material updated');
         setUpdateConfirmation(false);
       } else {
         await axiosClient.post('/master-data/materials', payload);
@@ -149,9 +158,45 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       setError('');
       load();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to save material');
+      const data = err?.response?.data;
+      if (editing && err?.response?.status === 409 && data?.requiresConfirmation) {
+        setUpdateConfirmation(false);
+        setError('');
+        setPackChangeConfirmation({
+          payload,
+          message:
+            'This material already has stock, batch, BOM or purchasing history. Confirm the pack change to save it.',
+          currentPack: data.currentPack,
+          requestedPack: data.requestedPack,
+          usage: data.usage,
+        });
+        return;
+      }
+      setError(data?.error || 'Failed to save material');
       setCreateConfirmation(false);
       setUpdateConfirmation(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmPackChange = async () => {
+    if (!packChangeConfirmation || !editing) return;
+    setSaving(true);
+    try {
+      await axiosClient.patch(
+        `/master-data/materials/${editing.id}`,
+        { ...packChangeConfirmation.payload, forcePackChange: true },
+        { toast: false }
+      );
+      toast.success('Pack updated and recorded in the audit trail');
+      setPackChangeConfirmation(null);
+      setShowModal(false);
+      setError('');
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to save material');
+      setPackChangeConfirmation(null);
     } finally {
       setSaving(false);
     }
@@ -447,6 +492,11 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 <p className="text-[9px] text-slate-400">
                   One unit = {form.packSize || '0'} {form.packUnit}. Quantities are counted in these units.
                 </p>
+                {editing && (
+                  <p className="text-[9px] font-medium text-amber-600">
+                    Changing the pack on a material with history requires confirmation and is audited.
+                  </p>
+                )}
               </div>
               <div className="space-y-1 flex items-end">
                 <label className="flex items-center gap-2 h-9 text-xs text-slate-600 cursor-pointer">
@@ -540,6 +590,22 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
           onCancel={() => setUpdateConfirmation(false)}
           isLoading={saving}
           confirmText="Save"
+        />
+      )}
+
+      {/* Pack change confirmation — only when the material already has history */}
+      {packChangeConfirmation && (
+        <ConfirmationModal
+          type="action"
+          isDangerous
+          title="Change pack size/unit?"
+          description={`${packChangeConfirmation.message} ${
+            packChangeConfirmation.currentPack?.unitOfMeasure ?? 'current pack'
+          } → ${packChangeConfirmation.requestedPack?.unitOfMeasure ?? 'new pack'}. Historical quantities will be interpreted using the new pack. This change is recorded in the audit trail.`}
+          confirmText="Change pack & save"
+          onConfirm={confirmPackChange}
+          onCancel={() => setPackChangeConfirmation(null)}
+          isLoading={saving}
         />
       )}
 

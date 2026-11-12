@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Trash2, Plus, Save } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Trash2, Plus, Save, TriangleAlert } from 'lucide-react';
 import { Modal } from './Modal';
 
 type ConfirmationType = 'delete' | 'create' | 'update' | 'submit' | 'action';
@@ -43,8 +43,17 @@ export function ConfirmationModal({
   isLoading = false,
   confirmText,
   cancelText = 'Cancel',
+  isDangerous = false,
 }: ConfirmationModalProps) {
-  const { Icon, bgClass, iconClass, buttonClass } = getIcon(type);
+  const iconConfig = getIcon(type);
+  const { Icon, bgClass, iconClass, buttonClass } = isDangerous
+    ? {
+        Icon: TriangleAlert,
+        bgClass: 'bg-amber-100',
+        iconClass: 'text-amber-600',
+        buttonClass: 'bg-rose-600 hover:bg-rose-700',
+      }
+    : iconConfig;
   const displayMessage = message || description || 'Are you sure you want to proceed?';
 
   const defaultConfirmText = {

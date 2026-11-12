@@ -260,6 +260,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     const matchesSearch =
       (i.material?.name ?? '').toLowerCase().includes(term) ||
       (i.batchLot?.batchNumber ?? '').toLowerCase().includes(term) ||
+      (i.batchLot?.lotCode ?? '').toLowerCase().includes(term) ||
       (i.notes ?? '').toLowerCase().includes(term) ||
       (i.referenceLabel ?? '').toLowerCase().includes(term);
     const matchesDate = !dateFilter || localDay(i.inspectedAt ?? i.createdAt) === dateFilter;
@@ -272,7 +273,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">QA Inspections</h2>
-          <PageDescription>Check received consignment items: attach documents, record comments and assign batch numbers.</PageDescription>
+          <PageDescription>Check received consignment items and finished production batches: attach documents, record comments and approve or assign the batch code.</PageDescription>
         </div>
         <div className="flex gap-2">
           <select

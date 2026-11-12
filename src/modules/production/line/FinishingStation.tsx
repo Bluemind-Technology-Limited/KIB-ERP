@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Factory, Loader, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Factory, Loader, RefreshCw, X } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
@@ -12,10 +13,19 @@ interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  bom: { productName: string; yieldUnit?: string | null; finishedSku?: { name: string; sku: string } | null };
+  bom: { productName: string; yieldUnit?: string | null; finishedSku?: { name: string; sku: string } | null; expectedYield?: string | number | null };
+  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
+  batchApprovedAt?: string | null;
   grindingRecord?: { achievedQuantity: string | number } | null;
   finishingRecord?: { achievedQuantity: string | number; batchNumber?: string | null } | null;
-  groundQuantity: number;
+  expectedBatches?: number;
+  groundQuantity?: number;
+  receivedQuantity?: number;
+  achievedQuantity?: number;
+  rejectedQuantity?: number;
+  finishingOutstanding?: number;
+  variance?: number;
+  stationStatus?: string;
   carryoverAvailable?: number;
 }
 
@@ -32,9 +42,8 @@ interface FormState {
   achievedQuantity: string;
   remainderQuantity: string;
   carryoverUsedQuantity: string;
+  rejectedQuantity: string;
   warehouseId: string;
-  batchNumber: string;
-  expiryDate: string;
   productionDate: string;
   remarks: string;
 }
@@ -53,6 +62,9 @@ export default function FinishingStation() {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
+  const [closeTarget, setCloseTarget] = useState<Plan | null>(null);
+  const [closeReason, setCloseReason] = useState('');
+  const [closing, setClosing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,14 +95,14 @@ export default function FinishingStation() {
     setExpandedId(plan.id);
     const next: Record<string, FormState> = {};
     for (const item of plan.items) {
-      if (!item.grindingRecord || item.finishingRecord) continue;
+      if (Number(item.groundQuantity ?? 0) <= 0) continue;
+      if (Number(item.finishingOutstanding ?? item.targetQuantity ?? 0) <= 0.0001) continue;
       next[item.id] = {
-        achievedQuantity: String(item.targetQuantity ?? ''),
+        achievedQuantity: String(item.finishingOutstanding ?? item.targetQuantity ?? ''),
         remainderQuantity: '',
         carryoverUsedQuantity: '',
+        rejectedQuantity: '',
         warehouseId: '',
-        batchNumber: '',
-        expiryDate: '',
         productionDate: today(),
         remarks: '',
       };
@@ -98,8 +110,30 @@ export default function FinishingStation() {
     setForms(next);
   };
 
-  const update = (itemId: string, patch: Partial<FormState>) =>
-    setForms((prev) => ({ ...prev, [itemId]: { ...prev[itemId], ...patch } }));
+  const update = (id: string, patch: Partial<FormState>) =>
+    setForms((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+
+  const closeOutstanding = async () => {
+    if (!closeTarget) return;
+    if (!closeReason.trim()) {
+      setError('Enter a reason for closing the outstanding production quantity.');
+      return;
+    }
+    setClosing(true);
+    try {
+      await axiosClient.post(`/production-line/plans/${closeTarget.id}/close-outstanding`, {
+        reason: closeReason.trim(),
+      });
+      setCloseTarget(null);
+      setCloseReason('');
+      setError('');
+      await load();
+    } catch (err: any) {
+      setError(apiError(err, 'Failed to close outstanding production'));
+    } finally {
+      setClosing(false);
+    }
+  };
 
   const submit = async (plan: Plan, item: PlanItem) => {
     const form = forms[item.id];
@@ -110,8 +144,12 @@ export default function FinishingStation() {
       setError('Select the warehouse that receives the finished goods.');
       return;
     }
-    if (!form.batchNumber) {
-      setError('A finished batch number is required.');
+    if (!item.batchLot) {
+      setError('This batch has no QA batch code yet. Release the ingredients first.');
+      return;
+    }
+    if (item.batchLot.status === 'REJECTED') {
+      setError('This batch was rejected by QA and cannot be finished.');
       return;
     }
 
@@ -121,9 +159,8 @@ export default function FinishingStation() {
         achievedQuantity: Number(form.achievedQuantity),
         remainderQuantity: form.remainderQuantity ? Number(form.remainderQuantity) : 0,
         carryoverUsedQuantity: form.carryoverUsedQuantity ? Number(form.carryoverUsedQuantity) : 0,
+        rejectedQuantity: form.rejectedQuantity ? Number(form.rejectedQuantity) : 0,
         warehouseId: form.warehouseId,
-        batchNumber: form.batchNumber,
-        expiryDate: form.expiryDate || undefined,
         productionDate: form.productionDate,
         remarks: form.remarks || undefined,
       });
@@ -178,7 +215,11 @@ export default function FinishingStation() {
         <div className="space-y-3">
           {plans.map((plan) => {
             const isOpen = expandedId === plan.id;
-            const ready = plan.items.filter((i) => i.grindingRecord && !i.finishingRecord);
+            const ready = plan.items.filter(
+              (i) =>
+                Number(i.groundQuantity ?? 0) > 0 &&
+                Number(i.finishingOutstanding ?? i.targetQuantity ?? 0) > 0.0001
+            );
 
             return (
               <div key={plan.id} className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
@@ -207,6 +248,91 @@ export default function FinishingStation() {
                 {isOpen && (
                   <div className="space-y-3 border-t border-slate-100 px-4 py-4">
                     <StationFlowPanel stations={plan.stationWorkOrders} activeStation="PRODUCTION" />
+
+                    {/* Production dashboard — expected vs finished */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200">
+                      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Production dashboard
+                        </p>
+                        {plan.items.some(
+                          (item) => Number(item.finishingOutstanding ?? 0) > 0.0001
+                        ) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCloseTarget(plan);
+                              setCloseReason('');
+                              setError('');
+                            }}
+                            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 hover:bg-amber-100"
+                          >
+                            Close outstanding
+                          </button>
+                        )}
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[980px] text-left">
+                          <thead>
+                            <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
+                              <th className="px-3 py-2 font-semibold">Product</th>
+                              <th className="px-3 py-2 font-semibold">Batch code</th>
+                              <th className="px-3 py-2 text-right font-semibold">Expected batches</th>
+                              <th className="px-3 py-2 font-semibold">Expected finished</th>
+                              <th className="px-3 py-2 font-semibold">Received from grinding</th>
+                              <th className="px-3 py-2 font-semibold">Actual finished</th>
+                              <th className="px-3 py-2 font-semibold">Variance</th>
+                              <th className="px-3 py-2 font-semibold">Outstanding</th>
+                              <th className="px-3 py-2 font-semibold">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {plan.items.map((item) => (
+                              <tr key={item.id} className="border-b border-slate-50 last:border-0">
+                                <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                  {item.bom?.finishedSku?.name ?? item.bom?.productName}
+                                </td>
+                                <td className="px-3 py-2 font-mono text-[10px] text-[#0077A8]">
+                                  {item.batchLot?.lotCode ?? 'Pending QA'}
+                                </td>
+                                <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
+                                  {formatNumber(item.expectedBatches ?? 0)}
+                                </td>
+                                <td className="px-3 py-2 text-[10px] text-slate-600">
+                                  {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
+                                </td>
+                                <td className="px-3 py-2 text-[10px] text-slate-600">
+                                  {formatQty(item.groundQuantity ?? 0, item.bom?.yieldUnit)}
+                                </td>
+                                <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                  {formatQty(item.achievedQuantity ?? 0, item.bom?.yieldUnit)}
+                                </td>
+                                <td className={`px-3 py-2 text-[10px] font-bold ${Number(item.variance ?? 0) < 0 ? 'text-amber-600' : Number(item.variance ?? 0) > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
+                                  {Number(item.variance ?? 0) > 0 ? '+' : ''}
+                                  {formatQty(item.variance ?? 0, item.bom?.yieldUnit)}
+                                </td>
+                                <td className={`px-3 py-2 text-[10px] font-bold ${Number(item.finishingOutstanding ?? 0) > 0.0001 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                  {formatQty(item.finishingOutstanding ?? 0, item.bom?.yieldUnit)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span
+                                    className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                                      item.stationStatus === 'COMPLETED'
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                        : item.stationStatus === 'IN_PROGRESS'
+                                          ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                          : 'border-slate-200 bg-slate-50 text-slate-500'
+                                    }`}
+                                  >
+                                    {item.stationStatus ?? 'PENDING'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                     {ready.length === 0 && (
                       <p className="text-xs text-emerald-700">Nothing left to finish for this plan.</p>
                     )}
@@ -282,25 +408,50 @@ export default function FinishingStation() {
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                                Finished batch no.
+                                Rejected / lost
                               </label>
                               <input
-                                value={form.batchNumber}
-                                onChange={(e) => update(item.id, { batchNumber: e.target.value })}
-                                placeholder="Required"
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={form.rejectedQuantity}
+                                onChange={(e) => update(item.id, { rejectedQuantity: e.target.value })}
+                                placeholder="0"
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                               />
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1 md:col-span-2">
                               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                                Expiry date
+                                QA-approved batch code
                               </label>
-                              <input
-                                type="date"
-                                value={form.expiryDate}
-                                onChange={(e) => update(item.id, { expiryDate: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-                              />
+                              <div
+                                className={`flex h-8 items-center justify-between gap-2 rounded-lg border px-2 ${
+                                  item.batchLot?.status === 'REJECTED'
+                                    ? 'border-rose-200 bg-rose-50'
+                                    : item.batchApprovedAt
+                                      ? 'border-emerald-200 bg-emerald-50'
+                                      : 'border-amber-200 bg-amber-50'
+                                }`}
+                              >
+                                <span className="truncate font-mono text-xs font-bold text-slate-800">
+                                  {item.batchLot?.lotCode ?? item.batchLot?.batchNumber ?? 'Pending'}
+                                </span>
+                                <span
+                                  className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                    item.batchLot?.status === 'REJECTED'
+                                      ? 'border-rose-200 text-rose-700'
+                                      : item.batchApprovedAt
+                                        ? 'border-emerald-200 text-emerald-700'
+                                        : 'border-amber-200 text-amber-700'
+                                  }`}
+                                >
+                                  {item.batchLot?.status === 'REJECTED'
+                                    ? 'Rejected'
+                                    : item.batchApprovedAt
+                                      ? 'QA approved'
+                                      : 'Awaiting QA'}
+                                </span>
+                              </div>
                             </div>
                           </div>
 
@@ -369,6 +520,63 @@ export default function FinishingStation() {
             );
           })}
         </div>
+      )}
+
+      {closeTarget && (
+        <Modal onClose={() => setCloseTarget(null)}>
+          <div className="w-full max-w-md rounded-xl border border-[#E9E9E9] bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-[#171717]">Close outstanding production</h3>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {closeTarget.planNumber} will be completed with its remaining quantities explicitly
+                  reconciled. This is recorded in the audit trail.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCloseTarget(null)}
+                className="text-slate-400 hover:text-slate-600"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Reason for closing outstanding quantity
+              </label>
+              <textarea
+                value={closeReason}
+                onChange={(e) => setCloseReason(e.target.value)}
+                rows={3}
+                placeholder="e.g. Balance reconciled at shift close, spills/rejects written off"
+                className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
+              />
+              {error && <p className="text-[11px] text-rose-600">{error}</p>}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCloseTarget(null)}
+                className="h-9 rounded-lg border border-[#E9E9E9] px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={closeOutstanding}
+                disabled={closing}
+                className="flex h-9 items-center gap-2 rounded-lg bg-amber-600 px-4 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {closing ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Close outstanding
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

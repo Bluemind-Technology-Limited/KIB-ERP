@@ -32,8 +32,20 @@ interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  bom: { productName: string; yieldUnit?: string | null };
+  bom: { productName: string; yieldUnit?: string | null; expectedYield?: string | number | null };
+  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
   grindingRecord?: { achievedQuantity: string | number; remainderQuantity: string | number } | null;
+  grindingRecords?: Array<{ inputQuantity?: string | number; achievedQuantity: string | number; remainderQuantity: string | number }>;
+  expectedBatches?: number;
+  expectedYield?: number;
+  receivedQuantity?: number;
+  batchesGround?: number;
+  groundQuantity?: number;
+  grindingOutstanding?: number;
+  variance?: number;
+  grindingStatus?: string;
+  finishingStatus?: string;
+  stationStatus?: string;
 }
 
 interface Plan {
@@ -49,6 +61,8 @@ interface Plan {
 interface FormState {
   inputQuantity: string;
   achievedQuantity: string;
+  receivedQuantity: string;
+  batchesProcessed: string;
   grindingBatchNumber: string;
   productionDate: string;
   machineId: string;
@@ -76,8 +90,15 @@ function emptyForm(
     inputs[agg.materialId] = { quantity: '', batchLotId: '' };
   }
   return {
-    inputQuantity: String(item.targetQuantity ?? ''),
-    achievedQuantity: String(item.targetQuantity ?? ''),
+    inputQuantity: String(item.grindingOutstanding ?? item.targetQuantity ?? ''),
+    achievedQuantity: String(item.grindingOutstanding ?? item.targetQuantity ?? ''),
+    receivedQuantity: String(item.grindingOutstanding ?? item.targetQuantity ?? ''),
+    batchesProcessed: String(
+      Math.max(
+        0,
+        Number(item.expectedBatches ?? 0) - Number(item.batchesGround ?? 0)
+      ) || ''
+    ),
     grindingBatchNumber,
     productionDate: today(),
     machineId: '',
@@ -139,7 +160,8 @@ export default function GrindingStation() {
     const next: Record<string, FormState> = {};
     let offset = 0;
     for (const item of plan.items) {
-      if (item.grindingRecord) continue;
+      const outstanding = Number(item.grindingOutstanding ?? item.targetQuantity ?? 0);
+      if (outstanding <= 0.0001) continue;
       const prefilled =
         sequence.nextNumber === null ? '' : String(sequence.nextNumber + offset);
       next[item.id] = emptyForm(item, plan.aggregatedIngredients, prefilled);
@@ -217,6 +239,8 @@ export default function GrindingStation() {
       await axiosClient.post(`/production-line/plans/${plan.id}/items/${item.id}/grinding`, {
         inputQuantity: Number(form.inputQuantity),
         achievedQuantity: Number(form.achievedQuantity),
+        receivedQuantity: form.receivedQuantity ? Number(form.receivedQuantity) : 0,
+        batchesProcessed: form.batchesProcessed ? Number(form.batchesProcessed) : 0,
         remainderQuantity,
         remainders,
         inputs,
@@ -273,7 +297,9 @@ export default function GrindingStation() {
         <div className="space-y-3">
           {plans.map((plan) => {
             const isOpen = expandedId === plan.id;
-            const pending = plan.items.filter((i) => !i.grindingRecord);
+            const pending = plan.items.filter(
+              (i) => Number(i.grindingOutstanding ?? i.targetQuantity ?? 0) > 0.0001
+            );
             const issued = plan.aggregatedIngredients.filter((a) => a.status === 'RELEASED');
 
             return (
@@ -303,6 +329,95 @@ export default function GrindingStation() {
                 {isOpen && (
                   <div className="space-y-3 border-t border-slate-100 px-4 py-4">
                     <StationFlowPanel stations={plan.stationWorkOrders} activeStation="GRINDING" />
+
+                    {/* Grinding dashboard — batches and yield */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200">
+                      <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Grinding dashboard
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[980px] text-left">
+                          <thead>
+                            <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
+                              <th className="px-3 py-2 font-semibold">Product</th>
+                              <th className="px-3 py-2 text-right font-semibold">Total batches</th>
+                              <th className="px-3 py-2 font-semibold">Yield / batch</th>
+                              <th className="px-3 py-2 font-semibold">Total expected</th>
+                              <th className="px-3 py-2 font-semibold">Received</th>
+                              <th className="px-3 py-2 text-right font-semibold">Batches ground</th>
+                              <th className="px-3 py-2 font-semibold">Ground qty</th>
+                              <th className="px-3 py-2 font-semibold">Transferred</th>
+                              <th className="px-3 py-2 font-semibold">Loss</th>
+                              <th className="px-3 py-2 font-semibold">Outstanding</th>
+                              <th className="px-3 py-2 font-semibold">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {plan.items.map((item) => {
+                              const loss = (item.grindingRecords ?? []).reduce(
+                                (sum, record) =>
+                                  sum +
+                                  Math.max(
+                                    0,
+                                    Number(record.inputQuantity ?? 0) -
+                                      Number(record.achievedQuantity ?? 0)
+                                  ),
+                                0
+                              );
+                              return (
+                                <tr key={item.id} className="border-b border-slate-50 last:border-0">
+                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                    {item.bom?.productName}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
+                                    {formatNumber(item.expectedBatches ?? 0)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-500">
+                                    {formatQty(item.bom?.expectedYield ?? 0, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-600">
+                                    {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-600">
+                                    {formatQty(item.receivedQuantity ?? 0, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
+                                    {formatNumber(item.batchesGround ?? 0)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
+                                    {formatQty(item.groundQuantity ?? 0, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-600">
+                                    {formatQty(item.groundQuantity ?? 0, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2 text-[10px] text-slate-500">
+                                    {formatQty(loss, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className={`px-3 py-2 text-[10px] font-bold ${Number(item.grindingOutstanding ?? 0) > 0.0001 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                    {formatQty(item.grindingOutstanding ?? 0, item.bom?.yieldUnit)}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span
+                                      className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                                        item.grindingStatus === 'COMPLETED'
+                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                          : item.grindingStatus === 'IN_PROGRESS'
+                                            ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                                        }`}
+                                      >
+                                        {item.grindingStatus ?? 'PENDING'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                     {pending.length === 0 && (
                       <p className="text-xs text-emerald-700">All batches for this plan are ground.</p>
                     )}
@@ -315,9 +430,14 @@ export default function GrindingStation() {
                             <p className="text-xs font-bold text-[#171717]">
                               Batch {item.sequence} · {item.bom?.productName}
                             </p>
-                            <span className="text-[10px] text-slate-400">
-                              Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded border border-[#00B4D8]/30 bg-[#00B4D8]/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#0077A8]">
+                                {item.batchLot?.lotCode ?? item.batchLot?.batchNumber ?? 'Code pending'}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -348,6 +468,36 @@ export default function GrindingStation() {
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
                               <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                                Received from ingredients
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={form.receivedQuantity}
+                                onChange={(e) => update(item.id, { receivedQuantity: e.target.value })}
+                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                              />
+                              <PackQuantityPreview quantity={form.receivedQuantity} unit={item.bom?.yieldUnit} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                                Batches processed
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={form.batchesProcessed}
+                                onChange={(e) => update(item.id, { batchesProcessed: e.target.value })}
+                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                              />
+                              <p className="text-[9px] text-slate-400">
+                                Planned {formatNumber(item.expectedBatches ?? 0)} batches
+                              </p>
                             </div>
                             <div className="space-y-1">
                               <div className="flex items-center justify-between gap-1">

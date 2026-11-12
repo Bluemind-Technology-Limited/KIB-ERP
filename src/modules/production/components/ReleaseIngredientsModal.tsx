@@ -23,8 +23,12 @@ interface ReleasePlan {
   scheduledFor?: string | Date | null;
 }
 
-function apiError(err: any, fallback: string) {
-  return err?.response?.data?.error || err?.message || fallback;
+function apiError(err: unknown, fallback: string) {
+  const typed = err as {
+    response?: { data?: { error?: string } };
+    message?: string;
+  };
+  return typed?.response?.data?.error || typed?.message || fallback;
 }
 
 function packText(quantity: number | string, unit?: string | null) {
@@ -62,7 +66,7 @@ export function ReleaseIngredientsModal({
         `/production/production-plans/${plan.id}/ingredient-requirements`
       );
       setData(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(apiError(err, 'Failed to calculate the release summary'));
     } finally {
       setLoading(false);
@@ -70,7 +74,9 @@ export function ReleaseIngredientsModal({
   }, [plan.id]);
 
   useEffect(() => {
-    load();
+    // Defer so the fetch never triggers a synchronous render cascade on mount.
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const release = async () => {
@@ -82,7 +88,7 @@ export function ReleaseIngredientsModal({
       });
       setReleased(true);
       onReleased();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(apiError(err, 'Failed to release ingredients'));
     } finally {
       setReleasing(false);
@@ -102,7 +108,8 @@ export function ReleaseIngredientsModal({
   const requirements = data?.consolidated ?? [];
   const visibleRequirements = requirements.slice(0, 5);
   const hiddenCount = Math.max(0, requirements.length - visibleRequirements.length);
-  const ready = Boolean(data) && !loading && !released;
+  const ready =
+    Boolean(data) && !loading && !released && (data?.formulas.length ?? 0) > 0;
 
   return (
     <Modal onClose={onClose}>
@@ -262,8 +269,9 @@ export function ReleaseIngredientsModal({
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[10px] leading-relaxed text-amber-800">
             <Boxes className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
-              This creates the three station work orders and notifies the Ingredient, Grinding and
-              Production stations. Releasing is one-time and cannot be repeated.
+              This creates the three station work orders, provisions a QA batch code for every
+              formula and notifies the Ingredient, Grinding and Production stations. Releasing is
+              one-time and cannot be repeated.
             </span>
           </div>
 
