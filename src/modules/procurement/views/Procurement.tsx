@@ -6,6 +6,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatQty } from '../../../lib/format';
 
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
 interface SupplierOption { id: string; name: string; vendorCode?: string }
@@ -387,12 +389,15 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                               onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} 
                               placeholder="Qty" 
                               type="number" 
+                              min="0.0001"
+                              step="any"
                               className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
                               required
                             />
+                            <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit Cost *</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cost per {item.unitOfMeasure || 'unit'} *</label>
                             <input 
                               value={item.unitCost} 
                               onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, unitCost: e.target.value } : r))} 
@@ -473,7 +478,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                   </div>
                   <p className="text-[10px] text-slate-400">by {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
                   <p className="text-[10px] text-slate-500">
-                    {r.items?.map((i: any) => `${i.material?.name} (${i.quantity} ${i.unitOfMeasure})`).join(', ')}
+                    {r.items?.map((i: any) => `${i.material?.name} (${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">

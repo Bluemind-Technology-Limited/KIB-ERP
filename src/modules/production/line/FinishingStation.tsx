@@ -4,13 +4,15 @@ import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatQty } from '../../../lib/format';
+import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
 
 interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  bom: { productName: string; finishedSku?: { name: string; sku: string } | null };
+  bom: { productName: string; yieldUnit?: string | null; finishedSku?: { name: string; sku: string } | null };
   grindingRecord?: { achievedQuantity: string | number } | null;
   finishingRecord?: { achievedQuantity: string | number; batchNumber?: string | null } | null;
   groundQuantity: number;
@@ -22,6 +24,7 @@ interface Plan {
   planNumber: string;
   status: string;
   items: PlanItem[];
+  stationWorkOrders?: StationBalance[];
   progress: { finishing: { totalItems: number; done: number; complete: boolean } };
 }
 
@@ -203,6 +206,7 @@ export default function FinishingStation() {
 
                 {isOpen && (
                   <div className="space-y-3 border-t border-slate-100 px-4 py-4">
+                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="PRODUCTION" />
                     {ready.length === 0 && (
                       <p className="text-xs text-emerald-700">Nothing left to finish for this plan.</p>
                     )}
@@ -217,7 +221,7 @@ export default function FinishingStation() {
                             </p>
                             <div className="flex items-center gap-3 text-[10px]">
                               <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-600">
-                                Required {formatNumber(item.targetQuantity)}
+                                Required {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
                               </span>
                               <span className="rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-0.5 text-[#AA3BFF]">
                                 Ground {formatNumber(item.groundQuantity)}
@@ -260,6 +264,7 @@ export default function FinishingStation() {
                                 onChange={(e) => update(item.id, { achievedQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                               />
+                              <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">

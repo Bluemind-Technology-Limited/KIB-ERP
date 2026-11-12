@@ -357,7 +357,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit Cost</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cost per {item.unitOfMeasure || 'unit'}</label>
                             <input
                               value={unitCosts[item.id] ?? ''}
                               onChange={(e) =>
@@ -399,7 +399,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                         {formatNumber(group.items.length)} item(s) · {group.supplier.email || 'no email'}
                       </p>
                       <p className="text-[9px] text-slate-500 mt-1">
-                        {group.items.map((i) => `${i.materialName} × ${formatNumber(i.quantity)}${i.unitOfMeasure}`).join(' · ')}
+                        {group.items.map((i) => `${i.materialName} × ${formatQty(i.quantity, i.unitOfMeasure)}`).join(' · ')}
                       </p>
                     </div>
                     <p className="text-[11px] font-semibold text-[#171717] whitespace-nowrap">{formatMoney(group.total)}</p>

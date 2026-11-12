@@ -236,12 +236,12 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                       {day.qtyOut ? `-${formatNumber(day.qtyOut)}` : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs font-mono font-bold text-slate-700">
-                      {formatNumber(day.closingBalance)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
+                      {formatQty(day.closingBalance, product.unitOfMeasure)}
                     </td>
                     <td className="px-4 py-3">
                       {current ? (
                         <span className="text-xs font-mono font-bold text-[#171717]">
-                          {formatNumber(product.currentStock)} <span className="text-[9px] font-normal text-slate-400">{product.unitOfMeasure}</span>
+                          {formatQty(product.currentStock, product.unitOfMeasure)}
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-300">—</span>
@@ -339,7 +339,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                         {line.warehouseName} <span className="text-[9px] text-slate-400">({line.warehouseCode})</span>
                       </td>
                       <td className="px-3 py-2 text-[11px] font-mono font-bold text-slate-700">
-                        {formatNumber(line.onHand)} <span className="text-[9px] font-normal text-slate-400">{stockProduct.unitOfMeasure}</span>
+                        {formatQty(line.onHand, stockProduct.unitOfMeasure)}
                       </td>
                       <td className="px-3 py-2 text-[10px] text-slate-500">{detailDate(line.expiryDate)}</td>
                       <td className="px-3 py-2">

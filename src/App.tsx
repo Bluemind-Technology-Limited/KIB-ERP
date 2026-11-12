@@ -23,6 +23,7 @@ import BOM from './modules/production/views/BOM';
 import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
 import DailyRecords from './modules/production/views/DailyRecords';
+import WorkInProgress from './modules/production/views/WorkInProgress';
 import Traceability from './modules/production/views/Traceability';
 import SupervisorDashboard from './modules/production/supervisor/SupervisorDashboard';
 import StockIssue from './modules/production/line/StockIssue';
@@ -59,9 +60,10 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
   'inv-finished': { path: '/inventory/finished-goods', parent: 'Inventory', label: 'Finished Goods' },
   'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Batch Formulation' },
-  'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Plans' },
+  'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Schedule' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-daily-records': { path: '/production/daily-records', parent: 'Production', label: 'Daily Records' },
+  'prod-wip': { path: '/production/wip', parent: 'Production', label: 'Carryover / WIP' },
   'prod-trace': { path: '/production/traceability', parent: 'Production', label: 'Traceability' },
   'prod-supervisor': { path: '/production/supervisor', parent: 'Production', label: 'Production Supervisor' },
   'prod-issue': { path: '/production/stock-issue', parent: 'Production', label: 'Ingredients Station' },
@@ -285,6 +287,12 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="prod-daily-records">
             <DailyRecords searchQuery={searchQuery} />
+          </RoleGuard>
+        );
+      case 'prod-wip':
+        return (
+          <RoleGuard userRole={user.role} viewId="prod-wip">
+            <WorkInProgress searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'prod-trace':

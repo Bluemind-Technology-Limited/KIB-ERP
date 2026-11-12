@@ -6,7 +6,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatQty } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -438,7 +439,8 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" min="0" step="any" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" min="0.0001" step="any" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                      <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
@@ -574,7 +576,7 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                                 <p className="text-[9px] font-mono text-slate-400">{material?.sku ?? ''}</p>
                               </div>
                               <p className="text-xs font-semibold text-[#171717] whitespace-nowrap">
-                                {formatNumber(item.quantity)} {item.unitOfMeasure}
+                                {formatQty(item.quantity, item.unitOfMeasure)}
                               </p>
                             </div>
                             <div className="rounded-md border border-slate-200 bg-white px-2.5 py-2">
@@ -666,10 +668,11 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                                   onChange={(e) => updateEditItem(idx, { quantity: e.target.value })}
                                   placeholder="e.g. 10"
                                   type="number"
-                                  min="0"
+                                  min="0.0001"
                                   step="any"
                                   className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                                 />
+                                <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                               </div>
                               <div className="space-y-1">
                                 <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>

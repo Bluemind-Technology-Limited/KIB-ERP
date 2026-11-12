@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, LogOut, ChevronDown, ChevronRight, Database,
   HeartHandshake, ExternalLink, Users, ShoppingCart, Boxes,
-  FlaskConical, ClipboardList, ShieldCheck, Network, Truck, Bell, BarChart3, Package
+  FlaskConical, ClipboardList, ShieldCheck, Network, Truck, Bell, BarChart3, Package, Calendar
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { rolePermissions } from './routing/RoleGuard';
@@ -87,8 +87,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
         { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
         { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
         { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
+        { id: 'prod-plans', name: 'Production Schedule', icon: Calendar },
         { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
         { id: 'prod-daily-records', name: 'Daily Records', icon: ClipboardList },
+        { id: 'prod-wip', name: 'Carryover / WIP', icon: Boxes },
         { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
         { id: 'prod-trace', name: 'Traceability', icon: Network },
       ],
@@ -139,12 +141,14 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
     { id: 'inv-grn', name: 'Goods Receipt', icon: Boxes },
     { id: 'inv-finished', name: 'Finished Goods', icon: Truck },
     { id: 'prod-boms', name: 'Batch Formulation', icon: FlaskConical },
+    { id: 'prod-plans', name: 'Production Schedule', icon: Calendar },
     { id: 'prod-supervisor', name: 'Production Supervisor', icon: ClipboardList },
     { id: 'prod-issue', name: 'Ingredients Station', icon: Boxes },
     { id: 'prod-grinding', name: 'Grinding Station', icon: FlaskConical },
     { id: 'prod-finishing', name: 'Production Station', icon: ClipboardList },
     { id: 'prod-orders', name: 'Production Orders', icon: ClipboardList },
     { id: 'prod-daily-records', name: 'Daily Records', icon: ClipboardList },
+    { id: 'prod-wip', name: 'Carryover / WIP', icon: Boxes },
     { id: 'inv-daily-prod', name: 'Daily Production', icon: ClipboardList },
     { id: 'prod-trace', name: 'Traceability', icon: Network },
     { id: 'machines', name: 'Machines & Assets', icon: Boxes },

@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
+import { formatQty } from '../../../lib/format';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
@@ -370,7 +371,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                   <span>Consignment <b className="font-mono">{tree.inbound.consignmentNumber}</b></span>
                 )}
                 <span>Supplier <b>{tree.inbound.supplier?.name ?? '—'}</b></span>
-                <span>Qty <b>{tree.inbound.quantity} {tree.inbound.unitOfMeasure}</b></span>
+                <span>Qty <b>{formatQty(tree.inbound.quantity, tree.inbound.unitOfMeasure)}</b></span>
                 <span>Received <b>{new Date(tree.inbound.receivedAt).toLocaleDateString()}</b></span>
               </div>
             </div>
@@ -431,7 +432,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <span className="text-[11px] font-mono text-slate-500">
-                            {ing.quantity}{ing.isPercentage ? '%' : ''} {ing.unitOfMeasure}
+                            {ing.isPercentage ? `${ing.quantity}%` : formatQty(ing.quantity, ing.unitOfMeasure)}
                           </span>
                           {ing.source && (
                             <p className="text-[9px] text-slate-400">{sourceLabel[ing.source]}</p>
@@ -567,7 +568,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                         </td>
                         <td className="px-4 py-2 text-[10px] font-semibold text-slate-600">{m.eventType}</td>
                         <td className="px-4 py-2 text-[10px] font-mono text-slate-600">
-                          {m.quantity} {m.unitOfMeasure}
+                          {formatQty(m.quantity, m.unitOfMeasure)}
                         </td>
                         <td className="px-4 py-2 text-[10px] text-slate-500">{m.warehouseName ?? '—'}</td>
                         <td className="px-4 py-2 text-[10px] text-slate-500 max-w-[160px] truncate" title={m.referenceType ?? '—'}>
@@ -627,7 +628,9 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                       { label: 'Type', value: detailValue(viewing.ingredient.type) },
                       {
                         label: 'Quantity',
-                        value: `${viewing.ingredient.quantity}${viewing.ingredient.isPercentage ? '%' : ''} ${viewing.ingredient.unitOfMeasure}`,
+                        value: viewing.ingredient.isPercentage
+                          ? `${viewing.ingredient.quantity}%`
+                          : formatQty(viewing.ingredient.quantity, viewing.ingredient.unitOfMeasure),
                       },
                       {
                         label: 'Source',
@@ -687,7 +690,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                     fields: [
                       { label: 'Event', value: viewing.movement.eventType },
                       { label: 'Date', value: detailDate(viewing.movement.createdAt, true) },
-                      { label: 'Quantity', value: `${viewing.movement.quantity} ${viewing.movement.unitOfMeasure}` },
+                      { label: 'Quantity', value: formatQty(viewing.movement.quantity, viewing.movement.unitOfMeasure) },
                       { label: 'Warehouse', value: detailValue(viewing.movement.warehouseName) },
                       { label: 'Reference type', value: detailValue(viewing.movement.referenceType) },
                       { label: 'Reference ID', value: <span className="font-mono">{detailValue(viewing.movement.referenceId)}</span> },
@@ -740,7 +743,7 @@ function StageCard({
       </div>
       {stage.remainders.length > 0 && (
         <p className="mt-2 text-[10px] text-slate-400">
-          Returned to store: {stage.remainders.map((r) => `${r.quantity} ${r.unitOfMeasure}`).join(', ')}
+          Returned to store: {stage.remainders.map((r) => formatQty(r.quantity, r.unitOfMeasure)).join(', ')}
         </p>
       )}
     </div>

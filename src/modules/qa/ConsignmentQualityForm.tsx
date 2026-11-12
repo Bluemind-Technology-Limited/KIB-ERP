@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Loader, ChevronDown } from 'lucide-react';
 import { axiosClient } from '../../lib/axiosClient';
+import { formatQty } from '../../lib/format';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Modal } from '../../components/ui/Modal';
 
@@ -189,7 +190,7 @@ export default function ConsignmentQualityForm() {
                   </span>
                 </div>
                 <p className="text-[9px] text-slate-500">
-                  {item.consignmentItem?.quantity} {item.consignmentItem?.unitOfMeasure}
+                  {formatQty(item.consignmentItem?.quantity ?? 0, item.consignmentItem?.unitOfMeasure)}
                 </p>
               </div>
 

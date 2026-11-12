@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, Factory, Eye } from 'lucide-react';
+import { ClipboardList, Eye } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -22,8 +22,6 @@ interface ProductionOrder {
     productName: string;
     finishedSku?: { name: string; sku: string } | null;
   } | null;
-  machine?: { name: string; code: string } | null;
-  shift?: { name: string } | null;
   createdBy?: { fullName?: string } | null;
   productionIngredients?: Array<{
     id: string;
@@ -189,7 +187,6 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                   <th className="px-4 py-3 font-semibold">Order</th>
                   <th className="px-4 py-3 font-semibold">Product</th>
                   <th className="px-4 py-3 font-semibold">Qty</th>
-                  <th className="px-4 py-3 font-semibold">Machine / Shift</th>
                   <th className="px-4 py-3 font-semibold">Scheduled</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
@@ -216,12 +213,6 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{formatNumber(o.targetQuantity, 2)}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-[11px] text-slate-600 flex items-center gap-1">
-                        <Factory className="w-3 h-3 text-slate-400" /> {o.machine?.name ?? '—'}
-                      </p>
-                      <p className="text-[9px] text-slate-400">{o.shift?.name ?? ''}</p>
-                    </td>
                     <td className="px-4 py-3 text-[11px] text-slate-500">
                       {o.scheduledStart ? new Date(o.scheduledStart).toLocaleDateString() : '—'}
                     </td>
@@ -463,8 +454,6 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
             {
               title: 'Schedule',
               fields: [
-                { label: 'Machine', value: detailValue(viewing.machine?.name) },
-                { label: 'Shift', value: detailValue(viewing.shift?.name) },
                 { label: 'Scheduled Start', value: detailDate(viewing.scheduledStart) },
                 { label: 'Created By', value: detailValue(viewing.createdBy?.fullName) },
                 { label: 'Created At', value: detailDate(viewing.createdAt, true) },

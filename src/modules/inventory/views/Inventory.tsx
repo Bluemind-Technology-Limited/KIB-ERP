@@ -7,7 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber, formatQty } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatQty, quantityWeightLabel } from '../../../lib/format';
 
 interface StockRow {
   materialId: string; materialName: string; sku: string; unitOfMeasure: string;
@@ -336,7 +337,12 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                         <span className="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1 py-0.2 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{s.unitOfMeasure}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {s.unitOfMeasure}
+                      {quantityWeightLabel(s.quantity, s.unitOfMeasure) && (
+                        <p className="text-[9px] text-slate-400">= {quantityWeightLabel(s.quantity, s.unitOfMeasure)}</p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       <ViewButton onClick={() => openView(s)} />
                       <button 
@@ -438,7 +444,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-semibold text-[#171717]">{label}</p>
                       <span className={`text-[10px] font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        {qty > 0 ? '+' : ''}{formatNumber(qty)} {h.unitOfMeasure}
+                        {qty > 0 ? '+' : ''}{formatQty(qty, h.unitOfMeasure)}
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-0.5 truncate">
@@ -488,7 +494,13 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 <option value="">To warehouse…</option>
                 {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
-              <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" min="0" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              <div className="space-y-1">
+                <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <PackQuantityPreview
+                  quantity={tr.quantity}
+                  unit={materials.find((m) => m.id === tr.materialId)?.unitOfMeasure}
+                />
+              </div>
             </div>
             {transferAvailable !== null && (
               <p className={`text-[10px] ${transferAvailable <= 0 ? 'text-rose-600' : 'text-slate-500'}`}>
@@ -541,7 +553,13 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <option value="subtract">➖ Remove Stock</option>
                   </select>
                 </div>
-                <input value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} type="number" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <div className="space-y-1">
+                  <input value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <PackQuantityPreview
+                    quantity={adj.quantity}
+                    unit={materials.find((m) => m.id === adj.materialId)?.unitOfMeasure}
+                  />
+                </div>
               </div>
               <input value={adj.reason} onChange={(e) => setAdj({ ...adj, reason: e.target.value })} placeholder="Reason (optional)" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
             </div>
@@ -754,7 +772,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                               </p>
                             </div>
                             <span className={`shrink-0 text-[11px] font-mono font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                              {qty > 0 ? '+' : ''}{formatNumber(qty)} {h.unitOfMeasure}
+                              {qty > 0 ? '+' : ''}{formatQty(qty, h.unitOfMeasure)}
                             </span>
                           </div>
                         );

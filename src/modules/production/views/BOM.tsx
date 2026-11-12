@@ -7,6 +7,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
 
 interface Material {
@@ -127,8 +128,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.finishedSkuId || !form.expectedYield || !form.yieldUnit) {
-      setError('Select the finished product, then enter the expected yield and yield unit');
+    if (!form.finishedSkuId || !(Number(form.expectedYield) > 0) || !form.yieldUnit) {
+      setError('Select the finished product, then enter an expected yield greater than zero');
       return;
     }
     const validIngredients = ingredients.filter((ing) => ing.materialId && ing.quantity);
@@ -136,11 +137,29 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       setError('Add at least one ingredient with a material and quantity');
       return;
     }
+    if (validIngredients.some((ing) => !(Number(ing.quantity) > 0))) {
+      setError('Every ingredient needs a quantity greater than zero');
+      return;
+    }
+    if (validIngredients.some((ing) => ing.isPercentage && Number(ing.quantity) > 100)) {
+      setError('Percentage ingredients cannot exceed 100%');
+      return;
+    }
     setCreateConfirmation(true);
   };
 
   const confirmCreate = async () => {
     const validIngredients = ingredients.filter((ing) => ing.materialId && ing.quantity);
+    if (validIngredients.some((ing) => !(Number(ing.quantity) > 0))) {
+      setError('Every ingredient needs a quantity greater than zero');
+      setCreateConfirmation(false);
+      return;
+    }
+    if (validIngredients.some((ing) => ing.isPercentage && Number(ing.quantity) > 100)) {
+      setError('Percentage ingredients cannot exceed 100%');
+      setCreateConfirmation(false);
+      return;
+    }
     const missingCode = validIngredients.find((ing) => !materials.find((m) => m.id === ing.materialId)?.traceabilityCode?.trim());
     if (missingCode) {
       const mat = materials.find((m) => m.id === missingCode.materialId);
@@ -159,7 +178,6 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
         ingredients: validIngredients.map((ing) => ({
           materialId: ing.materialId,
           quantity: Number(ing.quantity),
-          unitOfMeasure: ing.unitOfMeasure || 'kg',
           isPercentage: ing.isPercentage,
         })),
       });
@@ -342,7 +360,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-slate-400">
-                            Yield: <b className="text-slate-600">{bom.expectedYield != null ? formatNumber(bom.expectedYield) : '—'}</b> {bom.yieldUnit}
+                            Yield: <b className="text-slate-600">{bom.expectedYield != null ? formatQty(bom.expectedYield, bom.yieldUnit) : '—'}</b>
                           </span>
                           {bom.status === 'DRAFT' && (
                             <button onClick={() => approveFormulation(bom.id)} className="btn-3d px-3 h-7">
@@ -448,11 +466,14 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Yield *</label>
-                  <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <PackQuantityPreview quantity={form.expectedYield} unit={form.yieldUnit} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Yield Unit *</label>
-                  <input value={form.yieldUnit} onChange={(e) => setForm({ ...form, yieldUnit: e.target.value })} placeholder="kg / units / liters" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Yield Unit (from product)</label>
+                  <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 flex items-center text-xs font-mono text-slate-600">
+                    {form.yieldUnit || '—'}
+                  </div>
                 </div>
               </div>
               <div className="space-y-1">
@@ -491,7 +512,11 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                          <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                          <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" min="0.0001" max={ing.isPercentage ? 100 : undefined} step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                          <PackQuantityPreview
+                            quantity={ing.quantity}
+                            unit={ing.isPercentage ? null : ing.unitOfMeasure}
+                          />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Measured As</label>
@@ -523,8 +548,10 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       </div>
                       {!ing.isPercentage && (
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure</label>
-                          <input value={ing.unitOfMeasure} onChange={(e) => updateIngredient(i, 'unitOfMeasure', e.target.value)} placeholder={mat?.unitOfMeasure ?? 'kg'} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit (from material)</label>
+                          <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-2 flex items-center text-xs font-mono text-slate-600">
+                            {mat?.unitOfMeasure ?? ing.unitOfMeasure ?? '—'}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -592,7 +619,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             {
               title: 'Yield',
               fields: [
-                { label: 'Expected yield', value: viewing.expectedYield != null ? formatNumber(viewing.expectedYield) : detailValue(viewing.expectedYield) },
+                { label: 'Expected yield', value: viewing.expectedYield != null ? formatQty(viewing.expectedYield, viewing.yieldUnit) : detailValue(viewing.expectedYield) },
                 { label: 'Yield unit', value: detailValue(viewing.yieldUnit) },
                 { label: 'Ingredients', value: formatNumber(viewing.ingredients?.length ?? 0) },
               ],

@@ -13,7 +13,10 @@ interface Product {
   name: string;
   sku: string;
   category?: string | null;
+  /** Rendered pack label, e.g. "100 G". */
   unitOfMeasure: string;
+  packSize?: string | number | null;
+  packUnit?: string | null;
   /** SOP KIB/QCA/010 — numeric ingredient code used in the lot code. */
   traceabilityCode?: string | null;
   barcode?: string | null;
@@ -32,7 +35,8 @@ const emptyForm = () => ({
   name: '',
   sku: '',
   category: '',
-  unitOfMeasure: '',
+  packSize: '1',
+  packUnit: 'KG',
   requiresLot: true,
   /** Shelf life in days — 730 (2 years) unless edited. */
   shelfLifeDays: '730',
@@ -83,7 +87,8 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
       name: p.name,
       sku: p.sku,
       category: p.category ?? '',
-      unitOfMeasure: p.unitOfMeasure,
+      packSize: String(p.packSize ?? 1),
+      packUnit: p.packUnit ?? 'KG',
       requiresLot: p.requiresLot,
       shelfLifeDays: String(p.shelfLifeDays ?? 730),
     });
@@ -92,8 +97,8 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.unitOfMeasure) {
-      setError('Name and Unit of Measure are required');
+    if (!form.name || !(Number(form.packSize) > 0)) {
+      setError('Name and a pack size greater than zero are required');
       return;
     }
     if (editing) setUpdateConfirmation(true);
@@ -106,6 +111,7 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
       const payload = {
         ...form,
         type: 'FINISHED',
+        packSize: Number(form.packSize),
         shelfLifeDays: form.shelfLifeDays === '' ? null : Number(form.shelfLifeDays),
       };
       if (editing) {
@@ -253,6 +259,7 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
                 { label: 'SKU', value: <span className="font-mono">{viewing.sku}</span> },
                 { label: 'Category', value: detailValue(viewing.category) },
                 { label: 'Unit of measure', value: detailValue(viewing.unitOfMeasure) },
+                { label: 'Pack', value: `${viewing.packSize ?? 1} ${viewing.packUnit ?? 'KG'}` },
               ],
             },
             {
@@ -307,7 +314,29 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure *</label>
-                <input value={form.unitOfMeasure} onChange={(e) => setForm({ ...form, unitOfMeasure: e.target.value })} placeholder="kg / units / cartons" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="any"
+                    value={form.packSize}
+                    onChange={(e) => setForm({ ...form, packSize: e.target.value })}
+                    placeholder="100"
+                    className="h-9 w-24 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  />
+                  <select
+                    value={form.packUnit}
+                    onChange={(e) => setForm({ ...form, packUnit: e.target.value })}
+                    className="h-9 flex-1 rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  >
+                    <option value="KG">KG</option>
+                    <option value="G">G</option>
+                    <option value="PCS">PCS</option>
+                  </select>
+                </div>
+                <p className="text-[9px] text-slate-400">
+                  One unit = {form.packSize || '0'} {form.packUnit}. Quantities are counted in these units.
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expiry Period (days)</label>

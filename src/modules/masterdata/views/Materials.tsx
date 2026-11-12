@@ -14,7 +14,11 @@ interface Material {
   sku: string;
   type: 'RAW' | 'PACKAGING' | 'FINISHED';
   category?: string | null;
+  /** Rendered pack label, e.g. "25 KG". */
   unitOfMeasure: string;
+  /** Physical pack definition: 25 + KG. */
+  packSize?: string | number | null;
+  packUnit?: string | null;
   /** SOP KIB/QCA/010 — numeric ingredient code used in the lot code (e.g. "1"). */
   traceabilityCode?: string | null;
   barcode?: string | null;
@@ -55,7 +59,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
     sku: '',
     type: 'RAW',
     category: '',
-    unitOfMeasure: '',
+    packSize: '1',
+    packUnit: 'KG',
     traceabilityCode: '',
     requiresLot: true,
     supplierIds: [] as string[],
@@ -96,7 +101,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   const openAddWithType = (type: 'RAW') => {
     setEditing(null);
-    setForm({ name: '', sku: '', type, category: '', unitOfMeasure: '', requiresLot: true, supplierIds: [], traceabilityCode: '' });
+    setForm({ name: '', sku: '', type, category: '', packSize: '1', packUnit: 'KG', requiresLot: true, supplierIds: [], traceabilityCode: '' });
     setShowModal(true);
   };
 
@@ -107,7 +112,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       sku: m.sku,
       type: m.type,
       category: m.category ?? '',
-      unitOfMeasure: m.unitOfMeasure,
+      packSize: String(m.packSize ?? 1),
+      packUnit: m.packUnit ?? 'KG',
       traceabilityCode: m.traceabilityCode ?? '',
       requiresLot: m.requiresLot,
       supplierIds: (m.suppliers ?? []).map((s) => s.supplier.id),
@@ -117,8 +123,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.unitOfMeasure) {
-      setError('Name and Unit of Measure are required');
+    if (!form.name || !(Number(form.packSize) > 0)) {
+      setError('Name and a pack size greater than zero are required');
       return;
     }
     if (editing) {
@@ -130,12 +136,13 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
 
   const confirmSave = async () => {
     setSaving(true);
+    const payload = { ...form, packSize: Number(form.packSize) };
     try {
       if (editing) {
-        await axiosClient.patch(`/master-data/materials/${editing.id}`, { ...form });
+        await axiosClient.patch(`/master-data/materials/${editing.id}`, payload);
         setUpdateConfirmation(false);
       } else {
-        await axiosClient.post('/master-data/materials', { ...form });
+        await axiosClient.post('/master-data/materials', payload);
         setCreateConfirmation(false);
       }
       setShowModal(false);
@@ -342,6 +349,10 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               title: 'Storing',
               fields: [
                 { label: 'Unit of measure', value: detailValue(viewing.unitOfMeasure) },
+                {
+                  label: 'Pack',
+                  value: `${viewing.packSize ?? 1} ${viewing.packUnit ?? 'KG'}`,
+                },
                 { label: 'Lot tracking', value: viewing.requiresLot ? 'Lot tracked' : 'No lot' },
               ],
             },
@@ -413,7 +424,29 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit of Measure *</label>
-                <input value={form.unitOfMeasure} onChange={(e) => setForm({ ...form, unitOfMeasure: e.target.value })} placeholder="kg / liters / units" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="any"
+                    value={form.packSize}
+                    onChange={(e) => setForm({ ...form, packSize: e.target.value })}
+                    placeholder="25"
+                    className="h-9 w-24 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  />
+                  <select
+                    value={form.packUnit}
+                    onChange={(e) => setForm({ ...form, packUnit: e.target.value })}
+                    className="h-9 flex-1 rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  >
+                    <option value="KG">KG</option>
+                    <option value="G">G</option>
+                    <option value="PCS">PCS</option>
+                  </select>
+                </div>
+                <p className="text-[9px] text-slate-400">
+                  One unit = {form.packSize || '0'} {form.packUnit}. Quantities are counted in these units.
+                </p>
               </div>
               <div className="space-y-1 flex items-end">
                 <label className="flex items-center gap-2 h-9 text-xs text-slate-600 cursor-pointer">

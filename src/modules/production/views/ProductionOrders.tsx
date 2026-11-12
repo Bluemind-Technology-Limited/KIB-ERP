@@ -7,7 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber, formatPercent, formatQty } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatPercent, formatQty, parseUom, packWeightKg } from '../../../lib/format';
 
 interface BomIngredientOption {
   id: string;
@@ -29,8 +30,6 @@ interface BomVersionOption {
   ingredients: BomIngredientOption[];
 }
 
-interface Machine { id: string; name: string; code: string }
-interface Shift { id: string; name: string; startTime: string; endTime: string }
 interface Warehouse { id: string; name: string; code: string }
 interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure: string }
 
@@ -46,10 +45,9 @@ interface ProductionOrder {
   createdAt: string;
   bom?: {
     productName: string;
+    yieldUnit?: string | null;
     finishedSku?: { name: string; sku: string } | null;
   } | null;
-  machine?: { name: string; code: string } | null;
-  shift?: { name: string } | null;
   createdBy?: { fullName?: string } | null;
   finishedBatch?: { batchNumber: string; status: string } | null;
   mixCode?: string | null;
@@ -85,8 +83,6 @@ const statusBadge: Record<string, string> = {
 export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: string }) {
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [bomOptions, setBomOptions] = useState<BomVersionOption[]>([]);
-  const [machines, setMachines] = useState<Machine[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [materials, setMaterials] = useState<MaterialOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,8 +105,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   // wizard form
   const [form, setForm] = useState({
     scheduledStart: '',
-    machineId: '',
-    shiftId: '',
   });
   /** Selected batch formulations and their target quantities, keyed by BOM id. */
   const [wizardBoms, setWizardBoms] = useState<Record<string, string>>({});
@@ -125,11 +119,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const load = async () => {
     setLoading(true);
     try {
-      const [orderRes, bomRes, machineRes, shiftRes, whRes, matRes] = await Promise.all([
+      const [orderRes, bomRes, whRes, matRes] = await Promise.all([
         axiosClient.get<{ productionOrders: ProductionOrder[] }>('/production/production-orders'),
         axiosClient.get<{ batchFormulations: any[] }>('/production/batch-formulations'),
-        axiosClient.get<{ machines: Machine[] }>('/production/machines'),
-        axiosClient.get<{ shifts: Shift[] }>('/production/shifts'),
         axiosClient.get<{ warehouses: Warehouse[] }>('/master-data/warehouses'),
         axiosClient.get<{ materials: MaterialOption[] }>('/master-data/materials'),
       ]);
@@ -161,8 +153,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             })),
           }))
       );
-      setMachines(machineRes.data.machines);
-      setShifts(shiftRes.data.shifts);
       setWarehouses(whRes.data.warehouses);
       setMaterials(matRes.data.materials);
       setError('');
@@ -206,13 +196,27 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const estimatedIngredients = useMemo(() => {
     const totals = new Map<string, { id: string; name: string; unitOfMeasure: string; amount: number; isPercentage: boolean }>();
 
+    /** Percentage ingredients are a share of the batch weight, not of pack count. */
+    const percentagePacks = (pct: number, targetPacks: number, finishedUnit: string, ingredientUnit: string) => {
+      const finished = parseUom(finishedUnit);
+      const ingredient = parseUom(ingredientUnit);
+      if (!finished || !ingredient) return null;
+      const finishedKg = packWeightKg(finished.packSize, finished.packUnit);
+      const ingredientKg = packWeightKg(ingredient.packSize, ingredient.packUnit);
+      if (finishedKg === null || ingredientKg === null || ingredientKg <= 0) return null;
+      return ((pct / 100) * targetPacks * finishedKg) / ingredientKg;
+    };
+
     for (const bom of selectedBoms) {
       const qty = Number(wizardBoms[bom.id]);
       if (!qty || qty <= 0) continue;
       const scale = bom.expectedYield > 0 ? qty / bom.expectedYield : 0;
 
       for (const ing of bom.ingredients) {
-        const amount = ing.isPercentage ? (qty * ing.quantity) / 100 : ing.quantity * scale;
+        const amount = ing.isPercentage
+          ? percentagePacks(ing.quantity, qty, bom.yieldUnit, ing.unitOfMeasure)
+          : ing.quantity * scale;
+        if (amount === null) continue;
         const existing = totals.get(ing.material.id);
         if (existing) existing.amount += amount;
         else
@@ -241,7 +245,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const openWizard = () => {
     const now = new Date();
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    setForm({ scheduledStart: local, machineId: '', shiftId: '' });
+    setForm({ scheduledStart: local });
     setWizardBoms({});
     setStep(1);
     setBomSearch('');
@@ -251,7 +255,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
   /** Add more products to a day that already has production on it. */
   const planForDate = (dateKey: string) => {
-    setForm({ scheduledStart: `${dateKey}T08:00`, machineId: '', shiftId: '' });
+    setForm({ scheduledStart: `${dateKey}T08:00` });
     setWizardBoms({});
     setStep(1);
     setBomSearch('');
@@ -266,8 +270,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   };
 
   const submitWaste = async () => {
-    if (!wasteForm.materialId || !wasteForm.warehouseId || !wasteForm.quantity || !wasteForm.unitOfMeasure) {
-      setError('Material, warehouse, quantity and unit are required');
+    if (!wasteForm.materialId || !wasteForm.warehouseId || !wasteForm.quantity) {
+      setError('Material, warehouse and quantity are required');
       return;
     }
     setSaving(true);
@@ -276,7 +280,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         materialId: wasteForm.materialId,
         warehouseId: wasteForm.warehouseId,
         quantity: Number(wasteForm.quantity),
-        unitOfMeasure: wasteForm.unitOfMeasure,
         notes: wasteForm.notes || undefined,
       }, { toast: { success: 'Waste logged successfully' } });
       setShowWaste(false);
@@ -311,8 +314,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
           targetQuantity: Number(wizardBoms[b.id]),
         })),
         scheduledStart: form.scheduledStart || undefined,
-        machineId: form.machineId || undefined,
-        shiftId: form.shiftId || undefined,
       }, {
         toast: {
           success:
@@ -511,7 +512,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Orders</h2>
-          <PageDescription>Plan batches from approved BOMs, schedule on machines/shifts, then execute.</PageDescription>
+          <PageDescription>Plan batches from approved BOMs, then execute.</PageDescription>
         </div>
         <div className="flex gap-2">
           <button onClick={openWaste} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50">
@@ -609,7 +610,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                                     <th className="px-4 py-2 font-semibold">Order</th>
                                     <th className="px-4 py-2 font-semibold">Product</th>
                                     <th className="px-4 py-2 font-semibold">Qty</th>
-                                    <th className="px-4 py-2 font-semibold">Machine / Shift</th>
                                     <th className="px-4 py-2 font-semibold">Scheduled</th>
                                     <th className="px-4 py-2 font-semibold">Batch</th>
                                     <th className="px-4 py-2 font-semibold">Yield Error</th>
@@ -636,12 +636,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       <p className="text-[9px] text-slate-400 max-w-[180px] truncate" title={o.bom?.finishedSku?.sku ?? ''}>{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{formatNumber(o.targetQuantity)}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-[11px] text-slate-600 flex items-center gap-1 max-w-[180px]" title={o.machine?.name ?? '—'}>
-                        <Factory className="w-3 h-3 text-slate-400 shrink-0" /> <span className="truncate">{o.machine?.name ?? '—'}</span>
-                      </p>
-                      <p className="text-[9px] text-slate-400 max-w-[180px] truncate" title={o.shift?.name ?? ''}>{o.shift?.name ?? ''}</p>
-                    </td>
                     <td className="px-4 py-3 text-[11px] text-slate-500">
                       {o.scheduledStart ? new Date(o.scheduledStart).toLocaleDateString() : '—'}
                     </td>
@@ -863,11 +857,12 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                             onChange={(e) => setWizardBoms({ ...wizardBoms, [b.id]: e.target.value })}
                             type="number"
                             step="0.0001"
-                            min={0}
+                            min={0.0001}
                             placeholder={`e.g. ${b.expectedYield ?? 100}`}
                             className="h-8 w-28 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                           />
                           <span className="text-[10px] text-slate-400">{b.yieldUnit}</span>
+                          <PackQuantityPreview quantity={wizardBoms[b.id]} unit={b.yieldUnit} />
                         </div>
                       </div>
                     ))}
@@ -878,26 +873,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Scheduled Start</label>
                     <input value={form.scheduledStart} onChange={(e) => setForm({ ...form, scheduledStart: e.target.value })} type="datetime-local" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Machine</label>
-                      <select value={form.machineId} onChange={(e) => setForm({ ...form, machineId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                        <option value="">Any…</option>
-                        {machines.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shift</label>
-                      <select value={form.shiftId} onChange={(e) => setForm({ ...form, shiftId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                        <option value="">Any…</option>
-                        {shifts.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name} ({s.startTime}–{s.endTime})</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
 
                   {estimatedIngredients.length > 0 && (
@@ -1115,7 +1090,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Actual Realized Yield *</label>
-                  <input value={actionForm.actualYield} onChange={(e) => setActionForm({ ...actionForm, actualYield: e.target.value })} type="number" step="0.0001" placeholder={`Expected: ${actingOrder.targetQuantity}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <input value={actionForm.actualYield} onChange={(e) => setActionForm({ ...actionForm, actualYield: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder={`Expected: ${actingOrder.targetQuantity}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <PackQuantityPreview quantity={actionForm.actualYield} unit={actingOrder.bom?.yieldUnit} />
                 </div>
                 
                 <div className="space-y-1">
@@ -1199,11 +1175,14 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                <input value={wasteForm.quantity} onChange={(e) => setWasteForm({ ...wasteForm, quantity: e.target.value })} type="number" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <input value={wasteForm.quantity} onChange={(e) => setWasteForm({ ...wasteForm, quantity: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <PackQuantityPreview quantity={wasteForm.quantity} unit={wasteForm.unitOfMeasure} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit *</label>
-                <input value={wasteForm.unitOfMeasure} onChange={(e) => setWasteForm({ ...wasteForm, unitOfMeasure: e.target.value })} placeholder="kg / units" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit (from material)</label>
+                <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 flex items-center text-xs font-mono text-slate-600">
+                  {wasteForm.unitOfMeasure || '—'}
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
@@ -1289,8 +1268,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 { label: 'Target qty', value: formatNumber(viewing.targetQuantity) },
                 { label: 'Actual yield', value: viewing.actualYield != null ? formatNumber(viewing.actualYield) : detailValue(viewing.actualYield) },
                 { label: 'Yield error', value: viewing.errorPercentage != null ? formatPercent(Math.abs(viewing.errorPercentage), 2) : '—' },
-                { label: 'Machine', value: detailValue(viewing.machine?.name) },
-                { label: 'Shift', value: detailValue(viewing.shift?.name) },
                 { label: 'Scheduled start', value: detailDate(viewing.scheduledStart, true) },
                 { label: 'Completed', value: detailDate(viewing.actualEnd, true) },
                 { label: 'Mix code', value: detailValue(viewing.mixCode) },

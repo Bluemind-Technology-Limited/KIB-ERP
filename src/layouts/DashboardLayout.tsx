@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
+import NetworkMeter from '../components/NetworkMeter';
 import NotificationBell from '../components/ui/NotificationBell';
 import { useAuthStore } from '../stores/useAuthStore';
 
@@ -86,10 +87,14 @@ export default function DashboardLayout({
         return { parent: 'Inventory', current: 'Finished Goods' };
       case 'prod-boms':
         return { parent: 'Production', current: 'Batch Formulation' };
+      case 'prod-plans':
+        return { parent: 'Production', current: 'Production Schedule' };
       case 'prod-orders':
         return { parent: 'Production', current: 'Production Orders' };
       case 'prod-daily-records':
         return { parent: 'Production', current: 'Daily Records' };
+      case 'prod-wip':
+        return { parent: 'Production', current: 'Carryover / WIP' };
       case 'prod-trace':
         return { parent: 'Production', current: 'Traceability' };
       case 'prod-issue':
@@ -122,23 +127,27 @@ export default function DashboardLayout({
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <div className="h-screen overflow-hidden bg-[#FAFAFA] text-[#171717] flex font-sans">
-      
-      {/* Sidebar - Desktop Layout (Isolated Component) */}
-      <div className={`hidden md:block h-full shrink-0 z-30 transition-all duration-200 ${isSidebarCollapsed ? 'w-[56px]' : 'w-[260px]'}`}>
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          onLogout={handleLogoutAction} 
-          isCollapsed={isSidebarCollapsed}
-          setIsCollapsed={setIsSidebarCollapsed}
-        />
-      </div>
+    <div className="h-screen overflow-hidden bg-[#FAFAFA] text-[#171717] flex flex-col font-sans">
 
-      {/* Main Panel */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
-        
-        {/* Sticky Dashboard Header (58px height, does not scroll with page) */}
+      {/* Network meter — full-width, hidden until the connection needs attention */}
+      <NetworkMeter />
+
+      <div className="flex flex-1 min-h-0 min-w-0">
+        {/* Sidebar - Desktop Layout (Isolated Component) */}
+        <div className={`hidden md:block h-full shrink-0 z-30 transition-all duration-200 ${isSidebarCollapsed ? 'w-[56px]' : 'w-[260px]'}`}>
+          <Sidebar 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab} 
+            onLogout={handleLogoutAction} 
+            isCollapsed={isSidebarCollapsed}
+            setIsCollapsed={setIsSidebarCollapsed}
+          />
+        </div>
+
+        {/* Main Panel */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
+
+          {/* Sticky Dashboard Header (58px height, does not scroll with page) */}
         <header className="h-[58px] bg-[#FBFBFB] border-b border-[#D9D9D9]/80 px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
           
           {/* Breadcrumb section */}
@@ -276,6 +285,7 @@ export default function DashboardLayout({
             {children}
           </div>
         </main>
+        </div>
       </div>
 
     </div>

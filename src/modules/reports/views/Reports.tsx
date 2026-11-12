@@ -288,7 +288,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                       </td>
                       <td className="px-4 py-3 text-[10px] font-mono text-slate-500">{r.sku}</td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-600">
-                        {formatNumber(r.quantity)} <span className="text-[9px] font-normal text-slate-400">{r.unitOfMeasure}</span>
+                        {formatQty(r.quantity, r.unitOfMeasure)}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
                         {r.unitCost ? formatMoney(r.unitCost) : '—'}

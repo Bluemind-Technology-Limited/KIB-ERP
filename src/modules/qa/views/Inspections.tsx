@@ -29,7 +29,17 @@ interface Inspection {
   createdAt: string;
   referenceLabel?: string | null;
   material?: { name: string; sku: string; unitOfMeasure: string } | null;
-  batchLot?: { id: string; batchNumber: string; qcBatchNumber?: string | null; lotCode?: string | null; status: string } | null;
+  batchLot?: {
+    id: string;
+    batchNumber: string;
+    lotCode?: string | null;
+    /** SOP KIB/QCA/010 — the sequence inside the lot code, editable by QA. */
+    setNumber?: number | null;
+    vendorCode?: string | null;
+    ingredientCode?: string | null;
+    yearCode?: string | null;
+    status: string;
+  } | null;
   inspector?: { fullName?: string } | null;
   reviewDocumentUrl?: string | null;
   reviewDocumentKey?: string | null;
@@ -52,6 +62,14 @@ const batchStatusBadge: Record<string, string> = {
   EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
+/** Mirrors `buildLotCode` on the server so QA sees the code while editing. */
+function previewLotCode(batchLot: Inspection['batchLot'], rawSetNumber: string) {
+  const setNumber = Number(rawSetNumber);
+  if (!batchLot?.vendorCode || !batchLot.ingredientCode || !batchLot.yearCode) return null;
+  if (!Number.isInteger(setNumber) || setNumber <= 0) return null;
+  return `${batchLot.vendorCode}-${batchLot.ingredientCode}-${setNumber}-${batchLot.yearCode}`;
+}
+
 /** Local calendar day (YYYY-MM-DD) so it matches an <input type="date"> value. */
 const localDay = (value?: string | null) => {
   if (!value) return '';
@@ -73,9 +91,9 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [docToDelete, setDocToDelete] = useState<Inspection | null>(null);
   const [deletingDoc, setDeletingDoc] = useState(false);
   const [viewing, setViewing] = useState<Inspection | null>(null);
-  /** QA review modal — batch number (traceability) + comments for one item. */
+  /** QA review modal — lot-code set number + comments for one item. */
   const [reviewing, setReviewing] = useState<Inspection | null>(null);
-  const [reviewForm, setReviewForm] = useState({ qcBatchNumber: '', notes: '' });
+  const [reviewForm, setReviewForm] = useState({ setNumber: '', notes: '' });
   const [savingReview, setSavingReview] = useState<'comment' | 'release' | 'reject' | null>(null);
 
   const load = async () => {
@@ -110,7 +128,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const openReview = (inspection: Inspection) => {
     setReviewing(inspection);
     setReviewForm({
-      qcBatchNumber: inspection.batchLot?.qcBatchNumber ?? '',
+      setNumber: inspection.batchLot?.setNumber != null ? String(inspection.batchLot.setNumber) : '',
       notes: inspection.notes ?? '',
     });
     setError('');
@@ -121,7 +139,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     setReviewing(null);
   };
 
-  /** Save the inspector's observations without deciding the result yet. */
+  /** Save the inspector's observations and any set-number edit without deciding the result yet. */
   const saveComment = async () => {
     if (!reviewing) return;
     setSavingReview('comment');
@@ -129,11 +147,15 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     try {
       await axiosClient.patch(`/qa/inspections/${reviewing.id}/comment`, {
         notes: reviewForm.notes,
+        setNumber: reviewForm.setNumber.trim() || undefined,
       });
       const refreshed = await refreshOne(reviewing.id);
       if (refreshed) {
         setReviewing(refreshed);
-        setReviewForm((prev) => ({ ...prev, notes: refreshed.notes ?? '' }));
+        setReviewForm({
+          notes: refreshed.notes ?? '',
+          setNumber: refreshed.batchLot?.setNumber != null ? String(refreshed.batchLot.setNumber) : '',
+        });
       }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save the comment');
@@ -144,10 +166,10 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
 
   const decide = async (action: 'release' | 'reject') => {
     if (!reviewing) return;
-    if (action === 'release') {
-      const lot = reviewing.batchLot;
-      if (reviewing.inspectionType === 'GRN' && lot && !reviewForm.qcBatchNumber.trim()) {
-        setError('Enter the QC Ingredient Batch Number before releasing this item.');
+    if (reviewForm.setNumber.trim()) {
+      const setNumber = Number(reviewForm.setNumber);
+      if (!Number.isInteger(setNumber) || setNumber <= 0) {
+        setError('Set number must be a positive whole number.');
         return;
       }
     }
@@ -155,7 +177,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     setError('');
     try {
       await axiosClient.post(`/qa/inspections/${reviewing.id}/${action}`, {
-        qcBatchNumber: reviewForm.qcBatchNumber.trim() || undefined,
+        setNumber: reviewForm.setNumber.trim() || undefined,
         notes: reviewForm.notes.trim() || undefined,
       });
       setReviewing(null);
@@ -329,16 +351,11 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         <span className={`text-[10px] font-mono ${i.batchLot?.lotCode ? 'text-slate-600' : 'text-amber-600'}`}>
                           {i.batchLot?.lotCode ?? i.batchLot?.batchNumber ?? '—'}
                         </span>
-                        {i.result === 'PENDING' && i.inspectionType === 'GRN' && !i.batchLot?.qcBatchNumber && (
-                          <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                            Assign
-                          </span>
-                        )}
                       </div>
-                      {i.batchLot?.qcBatchNumber && (
+                      {i.batchLot?.setNumber != null && (
                         <p className="text-[9px] whitespace-nowrap mt-0.5">
-                          <span className="text-slate-400">QC: </span>
-                          <span className="font-mono font-semibold text-emerald-700">{i.batchLot.qcBatchNumber}</span>
+                          <span className="text-slate-400">Set: </span>
+                          <span className="font-mono font-semibold text-slate-600">{i.batchLot.setNumber}</span>
                         </p>
                       )}
                       <p className="text-[9px] text-slate-400 whitespace-nowrap mt-0.5">
@@ -379,7 +396,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
         )}
       </div>
 
-      {/* 3. QA review — batch number + comments, then release/reject */}
+      {/* 3. QA review — set number + comments, then release/reject */}
       {reviewing && (
         <Modal onClose={closeReview}>
           <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
@@ -413,17 +430,35 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
 
             <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                QC Ingredient Batch Number {reviewing.inspectionType === 'GRN' ? '*' : ''}
+                Material Set Number
               </label>
               <input
-                value={reviewForm.qcBatchNumber}
-                onChange={(e) => setReviewForm({ ...reviewForm, qcBatchNumber: e.target.value })}
-                placeholder="e.g. 800151"
+                type="number"
+                min="1"
+                step="1"
+                value={reviewForm.setNumber}
+                onChange={(e) => setReviewForm({ ...reviewForm, setNumber: e.target.value })}
+                placeholder="e.g. 7"
                 className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
               />
               <p className="text-[9px] text-slate-400">
-                Assigned by QA to the reviewed ingredient batch. It does not change the lot code above.
+                The system assigns the next number automatically. Edit it to correct the lot code — vendor, ingredient and year stay fixed.
               </p>
+              {(() => {
+                const preview = previewLotCode(reviewing.batchLot, reviewForm.setNumber);
+                const current = reviewing.batchLot?.lotCode ?? null;
+                if (preview && preview !== current) {
+                  return <p className="text-[10px] font-mono font-semibold text-[#171717]">New lot code: {preview}</p>;
+                }
+                if (current) {
+                  return <p className="text-[10px] font-mono text-slate-600">Lot code: {current}</p>;
+                }
+                return (
+                  <p className="text-[9px] text-amber-600">
+                    Lot code cannot be built until the supplier vendor code and material traceability code are set.
+                  </p>
+                );
+              })()}
             </div>
 
             <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
@@ -519,7 +554,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 disabled={!!savingReview}
                 className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                {savingReview === 'comment' ? 'Saving…' : 'Save comment'}
+                {savingReview === 'comment' ? 'Saving…' : 'Save changes'}
               </button>
               <button
                 type="button"
@@ -568,12 +603,13 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               fields: [
                 { label: 'Lot code', value: viewing.batchLot?.lotCode ?? 'Not set' },
                 {
-                  label: 'QC ingredient batch number',
-                  value: viewing.batchLot?.qcBatchNumber ? (
-                    <span className="font-mono font-semibold text-emerald-700">{viewing.batchLot.qcBatchNumber}</span>
-                  ) : (
-                    <span className="text-slate-400">Not set</span>
-                  ),
+                  label: 'Material set number',
+                  value:
+                    viewing.batchLot?.setNumber != null ? (
+                      <span className="font-mono font-semibold text-slate-700">{viewing.batchLot.setNumber}</span>
+                    ) : (
+                      <span className="text-slate-400">Not set</span>
+                    ),
                 },
                 { label: 'Batch status', value: viewing.batchLot?.status ?? '—' },
                 { label: 'Material', value: viewing.material?.name ?? '—' },

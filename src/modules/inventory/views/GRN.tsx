@@ -7,7 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface GrnData {
   id: string;
@@ -252,7 +253,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   const removeLine = (idx: number) => setLines((prev) => prev.filter((_, i) => i !== idx));
 
   /** A line is postable when it actually arrived, has a quantity and a
-   *  warehouse. The batch number is assigned by QA after inspection.
+   *  warehouse. QA can correct the set number after inspection.
    *  Lines left unticked (not delivered) stay outstanding on the PO. */
   const lineIsComplete = (l: GrnLine) =>
     Boolean(l.delivered !== false && l.materialId && l.quantity && l.warehouseId);
@@ -436,10 +437,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   const supplierName = g.supplier?.name ?? g.po?.supplier?.name ?? '—';
                   const reference = g.po?.number ?? g.consignment?.consignmentNumber ?? 'Direct receipt';
                   const firstLabel = first
-                    ? `${first.material?.name ?? 'Material'} × ${formatNumber(first.quantity)} ${first.unitOfMeasure}`
+                    ? `${first.material?.name ?? 'Material'} × ${formatQty(first.quantity, first.unitOfMeasure)}`
                     : '—';
                   const itemTitle = items
-                    .map((it: any) => `${it.material?.name ?? 'Material'} × ${formatNumber(it.quantity)} ${it.unitOfMeasure}`)
+                    .map((it: any) => `${it.material?.name ?? 'Material'} × ${formatQty(it.quantity, it.unitOfMeasure)}`)
                     .join('\n');
 
                   return (
@@ -655,7 +656,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     ) : (
                       <span className="block text-[10px] text-amber-600">
                         {preview?.missing?.length
-                          ? `No lot code yet (${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')}). QA assigns the batch number after inspection.`
+                          ? `No lot code yet (${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')}). QA can edit the set number during inspection.`
                           : mode === 'DIRECT'
                             ? 'Select a material to preview its lot code'
                             : 'Select a purchase order to generate a lot code'}
@@ -673,21 +674,26 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
                   />
 
-                  {/* Batch number is assigned by QA on inspection, not at receipt. */}
+                  {/* QA can correct the set number during inspection, not at receipt. */}
 
-                  <input
-                    value={line.quantity}
-                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))}
-                    placeholder="Qty"
-                    type="number"
-                    disabled={mode === 'PO' && line.delivered === false}
-                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
-                  />
+                  <div className="space-y-1">
+                    <input
+                      value={line.quantity}
+                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))}
+                      placeholder="Qty"
+                      type="number"
+                      min="0.0001"
+                      step="any"
+                      disabled={mode === 'PO' && line.delivered === false}
+                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
+                    />
+                    <PackQuantityPreview quantity={line.quantity} unit={line.unitOfMeasure} />
+                  </div>
                   {mode === 'DIRECT' && (
                     <input
                       value={line.unitCost}
                       onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, unitCost: e.target.value } : l))}
-                      placeholder="Unit cost"
+                      placeholder={`Cost per ${line.unitOfMeasure || 'unit'}`}
                       type="number"
                       min="0"
                       step="any"
@@ -847,8 +853,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                                   {it.batchLot?.expiryDate ? detailDate(it.batchLot.expiryDate) : '—'}
                                 </td>
                                 <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                                  <span className="text-[11px] font-bold text-[#171717]">{formatNumber(it.quantity)}</span>{' '}
-                                  <span className="text-[9px] text-slate-400">{it.unitOfMeasure}</span>
+                                  <span className="text-[11px] font-bold text-[#171717]">{formatQty(it.quantity, it.unitOfMeasure)}</span>
                                 </td>
                               </tr>
                             ))}

@@ -5,7 +5,9 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatQty } from '../../../lib/format';
+import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
 
 interface AggregatedIngredient {
   id: string;
@@ -30,7 +32,7 @@ interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  bom: { productName: string };
+  bom: { productName: string; yieldUnit?: string | null };
   grindingRecord?: { achievedQuantity: string | number; remainderQuantity: string | number } | null;
 }
 
@@ -40,6 +42,7 @@ interface Plan {
   status: string;
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
+  stationWorkOrders?: StationBalance[];
   progress: { grinding: { totalItems: number; done: number; complete: boolean } };
 }
 
@@ -299,6 +302,7 @@ export default function GrindingStation() {
 
                 {isOpen && (
                   <div className="space-y-3 border-t border-slate-100 px-4 py-4">
+                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="GRINDING" />
                     {pending.length === 0 && (
                       <p className="text-xs text-emerald-700">All batches for this plan are ground.</p>
                     )}
@@ -312,7 +316,7 @@ export default function GrindingStation() {
                               Batch {item.sequence} · {item.bom?.productName}
                             </p>
                             <span className="text-[10px] text-slate-400">
-                              Target {formatNumber(item.targetQuantity)}
+                              Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
                             </span>
                           </div>
 
@@ -323,12 +327,13 @@ export default function GrindingStation() {
                               </label>
                               <input
                                 type="number"
-                                min="0"
+                                min="0.0001"
                                 step="any"
                                 value={form.inputQuantity}
                                 onChange={(e) => update(item.id, { inputQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
+                              <PackQuantityPreview quantity={form.inputQuantity} unit={item.bom?.yieldUnit} />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
@@ -342,6 +347,7 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { achievedQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
+                              <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
                             </div>
                             <div className="space-y-1">
                               <div className="flex items-center justify-between gap-1">
@@ -490,7 +496,7 @@ export default function GrindingStation() {
                                   <div key={agg.id} className="flex items-center gap-2">
                                     <span className="flex-1 truncate text-[10px] text-slate-600">
                                       {agg.material.name}
-                                      <span className="ml-1 text-slate-400">({formatNumber(agg.issuedQuantity ?? 0)})</span>
+                                      <span className="ml-1 text-slate-400">({formatQty(agg.issuedQuantity ?? 0, agg.unitOfMeasure)})</span>
                                     </span>
                                     <input
                                       type="number"

@@ -6,7 +6,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatQty } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -292,7 +293,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                   </div>
                   <p className="text-[10px] text-slate-400">Requested by: {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
                   <p className="text-[10px] text-slate-500 mb-2">
-                    {r.items?.map((i: any) => `${i.material?.name} (${formatNumber(i.quantity)} ${i.unitOfMeasure})`).join(', ')}
+                    {r.items?.map((i: any) => `${i.material?.name} (${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
                   </p>
                   {r.notes && <p className="text-[9px] text-slate-500 italic">Notes: {r.notes}</p>}
                 </div>
@@ -417,10 +418,11 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                               onChange={(e) => updateItem(idx, { quantity: e.target.value })}
                               placeholder="e.g. 10"
                               type="number"
-                              min="0"
+                              min="0.0001"
                               step="any"
                               className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335] read-only:bg-slate-50"
                             />
+                            <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>

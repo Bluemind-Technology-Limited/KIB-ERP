@@ -8,6 +8,7 @@ import { DeleteConfirmationModal } from '../../../components/ui/DeleteConfirmati
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { formatQty } from '../../../lib/format';
 
 interface Bin {
   id: string;
@@ -613,8 +614,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                           {row.expiryDate ? new Date(row.expiryDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap">
-                          <span className="text-[11px] font-bold text-[#171717]">{Number(row.quantity).toLocaleString()}</span>{' '}
-                          <span className="text-[9px] text-slate-400">{row.unitOfMeasure}</span>
+                          <span className="text-[11px] font-bold text-[#171717]">{formatQty(row.quantity, row.unitOfMeasure)}</span>
                         </td>
                       </tr>
                     ))}

@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Boxes, ChevronDown, ChevronRight, Loader, PackageCheck, RefreshCw } from 'lucide-react';
+import { AlertCircle, Boxes, Calculator, ChevronDown, ChevronRight, Loader, PackageCheck, RefreshCw } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
+import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
+import { IngredientRequirementsPanel } from '../components/IngredientRequirementsPanel';
 
 interface AggregatedIngredient {
   id: string;
@@ -33,6 +36,7 @@ interface Plan {
   createdBy?: { fullName: string } | null;
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
+  stationWorkOrders?: StationBalance[];
   progress: {
     issue: { totalIngredients: number; issuedIngredients: number; complete: boolean };
     grinding: { totalItems: number; done: number; complete: boolean };
@@ -78,6 +82,7 @@ export default function StockIssue() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [calcOpenId, setCalcOpenId] = useState<string | null>(null);
   const [warehouseId, setWarehouseId] = useState('');
   const [lines, setLines] = useState<Record<string, { quantity: string; batchLotId: string }>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -297,6 +302,37 @@ export default function StockIssue() {
 
                 {isOpen && (
                   <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="INGREDIENT" />
+
+                    {/* Requirement calculation — shows exactly how the quantities were derived */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalcOpenId((prev) => (prev === plan.id ? null : plan.id))
+                        }
+                        className="flex w-full items-center justify-between gap-2 bg-slate-50/70 px-3 py-2 text-left hover:bg-slate-100/70"
+                      >
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          <Calculator className="h-3.5 w-3.5 text-[#00B4D8]" />
+                          Requirement calculation
+                          <span className="hidden font-normal normal-case tracking-normal text-slate-400 sm:inline">
+                            — per batch × batches = total required
+                          </span>
+                        </span>
+                        {calcOpenId === plan.id ? (
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                        )}
+                      </button>
+                      {calcOpenId === plan.id && (
+                        <div className="border-t border-slate-200 p-3">
+                          <IngredientRequirementsPanel planId={plan.id} />
+                        </div>
+                      )}
+                    </div>
+
                     <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
                       <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Products in this plan
@@ -376,7 +412,7 @@ export default function StockIssue() {
                                 <td className="px-3 py-2">
                                   <input
                                     type="number"
-                                    min="0"
+                                    min="0.0001"
                                     step="any"
                                     value={line.quantity}
                                     onChange={(e) =>
@@ -387,6 +423,7 @@ export default function StockIssue() {
                                     }
                                     className="h-8 w-28 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                                   />
+                                  <PackQuantityPreview quantity={line.quantity} unit={agg.unitOfMeasure} />
                                 </td>
                                 <td className="px-3 py-2">
                                   <select

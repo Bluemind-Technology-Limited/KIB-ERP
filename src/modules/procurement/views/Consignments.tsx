@@ -7,7 +7,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { formatNumber } from '../../../lib/format';
+import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
+import { formatNumber, formatQty } from '../../../lib/format';
 
 interface Material {
   id: string;
@@ -370,7 +371,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                 <div className="flex-1">
                                   <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
                                   <p className="text-[10px] text-slate-400 mt-1">
-                                    Arrived in this shipment: <b>{formatNumber(item.quantity)}</b> {item.unitOfMeasure}
+                                    Arrived in this shipment: <b>{formatQty(item.quantity, item.unitOfMeasure)}</b>
                                   </p>
                                   {item.poItem && (
                                     <p className="text-[10px] text-slate-400 mt-0.5">
@@ -457,7 +458,7 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                   <div key={item.id} className="rounded-lg border border-slate-100 p-3 space-y-2">
                     <p className="text-[11px] font-bold text-slate-700">{item.material.name}</p>
                     <p className="text-[10px] text-slate-400">
-                      Remaining: <b>{formatNumber(item.quantity - item.distributedQty, 2)}</b> {item.unitOfMeasure}
+                      Remaining: <b>{formatQty(item.quantity - item.distributedQty, item.unitOfMeasure)}</b>
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
@@ -479,12 +480,14 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                         <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Qty *</label>
                         <input
                           type="number"
+                          min="0.0001"
                           step="0.0001"
                           value={distributions[idx]?.quantity || ''}
                           onChange={(e) => setDistributions((prev) => [...prev.slice(0, idx), { ...prev[idx], quantity: e.target.value }, ...prev.slice(idx + 1)])}
                           placeholder={formatNumber(item.quantity - item.distributedQty, 2)}
                           className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#00B4D8]"
                         />
+                        <PackQuantityPreview quantity={distributions[idx]?.quantity} unit={item.unitOfMeasure} />
                       </div>
                     </div>
                   </div>
