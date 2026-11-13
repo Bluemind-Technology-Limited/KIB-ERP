@@ -49,6 +49,9 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const [holdReason, setHoldReason] = useState('');
   const [savingHold, setSavingHold] = useState(false);
   const [error, setError] = useState('');
+  const [poFormError, setPoFormError] = useState('');
+  const [statusError, setStatusError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showPoForm, setShowPoForm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string } | null>(null);
@@ -228,7 +231,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
     const unsupplied = poItems.find((it) => it.supplierOptions.length === 0);
     if (unsupplied) {
-      setError(
+      setPoFormError(
         `"${unsupplied.materialName}" has no supplier. Add one in Master Data → Materials before raising this PO.`
       );
       return;
@@ -236,7 +239,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
     const unchosen = poItems.find((it) => !it.supplierId);
     if (unchosen) {
-      setError(`Choose which supplier "${unchosen.materialName}" is being bought from.`);
+      setPoFormError(`Choose which supplier "${unchosen.materialName}" is being bought from.`);
       return;
     }
 
@@ -244,25 +247,26 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       const names = chosenSupplierIds
         .map((id) => suppliers.find((s) => s.id === id)?.name ?? id)
         .join(', ');
-      setError(
+      setPoFormError(
         `All items on a purchase order must come from the same supplier — this one has ${chosenSupplierIds.length} (${names}). Split it into separate purchase orders.`
       );
       return;
     }
 
+    setPoFormError('');
     setCreatePoConfirmation(true);
   };
 
   const confirmCreatePo = async () => {
     const supplier = resolvedSupplier;
     if (!supplier?.vendorCode?.trim()) {
-      setError(
+      setPoFormError(
         `Supplier "${supplier?.name ?? 'The selected supplier'}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`
       );
-      setCreatePoConfirmation(false);
       return;
     }
     setSaving(true);
+    setPoFormError('');
     try {
       const body: any = {
         supplierId: resolvedSupplierId,
@@ -281,11 +285,11 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       });
       setShowPoForm(false);
       setCreatePoConfirmation(false);
+      setPoFormError('');
       setPoRequisitionId(''); setPoNotes(''); setPoExpected(''); setPoItems([]);
       loadAll();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to create PO');
-      setCreatePoConfirmation(false);
+      setPoFormError(err?.response?.data?.error || 'Failed to create PO');
     }
     finally { setSaving(false); }
   };
@@ -297,6 +301,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
   const confirmStatusChange = async () => {
     if (!statusConfirmation) return;
     setIsUpdatingStatus(true);
+    setStatusError('');
     try {
       await axiosClient.patch(`/procurement/purchase-orders/${statusConfirmation.id}/status`, { 
         status: statusConfirmation.status 
@@ -304,27 +309,27 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       setStatusConfirmation(null);
       loadAll();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Status update failed');
-      setStatusConfirmation(null);
+      setStatusError(err?.response?.data?.error || 'Status update failed');
     } finally {
       setIsUpdatingStatus(false);
     }
   };
 
   const deletePurchaseOrder = async (id: string) => {
+    setDeleteError('');
     setDeleteConfirmation({ id });
   };
 
   const confirmDelete = async () => {
     if (!deleteConfirmation) return;
     setIsDeleting(true);
+    setDeleteError('');
     try {
       await axiosClient.delete(`/procurement/purchase-orders/${deleteConfirmation.id}`);
       setDeleteConfirmation(null);
       loadAll();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to delete');
-      setDeleteConfirmation(null);
+      setDeleteError(err?.response?.data?.error || 'Failed to delete');
     } finally {
       setIsDeleting(false);
     }
@@ -405,6 +410,12 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
               <button type="button" onClick={() => setShowPoForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
+            {poFormError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+                {poFormError}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved Requisition *</label>
@@ -448,11 +459,17 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                     </span>
                   )}
                 </div>
+                <p className="text-[9px] text-slate-400">
+                  Derived from the requisition items. The supplier's vendor code is used in lot codes.
+                </p>
               </div>
 
               {/* Items come from the requisition — no free entry. */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requisition Items *</label>
+                <p className="text-[9px] text-slate-400">
+                  Materials and quantities come from the approved requisition; set the unit cost and supplier per line.
+                </p>
                 {!poRequisitionId ? (
                   <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-[10px] text-slate-400">
                     Select a requisition to load its items.
@@ -489,6 +506,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                               required
                               className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                             />
+                            <p className="text-[9px] text-slate-400">Cost per pack.</p>
                           </div>
                           <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
@@ -525,10 +543,12 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected delivery</label>
                 <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <p className="text-[9px] text-slate-400">Drives delivery tracking and the receiving queue.</p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
                 <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <p className="text-[9px] text-slate-400">Visible to procurement, stores and the supplier on the LPO.</p>
               </div>
             </div>
 
@@ -753,8 +773,9 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
           title="Delete Purchase Order"
           description="This purchase order will be permanently deleted. This action cannot be undone."
           onConfirm={confirmDelete}
-          onCancel={() => setDeleteConfirmation(null)}
+          onCancel={() => { setDeleteConfirmation(null); setDeleteError(''); }}
           isLoading={isDeleting}
+          error={deleteError}
         />
       )}
 
@@ -765,8 +786,9 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
           title="Update Purchase Order Status"
           description={`This purchase order will be marked as ${statusConfirmation.status.toLowerCase()}.`}
           onConfirm={confirmStatusChange}
-          onCancel={() => setStatusConfirmation(null)}
+          onCancel={() => { setStatusConfirmation(null); setStatusError(''); }}
           isLoading={isUpdatingStatus}
+          error={statusError}
         />
       )}
 
@@ -777,8 +799,9 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
           title="Create Purchase Order"
           description="Raise this purchase order from the selected approved requisition?"
           onConfirm={confirmCreatePo}
-          onCancel={() => setCreatePoConfirmation(false)}
+          onCancel={() => { setCreatePoConfirmation(false); setPoFormError(''); }}
           isLoading={saving}
+          error={poFormError}
         />
       )}
 

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
-import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
+import { DetailsModal, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty, quantityWeightLabel } from '../../../lib/format';
@@ -13,8 +13,24 @@ import { formatNumber, formatQty, quantityWeightLabel } from '../../../lib/forma
 interface StockRow {
   materialId: string; materialName: string; sku: string; unitOfMeasure: string;
   batchLotId: string | null; batchNumber: string | null;
+  lotCode?: string | null;
+  batchStatus?: string | null;
+  manufacturingDate?: string | null;
+  expiryDate?: string | null;
   warehouseId: string; warehouseName: string; binId: string | null; quantity: number;
   minQuantity?: number | null;
+}
+
+interface MaterialGroup {
+  materialId: string;
+  materialName: string;
+  sku: string;
+  unitOfMeasure: string;
+  minQuantity: number;
+  totalQuantity: number;
+  sets: StockRow[];
+  warehouseCount: number;
+  earliestExpiry: string | null;
 }
 
 interface HistoryEntry {
@@ -74,6 +90,8 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
 
   // view details modal
   const [viewing, setViewing] = useState<StockRow | null>(null);
+  // grouped material sets modal
+  const [viewingGroup, setViewingGroup] = useState<MaterialGroup | null>(null);
   /** Movement history for the item open in the View modal. */
   const [viewingHistory, setViewingHistory] = useState<HistoryEntry[]>([]);
   const [viewingHistoryLoading, setViewingHistoryLoading] = useState(false);
@@ -257,11 +275,58 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
     }
   };
 
-  const filtered = stock.filter((s) =>
-    s.materialName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.batchNumber ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const groups = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    const map = new Map<string, MaterialGroup>();
+
+    for (const row of stock) {
+      let group = map.get(row.materialId);
+      if (!group) {
+        group = {
+          materialId: row.materialId,
+          materialName: row.materialName,
+          sku: row.sku,
+          unitOfMeasure: row.unitOfMeasure,
+          minQuantity: Number(row.minQuantity ?? 0),
+          totalQuantity: 0,
+          sets: [],
+          warehouseCount: 0,
+          earliestExpiry: null,
+        };
+        map.set(row.materialId, group);
+      }
+
+      group.totalQuantity = Number((group.totalQuantity + Number(row.quantity)).toFixed(4));
+      if (row.batchLotId || Number(row.quantity) !== 0) group.sets.push(row);
+      if (
+        row.expiryDate &&
+        (!group.earliestExpiry ||
+          new Date(row.expiryDate).getTime() < new Date(group.earliestExpiry).getTime())
+      ) {
+        group.earliestExpiry = row.expiryDate;
+      }
+    }
+
+    const list = [...map.values()].map((group) => ({
+      ...group,
+      warehouseCount: new Set(group.sets.map((set) => set.warehouseId)).size,
+    }));
+
+    const matches = !term
+      ? list
+      : list.filter(
+          (group) =>
+            group.materialName.toLowerCase().includes(term) ||
+            group.sku.toLowerCase().includes(term) ||
+            group.sets.some(
+              (set) =>
+                (set.batchNumber ?? '').toLowerCase().includes(term) ||
+                (set.lotCode ?? '').toLowerCase().includes(term)
+            )
+        );
+
+    return matches.sort((a, b) => a.materialName.localeCompare(b.materialName));
+  }, [stock, searchQuery]);
 
   return (
     <div className="w-full mx-auto space-y-6">
@@ -292,7 +357,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={5} rows={6} />
-        ) : filtered.length === 0 ? (
+        ) : groups.length === 0 ? (
           <EmptyState title="No stock yet" hint="Post a GRN to create ledger entries." />
         ) : (
           <div className="overflow-x-auto">
@@ -300,119 +365,139 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
               <thead>
                 <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
                   <th className="px-4 py-3 font-semibold">Material</th>
-                  <th className="px-4 py-3 font-semibold">Batch</th>
-                  <th className="px-4 py-3 font-semibold">Warehouse</th>
+                  <th className="px-4 py-3 font-semibold">Sets</th>
+                  <th className="px-4 py-3 font-semibold">Warehouses</th>
                   <th className="px-4 py-3 font-semibold text-right">Min Qty</th>
-                  <th className="px-4 py-3 font-semibold text-right">Qty</th>
+                  <th className="px-4 py-3 font-semibold text-right">Total Qty</th>
                   <th className="px-4 py-3 font-semibold">UoM</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s, idx) => (
-                  <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0"><Boxes className="w-3.5 h-3.5 text-[#EA4335]" /></div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={s.materialName}>{s.materialName}</p>
-                          <p className="text-[9px] text-slate-400 mt-0.5 font-mono truncate max-w-[180px]" title={s.sku}>{s.sku}</p>
+                {groups.map((g) => {
+                  const low = g.minQuantity > 0 && g.totalQuantity <= g.minQuantity;
+                  const firstSet = g.sets.find((set) => Number(set.quantity) > 0) ?? g.sets[0] ?? null;
+                  const editTarget: StockRow =
+                    firstSet ?? {
+                      materialId: g.materialId,
+                      materialName: g.materialName,
+                      sku: g.sku,
+                      unitOfMeasure: g.unitOfMeasure,
+                      batchLotId: null,
+                      batchNumber: null,
+                      warehouseId: '',
+                      warehouseName: '',
+                      binId: null,
+                      quantity: 0,
+                      minQuantity: g.minQuantity,
+                    };
+
+                  return (
+                    <tr
+                      key={g.materialId}
+                      onClick={() => setViewingGroup(g)}
+                      className="cursor-pointer border-b border-slate-50 hover:bg-slate-50/50"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0"><Boxes className="w-3.5 h-3.5 text-[#EA4335]" /></div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={g.materialName}>{g.materialName}</p>
+                            <p className="text-[9px] text-slate-400 mt-0.5 font-mono truncate max-w-[180px]" title={g.sku}>{g.sku}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.batchNumber ? <span className="text-[10px] font-mono text-slate-600">{s.batchNumber}</span> : <span className="text-[10px] text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{s.warehouseName}</td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-500 font-mono">{formatNumber(s.minQuantity ?? 0)}</td>
-                    <td className={`px-4 py-3 text-right text-sm font-bold ${
-                      s.quantity <= (s.minQuantity || 0) 
-                        ? 'text-rose-600' 
-                        : s.quantity < 0 
-                          ? 'text-rose-600' 
-                          : 'text-emerald-600'
-                    }`}>
-                      {formatNumber(s.quantity)}
-                      {s.quantity <= (s.minQuantity || 0) && (
-                        <span className="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1 py-0.2 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {s.unitOfMeasure}
-                      {quantityWeightLabel(s.quantity, s.unitOfMeasure) && (
-                        <p className="text-[9px] text-slate-400">= {quantityWeightLabel(s.quantity, s.unitOfMeasure)}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
-                      <ViewButton onClick={() => openView(s)} />
-                      <button 
-                        onClick={() => {
-                          setTr({
-                            materialId: s.materialId,
-                            quantity: '',
-                            fromWarehouseId: s.warehouseId || '',
-                            toWarehouseId: '',
-                            unitOfMeasure: s.unitOfMeasure
-                          });
-                          setShowTransfer(true);
-                        }} 
-                        disabled={Number(s.quantity) <= 0}
-                        title={Number(s.quantity) <= 0 ? 'No stock to transfer from this batch' : 'Transfer stock'}
-                        className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Transfer
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setAdj({
-                            materialId: s.materialId,
-                            quantity: '',
-                            warehouseId: s.warehouseId || '',
-                            unitOfMeasure: s.unitOfMeasure,
-                            reason: '',
-                            operation: 'add'
-                          });
-                          setShowAdjust(true);
-                        }} 
-                        className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
-                      >
-                        Adjust
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setEditingStockItem(s);
-                          setEditStockForm({ minQuantity: String(s.minQuantity || 0) });
-                          setIsEditStockOpen(true);
-                        }} 
-                        disabled={isEditingSaving}
-                        className="h-6 w-6 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Edit"
-                      >
-                        {isEditingSaving ? (
-                          <div className="animate-spin">
-                            <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full"></div>
-                          </div>
-                        ) : (
-                          <Edit2 className="w-3 h-3" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-[11px] font-semibold text-slate-700">
+                          {formatNumber(g.sets.length)} set{g.sets.length === 1 ? '' : 's'}
+                        </p>
+                        {g.earliestExpiry && (
+                          <p className="text-[9px] text-amber-600">
+                            Earliest expiry {new Date(g.earliestExpiry).toLocaleDateString()}
+                          </p>
                         )}
-                      </button>
-                      <button 
-                        onClick={() => setDeletingEntryId(s.materialId)}
-                        disabled={saving}
-                        className="h-6 w-6 rounded border border-rose-200 text-[10px] font-semibold text-rose-600 bg-white hover:bg-rose-50 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete"
-                      >
-                        {saving ? (
-                          <div className="animate-spin">
-                            <div className="w-3 h-3 border-2 border-rose-300 border-t-rose-600 rounded-full"></div>
-                          </div>
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600">
+                        {formatNumber(g.warehouseCount)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs text-slate-500 font-mono">{formatNumber(g.minQuantity)}</td>
+                      <td className={`px-4 py-3 text-right text-sm font-bold ${low ? 'text-rose-600' : g.totalQuantity < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {formatNumber(g.totalQuantity)}
+                        {low && (
+                          <span className="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1 py-0.2 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
                         )}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-400">
+                        {g.unitOfMeasure}
+                        {quantityWeightLabel(g.totalQuantity, g.unitOfMeasure) && (
+                          <p className="text-[9px] text-slate-400">= {quantityWeightLabel(g.totalQuantity, g.unitOfMeasure)}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setViewingGroup(g)}
+                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                            title="View the sets for this material"
+                          >
+                            Sets
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTr({
+                                materialId: g.materialId,
+                                quantity: '',
+                                fromWarehouseId: editTarget.warehouseId || '',
+                                toWarehouseId: '',
+                                unitOfMeasure: g.unitOfMeasure,
+                              });
+                              setShowTransfer(true);
+                            }}
+                            disabled={g.totalQuantity <= 0}
+                            title={g.totalQuantity <= 0 ? 'No stock to transfer' : 'Transfer stock'}
+                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Transfer
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAdj({
+                                materialId: g.materialId,
+                                quantity: '',
+                                warehouseId: editTarget.warehouseId || '',
+                                unitOfMeasure: g.unitOfMeasure,
+                                reason: '',
+                                operation: 'add',
+                              });
+                              setShowAdjust(true);
+                            }}
+                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                          >
+                            Adjust
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingStockItem(editTarget);
+                              setEditStockForm({ minQuantity: String(g.minQuantity || 0) });
+                              setIsEditStockOpen(true);
+                            }}
+                            disabled={isEditingSaving}
+                            className="h-6 w-6 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Edit minimum quantity"
+                          >
+                            {isEditingSaving ? (
+                              <div className="animate-spin">
+                                <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full"></div>
+                              </div>
+                            ) : (
+                              <Edit2 className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -469,6 +554,115 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           </div>
         )}
       </div>
+
+      {/* 3b. Material sets modal — one row per material, sets on click */}
+      {viewingGroup && (
+        <Modal onClose={() => setViewingGroup(null)}>
+          <div className="w-full max-w-2xl rounded-xl bg-white p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Material stock
+                </p>
+                <h3 className="truncate text-sm font-bold text-[#171717]">
+                  {viewingGroup.materialName}
+                </h3>
+                <p className="font-mono text-[10px] text-slate-400">{viewingGroup.sku}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingGroup(null)}
+                className="text-slate-400 hover:text-slate-600"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Total qty</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-[#171717]">
+                  {formatNumber(viewingGroup.totalQuantity)} {viewingGroup.unitOfMeasure}
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Sets</p>
+                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.sets.length)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Warehouses</p>
+                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.warehouseCount)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Min qty</p>
+                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.minQuantity)}</p>
+              </div>
+            </div>
+
+            {viewingGroup.sets.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-200 px-3 py-6 text-center text-[11px] text-slate-400">
+                No stock sets recorded for this material yet.
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[620px] text-left">
+                    <thead className="bg-slate-50">
+                      <tr className="text-[8px] uppercase tracking-wider text-slate-400">
+                        <th className="px-3 py-2 font-semibold">Set / batch</th>
+                        <th className="px-3 py-2 font-semibold">Warehouse</th>
+                        <th className="px-3 py-2 text-right font-semibold">Quantity</th>
+                        <th className="px-3 py-2 font-semibold">Expiry</th>
+                        <th className="px-3 py-2 font-semibold">Status</th>
+                        <th className="px-3 py-2 text-right font-semibold">History</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewingGroup.sets.map((set) => (
+                        <tr key={`${set.batchLotId ?? 'none'}-${set.warehouseId}-${set.binId ?? 'bin'}`} className="border-t border-slate-50">
+                          <td className="px-3 py-2">
+                            <p className="font-mono text-[10px] font-semibold text-slate-700">
+                              {set.lotCode ?? set.batchNumber ?? 'No lot'}
+                            </p>
+                            {set.lotCode && set.batchNumber && set.lotCode !== set.batchNumber && (
+                              <p className="font-mono text-[9px] text-slate-400">{set.batchNumber}</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-[10px] text-slate-600">{set.warehouseName}</td>
+                          <td className="px-3 py-2 text-right text-[11px] font-bold text-[#171717]">
+                            {formatNumber(set.quantity)}
+                          </td>
+                          <td className="px-3 py-2 text-[10px] text-slate-500">
+                            {set.expiryDate ? new Date(set.expiryDate).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">
+                              {set.batchStatus ?? '—'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setViewingGroup(null);
+                                openView(set);
+                              }}
+                              className="h-6 px-2 rounded border border-slate-200 text-[9px] font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* 4. Transfer modal */}
       {showTransfer && (
@@ -671,26 +865,6 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
         </Modal>
       )}
 
-      {/* Delete Stock Item Confirmation Modal */}
-      {deletingEntryId && (
-        <ConfirmationModal
-          type="delete"
-          isOpen={!!deletingEntryId}
-          title="Delete Stock Entry"
-          message="Are you sure you want to delete this stock entry? This action cannot be undone."
-          confirmText="Delete"
-          cancelText="Cancel"
-          isLoading={saving}
-          onConfirm={() => {
-            // In production would call delete API for this stock entry
-            setDeletingEntryId(null);
-            load();
-          }}
-          onCancel={() => setDeletingEntryId(null)}
-          isDangerous
-        />
-      )}
-
       {/* Delete Ledger Entry Confirmation Modal */}
       {deletingEntryId && (
         <ConfirmationModal
@@ -725,6 +899,8 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 { label: 'Material', value: detailValue(viewing.materialName) },
                 { label: 'SKU', value: detailValue(viewing.sku) },
                 { label: 'Batch Number', value: detailValue(viewing.batchNumber) },
+                { label: 'Lot Code', value: detailValue(viewing.lotCode) },
+                { label: 'Batch Status', value: detailValue(viewing.batchStatus) },
                 { label: 'Warehouse', value: detailValue(viewing.warehouseName) },
               ],
             },

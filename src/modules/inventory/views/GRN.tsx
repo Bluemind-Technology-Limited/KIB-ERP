@@ -89,12 +89,26 @@ const emptyLine = (): GrnLine => ({
   expiryDate: '', warehouseId: '', setNumber: '',
 });
 
+/** Descriptive identifier shown above every form field. */
+function FieldLabel({ children, hint }: { children: string; hint?: string }) {
+  return (
+    <div className="space-y-0.5">
+      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+        {children}
+      </label>
+      {hint && <p className="text-[9px] leading-snug text-slate-400">{hint}</p>}
+    </div>
+  );
+}
+
 export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
   const [grns, setGrns] = useState<GrnData[]>([]);
   const [pos, setPos] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<'PO' | 'DIRECT'>('PO');
@@ -266,18 +280,18 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       unitOfMeasure: l.unitOfMeasure,
       expiryDate: l.expiryDate || undefined,
       warehouseId: l.warehouseId,
-      setNumber: l.setNumber === '' ? undefined : Number(l.setNumber),
       unitCost: mode === 'DIRECT' ? Number(l.unitCost || 0) : undefined,
     }));
 
   const receive = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'PO' && !poId) { setError('Select a purchase order first'); return; }
+    setFormError('');
+    if (mode === 'PO' && !poId) { setFormError('Select a purchase order first'); return; }
     if (mode === 'DIRECT' && !grnNotes.trim()) {
-      setError('Enter a reason for the direct receipt');
+      setFormError('Enter a reason for the direct receipt');
       return;
     }
-    if (buildItems().length === 0) { setError('Mark at least one line as delivered, with a quantity and warehouse'); return; }
+    if (buildItems().length === 0) { setFormError('Mark at least one line as delivered, with a quantity and warehouse'); return; }
     setSubmitConfirmation(true);
   };
 
@@ -308,21 +322,23 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       setMode('PO');
       setReceivedOn(new Date().toISOString().slice(0, 10));
       setSubmitConfirmation(false);
+      setFormError('');
       load();
-    } catch (err: any) { setError(err?.response?.data?.error || 'Receive failed'); setSaving(false); }
+    } catch (err: any) { setFormError(err?.response?.data?.error || 'Receive failed'); setSaving(false); }
   };
 
   const handleDelete = async () => {
     if (!deleteConfirmation) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       await axiosClient.delete(`/grn/${deleteConfirmation.grnId}`);
       setDeleteConfirmation(null);
+      setDeleteError('');
       setError('');
       load();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to delete GRN');
-      setDeleteConfirmation(null);
+      setDeleteError(err?.response?.data?.error || 'Failed to delete GRN');
     } finally {
       setDeleting(false);
     }
@@ -484,7 +500,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         <div className="flex items-center justify-end gap-1.5">
                           <ViewButton onClick={() => setViewing(g)} />
                           <button
-                            onClick={() => setDeleteConfirmation({ grnId: g.id, grnNumber: g.number })}
+                            onClick={() => {
+                              setDeleteError('');
+                              setDeleteConfirmation({ grnId: g.id, grnNumber: g.number });
+                            }}
                             className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
                             title="Delete GRN"
                           >
@@ -515,6 +534,12 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
               </div>
               <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
+
+            {formError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+                {formError}
+              </div>
+            )}
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
@@ -550,10 +575,19 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   onChange={(e) => setReceivedOn(e.target.value)}
                   className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
+                <p className="text-[9px] text-slate-400">Date the goods physically arrived at the warehouse.</p>
               </div>
 
               {mode === 'PO' && (
-                <select value={poId} onChange={(e) => selectPo(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+              <div className="space-y-1">
+                <FieldLabel hint="Only POs with an outstanding balance can be received.">
+                  Purchase order *
+                </FieldLabel>
+                <select
+                  value={poId}
+                  onChange={(e) => selectPo(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                >
                   <option value="">Select purchase order…</option>
                   {pos
                     .filter(
@@ -567,15 +601,21 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       <option key={p.id} value={p.id}>{p.number} — {p.supplier?.name} ({p.status})</option>
                     ))}
                 </select>
-              )}
+              </div>
+            )}
 
-              <textarea
-                value={grnNotes}
-                onChange={(e) => setGrnNotes(e.target.value)}
-                placeholder={mode === 'DIRECT' ? 'Reason for direct receipt (required)' : 'Notes'}
-                rows={4}
-                className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
-              />
+              <div className="space-y-1">
+                <FieldLabel hint={mode === 'DIRECT' ? 'Required for a contingency receipt.' : 'Optional receiving notes.'}>
+                  {mode === 'DIRECT' ? 'Reason for direct receipt *' : 'Notes'}
+                </FieldLabel>
+                <textarea
+                  value={grnNotes}
+                  onChange={(e) => setGrnNotes(e.target.value)}
+                  placeholder={mode === 'DIRECT' ? 'Reason for direct receipt (required)' : 'Notes'}
+                  rows={4}
+                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+                />
+              </div>
             </div>
 
             {lines.map((line, idx) => {
@@ -608,16 +648,21 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     </div>
                   )}
                   {mode === 'DIRECT' && (
-                    <select
-                      value={line.materialId}
-                      onChange={(e) => onDirectMaterialChange(idx, e.target.value)}
-                      className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                    >
-                      <option value="">Select material…</option>
-                      {materials.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                      ))}
-                    </select>
+                    <div className="space-y-1">
+                      <FieldLabel hint="Only materials with a traceability code can generate a lot code.">
+                        Material *
+                      </FieldLabel>
+                      <select
+                        value={line.materialId}
+                        onChange={(e) => onDirectMaterialChange(idx, e.target.value)}
+                        className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                      >
+                        <option value="">Select material…</option>
+                        {materials.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -664,19 +709,30 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     )}
                   </div>
 
-                  <input
-                    value={line.setNumber}
-                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, setNumber: e.target.value } : l))}
-                    placeholder={preview?.setNumber ? `Set no. (next: ${preview.setNumber})` : 'Set no.'}
-                    type="number"
-                    min={1}
-                    disabled={mode === 'PO' && line.delivered === false}
-                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
-                  />
-
-                  {/* QA can correct the set number during inspection, not at receipt. */}
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                      Set number
+                    </span>
+                    <p className="text-[10px] leading-snug text-slate-500">
+                      Assigned by the system and approved by QA during inspection.
+                    </p>
+                    {preview?.setNumber != null && (
+                      <p className="mt-0.5 font-mono text-[10px] text-slate-400">
+                        Suggested: {preview.setNumber}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="space-y-1">
+                    <FieldLabel
+                      hint={
+                        mode === 'PO'
+                          ? 'Locked to the outstanding PO quantity. QA can adjust it after receipt.'
+                          : 'Enter the quantity physically received.'
+                      }
+                    >
+                      Received quantity
+                    </FieldLabel>
                     <input
                       value={line.quantity}
                       onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))}
@@ -684,24 +740,35 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       type="number"
                       min="0.0001"
                       step="any"
+                      readOnly={mode === 'PO'}
+                      aria-readonly={mode === 'PO'}
                       disabled={mode === 'PO' && line.delivered === false}
-                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
+                      className={`h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none ${
+                        mode === 'PO' ? 'bg-slate-100 text-slate-500' : 'focus:border-[#EA4335]'
+                      } disabled:bg-slate-100`}
                     />
                     <PackQuantityPreview quantity={line.quantity} unit={line.unitOfMeasure} />
                   </div>
                   {mode === 'DIRECT' && (
-                    <input
-                      value={line.unitCost}
-                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, unitCost: e.target.value } : l))}
-                      placeholder={`Cost per ${line.unitOfMeasure || 'unit'}`}
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
-                    />
+                    <div className="space-y-1">
+                      <FieldLabel hint="Cost per pack for this contingency receipt.">
+                        Unit cost
+                      </FieldLabel>
+                      <input
+                        value={line.unitCost}
+                        onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, unitCost: e.target.value } : l))}
+                        placeholder={`Cost per ${line.unitOfMeasure || 'unit'}`}
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                      />
+                    </div>
                   )}
                   <div className="space-y-1">
-                    <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Expiry Date</label>
+                    <FieldLabel hint="Drives expiry alerts and FIFO picking.">
+                      Expiry date *
+                    </FieldLabel>
                     <input
                       value={line.expiryDate}
                       onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, expiryDate: e.target.value } : l))}
@@ -712,15 +779,20 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       required
                     />
                   </div>
-                  <select
-                    value={line.warehouseId}
-                    onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, warehouseId: e.target.value } : l))}
-                    disabled={mode === 'PO' && line.delivered === false}
-                    className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
-                  >
+                  <div className="space-y-1">
+                    <FieldLabel hint="Stock is posted into this warehouse.">
+                      Receive into warehouse *
+                    </FieldLabel>
+                    <select
+                      value={line.warehouseId}
+                      onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, warehouseId: e.target.value } : l))}
+                      disabled={mode === 'PO' && line.delivered === false}
+                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
+                    >
                     <option value="">Warehouse…</option>
                     {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
+                </div>
                 </div>
               );
             })}
@@ -754,6 +826,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
           onCancel={() => setSubmitConfirmation(false)}
           isLoading={saving}
           confirmText="Post Receipt"
+          error={formError}
         />
       )}
 
@@ -763,9 +836,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
           title="Delete GRN"
           description={`Delete GRN ${deleteConfirmation.grnNumber}? This will remove all items and inspection records. This action cannot be undone.`}
           onConfirm={handleDelete}
-          onCancel={() => setDeleteConfirmation(null)}
+          onCancel={() => { setDeleteConfirmation(null); setDeleteError(''); }}
           isLoading={deleting}
           confirmText="Delete"
+          error={deleteError}
         />
       )}
 

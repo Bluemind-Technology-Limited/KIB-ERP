@@ -20,7 +20,6 @@ import DailyProduction from './modules/inventory/views/DailyProduction';
 import GRN from './modules/inventory/views/GRN';
 import FinishedGoods from './modules/inventory/views/FinishedGoods';
 import BOM from './modules/production/views/BOM';
-import ProductionPlans from './modules/production/views/ProductionPlans';
 import ProductionOrders from './modules/production/views/ProductionOrders';
 import DailyRecords from './modules/production/views/DailyRecords';
 import WorkInProgress from './modules/production/views/WorkInProgress';
@@ -60,7 +59,6 @@ const VIEW_ROUTES: Record<string, { path: string; parent: string; label: string 
   'inv-grn': { path: '/inventory/grn', parent: 'Inventory', label: 'Goods Receipt' },
   'inv-finished': { path: '/inventory/finished-goods', parent: 'Inventory', label: 'Finished Goods' },
   'prod-boms': { path: '/production/boms', parent: 'Production', label: 'Batch Formulation' },
-  'prod-plans': { path: '/production/plans', parent: 'Production', label: 'Production Schedule' },
   'prod-orders': { path: '/production/orders', parent: 'Production', label: 'Production Orders' },
   'prod-daily-records': { path: '/production/daily-records', parent: 'Production', label: 'Daily Records' },
   'prod-wip': { path: '/production/wip', parent: 'Production', label: 'Carryover / WIP' },
@@ -269,12 +267,6 @@ export default function App() {
         return (
           <RoleGuard userRole={user.role} viewId="prod-boms">
             <BOM searchQuery={searchQuery} />
-          </RoleGuard>
-        );
-      case 'prod-plans':
-        return (
-          <RoleGuard userRole={user.role} viewId="prod-plans">
-            <ProductionPlans searchQuery={searchQuery} />
           </RoleGuard>
         );
       case 'prod-orders':

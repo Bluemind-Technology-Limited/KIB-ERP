@@ -15,6 +15,8 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   isDangerous?: boolean;
+  /** Validation/API error to display inside the confirmation modal. */
+  error?: string;
 }
 
 const getIcon = (type: ConfirmationType) => {
@@ -44,6 +46,7 @@ export function ConfirmationModal({
   confirmText,
   cancelText = 'Cancel',
   isDangerous = false,
+  error,
 }: ConfirmationModalProps) {
   const iconConfig = getIcon(type);
   const { Icon, bgClass, iconClass, buttonClass } = isDangerous
@@ -79,6 +82,13 @@ export function ConfirmationModal({
             <p className="text-xs text-slate-500 mt-1">{displayMessage}</p>
           </div>
         </div>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-2 pt-2">

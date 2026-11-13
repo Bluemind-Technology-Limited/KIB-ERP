@@ -220,9 +220,10 @@ export default function StockIssue() {
 
     const next: Record<string, { quantity: string; batchLotId: string }> = {};
     for (const agg of plan.aggregatedIngredients) {
-      if (agg.status === 'RELEASED') continue;
-      const remaining = Number(agg.totalQuantity) - Number(agg.issuedQuantity ?? 0);
-      next[agg.id] = { quantity: remaining > 0 ? String(remaining) : '', batchLotId: '' };
+      // Release already took the stock, so the released quantity is what the
+      // station is receiving.
+      const quantity = Number(agg.issuedQuantity ?? agg.totalQuantity);
+      next[agg.id] = { quantity: quantity > 0 ? String(quantity) : '', batchLotId: '' };
     }
     setLines(next);
 
@@ -263,10 +264,6 @@ export default function StockIssue() {
 
   const submit = async (plan: Plan) => {
     setError('');
-    if (!warehouseId) {
-      setError('Select the warehouse the ingredients are being deducted from.');
-      return;
-    }
 
     const payloadLines = Object.entries(lines)
       .map(([aggregatedIngredientId, v]) => ({
@@ -301,7 +298,7 @@ export default function StockIssue() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Ingredients Station</h2>
-          <PageDescription>Required ingredients for each plan. Select a warehouse and deduct the quantities.</PageDescription>
+          <PageDescription>Ingredients released for each order. Stock is already deducted — confirm what arrived and pass it to grinding.</PageDescription>
         </div>
         <button
           onClick={load}

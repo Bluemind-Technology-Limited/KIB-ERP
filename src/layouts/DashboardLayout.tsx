@@ -87,8 +87,6 @@ export default function DashboardLayout({
         return { parent: 'Inventory', current: 'Finished Goods' };
       case 'prod-boms':
         return { parent: 'Production', current: 'Batch Formulation' };
-      case 'prod-plans':
-        return { parent: 'Production', current: 'Production Schedule' };
       case 'prod-orders':
         return { parent: 'Production', current: 'Production Orders' };
       case 'prod-daily-records':

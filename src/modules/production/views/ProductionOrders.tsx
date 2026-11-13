@@ -93,7 +93,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [createConfirmation, setCreateConfirmation] = useState(false);
-  const [actionConfirmation, setActionConfirmation] = useState<'complete' | 'mix' | 'returns' | 'release' | null>(null);
+
   const [bomSearch, setBomSearch] = useState('');
   const [viewing, setViewing] = useState<ProductionOrder | null>(null);
   /** Production dates expanded in the line table. */
@@ -108,13 +108,21 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   });
   /** Selected batch formulations and their target quantities, keyed by BOM id. */
   const [wizardBoms, setWizardBoms] = useState<Record<string, string>>({});
-  // start / complete
+  // release — one confirmation, and stock leaves the store here
   const [actingOrder, setActingOrder] = useState<ProductionOrder | null>(null);
-  const [action, setAction] = useState<'complete' | 'mix' | 'returns' | 'release' | null>(null);
-  const [actionForm, setActionForm] = useState({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
-  const [mixForm, setMixForm] = useState({ mixUnits: '' });
-  const [releaseForm, setReleaseForm] = useState<Array<{ id: string; name: string; projectedQuantity: number; releasedQuantity: number; batchLotId: string; unit: string }>>([]);
-  const [returnsForm, setReturnsForm] = useState<Array<{ id: string; name: string; returnedQuantity: number; releasedQuantity: number; unit: string }>>([]);
+  const [action, setAction] = useState<'release' | null>(null);
+  const [actionForm, setActionForm] = useState({ warehouseId: '' });
+  /** Stock by material and warehouse, used to show where each requirement sits. */
+  const [stock, setStock] = useState<
+    Array<{
+      materialId: string;
+      warehouseId: string;
+      warehouseName: string;
+      quantity: number;
+      unitOfMeasure: string;
+    }>
+  >([]);
+  const [stockLoading, setStockLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -334,100 +342,46 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     }
   };
 
-  const openAction = async (order: ProductionOrder, kind: 'complete' | 'mix' | 'returns' | 'release') => {
+  const openAction = async (order: ProductionOrder) => {
     setActingOrder(order);
-    setActionConfirmation(kind);
+    setAction('release');
+    setActionForm({ warehouseId: '' });
     setError('');
-    
-    if (kind === 'release') {
-      const releaseList = (order.productionIngredients ?? []).map(ing => ({
-        id: ing.id,
-        name: ing.material.name,
-        projectedQuantity: ing.projectedQuantity,
-        releasedQuantity: ing.projectedQuantity, // Default to projected, but can be adjusted
-        batchLotId: ing.batchLotId || '',
-        unit: ing.material.unitOfMeasure
-      }));
-      setReleaseForm(releaseList);
-    } else if (kind === 'returns') {
-      setActionForm({ warehouseId: '', batchNumber: '', actualYield: '', finishedGoodsExpiryDate: '' });
-      const returnsList = (order.productionIngredients ?? []).map(ing => ({
-        id: ing.id,
-        name: ing.material.name,
-        releasedQuantity: ing.releasedQuantity,
-        returnedQuantity: 0,
-        unit: ing.material.unitOfMeasure
-      }));
-      setReturnsForm(returnsList);
-    } else if (kind === 'mix') {
-      setMixForm({ mixUnits: '' });
-    } else if (kind === 'complete') {
-      setActionForm({ warehouseId: '', batchNumber: '', actualYield: String(order.targetQuantity), finishedGoodsExpiryDate: '' });
+    setStockLoading(true);
+    try {
+      const res = await axiosClient.get<{
+        stock: Array<{
+          materialId: string;
+          warehouseId: string;
+          warehouseName: string;
+          quantity: number;
+          unitOfMeasure: string;
+        }>;
+      }>('/inventory/stock');
+      setStock(res.data.stock ?? []);
+    } catch {
+      setStock([]);
+    } finally {
+      setStockLoading(false);
     }
-  };
-
-  const confirmAction = () => {
-    if (!actionConfirmation) return;
-    setAction(actionConfirmation);
-    setActionConfirmation(null);
   };
 
   const submitAction = async () => {
     if (!actingOrder) return;
     setSaving(true);
     try {
-      if (action === 'release') {
-        // Validate release form
-        const allReleased = releaseForm.every(r => r.releasedQuantity > 0);
-        if (!allReleased) {
-          setError('All ingredients must have a released quantity greater than 0');
-          setSaving(false);
-          return;
-        }
-        
-        await axiosClient.post(`/production/production-orders/${actingOrder.id}/release`, {
-          warehouseId: warehouses[0]?.id || '',  // Default to first warehouse
-          ingredients: releaseForm.map(r => ({
-            id: r.id,
-            releasedQuantity: Number(r.releasedQuantity),
-            batchLotId: r.batchLotId || null,
-          }))
-        }, { toast: { success: 'Ingredients released successfully' } });
-      } else if (action === 'mix') {
-        if (!mixForm.mixUnits || Number(mixForm.mixUnits) <= 0) {
-          setError('Enter a valid mix units quantity');
-          setSaving(false);
-          return;
-        }
-        await axiosClient.post(`/production/production-orders/${actingOrder.id}/mix`, {
-          mixUnits: Number(mixForm.mixUnits),
-        }, { toast: { success: 'Batch mix recorded' } });
-      } else if (action === 'returns') {
-        if (!actionForm.warehouseId) {
-          setError('Select the warehouse to return raw materials to');
-          setSaving(false);
-          return;
-        }
-        await axiosClient.post(`/production/production-orders/${actingOrder.id}/returns`, {
-          warehouseId: actionForm.warehouseId,
-          returns: returnsForm.map(r => ({
-            id: r.id,
-            returnedQuantity: Number(r.returnedQuantity)
-          }))
-        }, { toast: { success: 'Returns submitted successfully' } });
-      } else if (action === 'complete') {
-        if (!actionForm.warehouseId || !actionForm.batchNumber || !actionForm.actualYield || !actionForm.finishedGoodsExpiryDate) {
-          setError('Batch number, receiving warehouse, actual yield, and expiry date are required');
-          setSaving(false);
-          return;
-        }
-        await axiosClient.post(`/production/production-orders/${actingOrder.id}/complete`, {
-          batchNumber: actionForm.batchNumber,
-          warehouseId: actionForm.warehouseId,
-          actualYield: Number(actionForm.actualYield),
-          finishedGoodsExpiryDate: actionForm.finishedGoodsExpiryDate,
-        }, { toast: { success: 'Batch completed successfully' } });
+      if (!actionForm.warehouseId) {
+        setError('Select the warehouse the ingredients are released from');
+        setSaving(false);
+        return;
       }
+
+      // One call: deducts the ingredient requirement (earliest-expiry lots
+      // first), provisions the production batch lot, creates the three station
+      // work orders and notifies the stations.
+      await axiosClient.post(`/production/production-orders/${actingOrder.id}/release`, {
+        warehouseId: actionForm.warehouseId,
+      }, { toast: { success: 'Ingredients released and deducted from stock' } });
       setActingOrder(null);
       setAction(null);
       setError('');
@@ -438,6 +392,73 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       setSaving(false);
     }
   };
+
+  /** Each requirement plus the warehouses that actually hold it (positive stock only). */
+  const releaseLines = useMemo(() => {
+    if (!actingOrder) return [];
+    return (actingOrder.productionIngredients ?? []).map((ing) => {
+      const holders = new Map<
+        string,
+        { warehouseId: string; name: string; qty: number; unit: string }
+      >();
+      for (const row of stock) {
+        if (row.materialId !== ing.materialId) continue;
+        const qty = Number(row.quantity);
+        if (!(qty > 0)) continue;
+        const prev = holders.get(row.warehouseId);
+        holders.set(row.warehouseId, {
+          warehouseId: row.warehouseId,
+          name: row.warehouseName,
+          qty: (prev?.qty ?? 0) + qty,
+          unit: row.unitOfMeasure || ing.material.unitOfMeasure,
+        });
+      }
+      return {
+        id: ing.id,
+        name: ing.material.name,
+        unit: ing.material.unitOfMeasure,
+        required: Number(ing.projectedQuantity),
+        holders: [...holders.values()].sort((a, b) => b.qty - a.qty),
+      };
+    });
+  }, [actingOrder, stock]);
+
+  /** Only the warehouses that hold at least one requirement, flagged ready or short. */
+  const releaseWarehouses = useMemo(() => {
+    const total = releaseLines.length;
+    const rows = warehouses.map((w) => {
+      const missing: string[] = [];
+      let covered = 0;
+      let holds = 0;
+
+      for (const line of releaseLines) {
+        const held = line.holders.find((h) => h.warehouseId === w.id)?.qty ?? 0;
+        if (held > 0) holds += 1;
+        if (held + 0.0001 >= line.required) covered += 1;
+        else missing.push(line.name);
+      }
+
+      return { ...w, covered, total, missing, holds, ready: total > 0 && covered === total };
+    });
+
+    return rows
+      .filter((w) => w.holds > 0)
+      .sort((a, b) => Number(b.ready) - Number(a.ready) || b.covered - a.covered);
+  }, [warehouses, releaseLines]);
+
+  // Preselect a warehouse that can cover the whole requirement.
+  useEffect(() => {
+    if (action !== 'release' || actionForm.warehouseId) return;
+    const preferred = releaseWarehouses.find((w) => w.ready) ?? releaseWarehouses[0];
+    if (preferred) setActionForm({ warehouseId: preferred.id });
+  }, [action, actionForm.warehouseId, releaseWarehouses]);
+
+  const selectedReleaseWarehouse =
+    releaseWarehouses.find((w) => w.id === actionForm.warehouseId) ?? null;
+
+  // Release deducts everything at once, so it stays blocked until the selected
+  // warehouse can cover every ingredient.
+  const canRelease = Boolean(actionForm.warehouseId) && Boolean(selectedReleaseWarehouse?.ready);
 
   const filtered = orders.filter(
     (o) =>
@@ -667,48 +688,23 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       <ViewButton onClick={() => setViewing(o)} />
                       {o.status === 'SCHEDULED' && (
                         <>
-                          {o.planLinked ? (
-                            <span
-                              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
-                              title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Ingredients Station`}
-                            >
-                              <ClipboardList className="w-3 h-3 shrink-0" /> Issue via Ingredients Station
+                          <button onClick={() => openAction(o)} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
+                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
+                              <CheckCircle2 className="w-3 h-3 shrink-0" /> Release Ingredients
                             </span>
-                          ) : (
-                            <button onClick={() => openAction(o, 'release')} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
-                              <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
-                                <CheckCircle2 className="w-3 h-3 shrink-0" /> Release Ingredients
-                              </span>
-                            </button>
-                          )}
+                          </button>
                           <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50">
                             <Trash2 className="w-3 h-3 shrink-0" /> Delete
                           </button>
                         </>
                       )}
-                      {o.status === 'RELEASED' && (
-                        <>
-                          <button onClick={() => openAction(o, 'mix')} className="btn-3d h-7 shrink-0 whitespace-nowrap border-amber-700 bg-amber-600 px-3 hover:bg-amber-500">
-                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
-                              <Factory className="w-3.5 h-3.5 shrink-0" /> Mix
-                            </span>
-                          </button>
-                          <button onClick={() => openAction(o, 'returns')} className="h-7 shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50">
-                            Returns
-                          </button>
-                        </>
-                      )}
-                      {o.status === 'PROCESSING' && (
-                        <>
-                          <button onClick={() => openAction(o, 'complete')} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
-                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
-                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Complete
-                            </span>
-                          </button>
-                          <button onClick={() => openAction(o, 'returns')} className="h-7 shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50">
-                            Returns
-                          </button>
-                        </>
+                      {(o.status === 'RELEASED' || o.status === 'PROCESSING') && (
+                        <span
+                          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                          title="Grinding, production and WIP are tracked at the stations"
+                        >
+                          <ClipboardList className="w-3 h-3 shrink-0" /> In production — track in stations
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -927,12 +923,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         <Modal onClose={() => { setActingOrder(null); setAction(null); }}>
           <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">
-                {action === 'release' && 'Release Ingredients'}
-                {action === 'mix' && 'Record Batch Mix'}
-                {action === 'returns' && 'Log Returns/Deficits'}
-                {action === 'complete' && 'Complete Production'}
-              </h3>
+              <h3 className="text-sm font-bold text-[#171717]">Release Ingredients</h3>
               <button onClick={() => { setActingOrder(null); setAction(null); }} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
@@ -943,199 +934,123 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
             {action === 'release' && (
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                   <p className="text-[10px] text-blue-700">
-                    <span className="font-semibold">Release ingredients:</span> Confirm the quantities to release from warehouse to production floor. These will be deducted from inventory.
+                    Releasing deducts the full ingredient requirement from the selected warehouse and sends
+                    the batch to the three stations. Earliest-expiry lots are used first.
                   </p>
                 </div>
 
-                <div className="space-y-2 border border-slate-100 rounded-lg overflow-hidden">
-                  <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                    Ingredients to Release
-                  </div>
-                  <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto p-2 space-y-3">
-                    {releaseForm.map((item, idx) => (
-                      <div key={item.id} className="text-xs space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-700">{item.name}</span>
-                          <span className="text-[10px] text-slate-400">Projected: <b>{formatNumber(item.projectedQuantity, 2)}</b> {item.unit}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Released Qty *</label>
-                            <input
-                              type="number"
-                              step="0.0001"
-                              value={item.releasedQuantity}
-                              onChange={(e) => {
-                                const updated = [...releaseForm];
-                                updated[idx].releasedQuantity = Number(e.target.value);
-                                setReleaseForm(updated);
-                              }}
-                              className="h-8 w-full rounded border border-[#E9E9E9] px-2 text-right focus:outline-none focus:border-[#EA4335]"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Batch Lot</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. BATCH-001"
-                              value={item.batchLotId}
-                              onChange={(e) => {
-                                const updated = [...releaseForm];
-                                updated[idx].batchLotId = e.target.value;
-                                setReleaseForm(updated);
-                              }}
-                              className="h-8 w-full rounded border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Release from warehouse *
+                  </label>
+                  {releaseWarehouses.length === 0 ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-700">
+                      No warehouse holds these ingredients right now. Receive stock against the purchase order first.
+                    </p>
+                  ) : (
+                    <>
+                      <select
+                        value={actionForm.warehouseId}
+                        onChange={(e) => setActionForm({ warehouseId: e.target.value })}
+                        className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                      >
+                        <option value="">Select warehouse…</option>
+                        {releaseWarehouses.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} ({w.code}) —{' '}
+                            {w.ready
+                              ? `ready · ${w.covered} of ${w.total} ingredients`
+                              : `short on ${w.missing.join(', ')}`}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedReleaseWarehouse && (
+                        <span
+                          className={`mt-1 inline-flex rounded border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                            selectedReleaseWarehouse.ready
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-amber-200 bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {selectedReleaseWarehouse.ready
+                            ? `Covers all ${selectedReleaseWarehouse.total} ingredient(s)`
+                            : `Short on ${selectedReleaseWarehouse.missing.join(', ')}`}
+                        </span>
+                      )}
+                      {selectedReleaseWarehouse && !selectedReleaseWarehouse.ready && (
+                        <p className="text-[9px] text-amber-700">
+                          Release stays blocked until every ingredient is available in one warehouse.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
-                {releaseForm.length > 0 && (
-                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-2 text-xs">
-                    <p className="font-semibold text-slate-700">Release Summary:</p>
-                    <div className="space-y-1 text-[10px] text-slate-600">
-                      {releaseForm.map(item => (
-                        <div key={item.id} className="flex justify-between">
-                          <span>{item.name}</span>
-                          <span className="font-mono">{formatQty(item.releasedQuantity, item.unit, 2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {action === 'mix' && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Number of Unit Mix Generated *</label>
-                  <input
-                    type="number"
-                    step="1"
-                    placeholder="e.g. 5"
-                    value={mixForm.mixUnits}
-                    onChange={(e) => setMixForm({ mixUnits: e.target.value })}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
-                  />
-                  <p className="text-[9px] text-slate-400">
-                    This represents the ground mixture batch of ingredients. A mix code will be auto-generated.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {action === 'returns' && (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Return raw materials to warehouse *</label>
-                  <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                    <option value="">Select warehouse…</option>
-                    {warehouses.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2 border border-slate-100 rounded-lg overflow-hidden">
-                  <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                    Log Returns / Deficits
-                  </div>
-                  <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto p-2 space-y-2">
-                    {returnsForm.map((item, idx) => (
-                      <div key={item.id} className="flex items-center justify-between gap-3 text-xs p-1.5">
-                        <span className="font-semibold text-slate-700 truncate">{item.name}</span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-slate-400">Released: {formatNumber(item.releasedQuantity, 2)}</span>
-                          <input
-                            type="number"
-                            step="0.0001"
-                            placeholder="Qty returned"
-                            value={item.returnedQuantity || ''}
-                            onChange={(e) => {
-                              const updated = [...returnsForm];
-                              updated[idx].returnedQuantity = Number(e.target.value);
-                              setReturnsForm(updated);
-                            }}
-                            className="h-8 w-24 rounded border border-[#E9E9E9] px-2 text-right focus:outline-none focus:border-[#EA4335]"
-                          />
-                          <span className="text-slate-400 text-[10px] w-6">{item.unit}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {action === 'complete' && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batch Number *</label>
-                  <input value={actionForm.batchNumber} onChange={(e) => setActionForm({ ...actionForm, batchNumber: e.target.value })} placeholder="e.g. BATCH-001" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Receive into warehouse *</label>
-                  <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
-                    <option value="">Select warehouse…</option>
-                    {warehouses.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Actual Realized Yield *</label>
-                  <input value={actionForm.actualYield} onChange={(e) => setActionForm({ ...actionForm, actualYield: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder={`Expected: ${actingOrder.targetQuantity}`} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-                  <PackQuantityPreview quantity={actionForm.actualYield} unit={actingOrder.bom?.yieldUnit} />
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished Goods Expiry Date *</label>
-                  <input 
-                    type="date" 
-                    value={actionForm.finishedGoodsExpiryDate} 
-                    onChange={(e) => setActionForm({ ...actionForm, finishedGoodsExpiryDate: e.target.value })} 
-                    min={new Date().toISOString().split('T')[0]}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
-                    required
-                  />
-                  <p className="text-[9px] text-slate-400 mt-1">
-                    Auto-expiry: 2 years from today if not set manually
-                  </p>
-                </div>
-                
-                {actionForm.actualYield && actingOrder.targetQuantity > 0 && (
-                  <div className="rounded-lg p-2.5 bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-medium">Yield Deviation Error:</span>
-                    <span className={`font-mono font-bold ${Math.abs(Number(actionForm.actualYield) - actingOrder.targetQuantity) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatPercent((Math.abs(Number(actionForm.actualYield) - actingOrder.targetQuantity) / actingOrder.targetQuantity) * 100, 2)}
+                <div className="overflow-hidden rounded-lg border border-slate-100">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                      Requirement to release
                     </span>
+                    {stockLoading && <span className="text-[9px] text-slate-400">Checking stock…</span>}
                   </div>
+                  <div className="max-h-56 divide-y divide-slate-100 overflow-y-auto p-2">
+                    {releaseLines.map((line) => (
+                      <div key={line.id} className="flex items-start justify-between gap-3 py-1.5 text-xs">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-700">{line.name}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {line.holders.length === 0 ? (
+                              <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-rose-600">
+                                No stock
+                              </span>
+                            ) : (
+                              line.holders.map((holder) => (
+                                <span
+                                  key={holder.warehouseId}
+                                  className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[8px] font-semibold text-slate-600"
+                                >
+                                  {holder.name} · {formatNumber(holder.qty)} {holder.unit}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                        <span className="shrink-0 font-mono text-[10px] font-bold text-slate-700">
+                          {formatNumber(line.required)} {line.unit}
+                        </span>
+                      </div>
+                    ))}
+                    {releaseLines.length === 0 && (
+                      <p className="py-2 text-[10px] text-slate-400">
+                        Requirements are calculated from the approved batch formula on release.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] text-rose-600">{error}</p>
                 )}
-                
-                <p className="text-[9px] text-slate-400">
-                  Completing the order will auto-set the expiry date to exactly 2 years from today.
-                </p>
               </div>
             )}
+
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button onClick={() => { setActingOrder(null); setAction(null); }} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button onClick={submitAction} disabled={saving} className="btn-3d px-4 h-9">
+              <button
+                onClick={submitAction}
+                disabled={saving || stockLoading || !canRelease}
+                title={
+                  canRelease
+                    ? 'Release the ingredients'
+                    : 'Every ingredient must be available before releasing'
+                }
+                className="btn-3d px-4 h-9 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <span className="text-white text-xs font-semibold">
-                  {saving ? 'Saving…' : (
-                    <>
-                      {action === 'release' && 'Release Ingredients'}
-                      {action === 'mix' && 'Confirm Batch Mix'}
-                      {action === 'returns' && 'Submit Returns'}
-                      {action === 'complete' && 'Complete Batch'}
-                    </>
-                  )}
+                  {saving ? 'Releasing…' : 'Release Ingredients'}
                 </span>
               </button>
             </div>
@@ -1221,19 +1136,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
           onConfirm={confirmCreateOrder}
           onCancel={() => setCreateConfirmation(false)}
           isLoading={saving}
-        />
-      )}
-
-      {/* Action Confirmation Modal */}
-      {actionConfirmation && (
-        <ConfirmationModal
-          type="action"
-          title={actionConfirmation === 'mix' ? 'Record Batch Mix' : actionConfirmation === 'returns' ? 'Log Returns/Deficits' : 'Complete Production'}
-          description={actionConfirmation === 'mix' ? 'Record the unit mix generated for this batch.' : actionConfirmation === 'returns' ? 'Log any returned or deficit ingredients.' : 'Complete this production order and generate finished batch lot.'}
-          onConfirm={confirmAction}
-          onCancel={() => setActionConfirmation(null)}
-          isLoading={false}
-          confirmText={actionConfirmation === 'mix' ? 'Record Mix' : actionConfirmation === 'returns' ? 'Log Returns' : 'Complete'}
         />
       )}
 

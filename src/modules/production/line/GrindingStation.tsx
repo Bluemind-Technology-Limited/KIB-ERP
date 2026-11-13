@@ -64,6 +64,7 @@ interface FormState {
   receivedQuantity: string;
   batchesProcessed: string;
   grindingBatchNumber: string;
+  mixUnits: string;
   productionDate: string;
   machineId: string;
   remarks: string;
@@ -100,6 +101,7 @@ function emptyForm(
       ) || ''
     ),
     grindingBatchNumber,
+    mixUnits: '',
     productionDate: today(),
     machineId: '',
     remarks: '',
@@ -246,6 +248,7 @@ export default function GrindingStation() {
         inputs,
         machineId: form.machineId || null,
         grindingBatchNumber: form.grindingBatchNumber ? Number(form.grindingBatchNumber) : null,
+        mixUnits: form.mixUnits ? Number(form.mixUnits) : undefined,
         productionDate: form.productionDate,
         remarks: form.remarks || undefined,
       });
@@ -526,6 +529,20 @@ export default function GrindingStation() {
                                 placeholder={sequence.nextNumber === null ? 'Enter number' : String(sequence.nextNumber)}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                                Mix units
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={form.mixUnits}
+                                onChange={(e) => update(item.id, { mixUnits: e.target.value })}
+                                placeholder="e.g. 5"
+                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                              />
+                              <p className="text-[9px] text-slate-400">Stamped as MIX-… on the order</p>
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">

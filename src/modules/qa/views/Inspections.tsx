@@ -28,6 +28,8 @@ interface Inspection {
   inspectedAt?: string | null;
   createdAt: string;
   referenceLabel?: string | null;
+  receivedQuantity?: string | number | null;
+  receivedUnitOfMeasure?: string | null;
   material?: { name: string; sku: string; unitOfMeasure: string } | null;
   batchLot?: {
     id: string;
@@ -93,7 +95,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
   const [viewing, setViewing] = useState<Inspection | null>(null);
   /** QA review modal — lot-code set number + comments for one item. */
   const [reviewing, setReviewing] = useState<Inspection | null>(null);
-  const [reviewForm, setReviewForm] = useState({ setNumber: '', notes: '' });
+  const [reviewForm, setReviewForm] = useState({ setNumber: '', notes: '', quantity: '' });
+  const [reviewError, setReviewError] = useState('');
   const [savingReview, setSavingReview] = useState<'comment' | 'release' | 'reject' | null>(null);
 
   const load = async () => {
@@ -130,24 +133,32 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     setReviewForm({
       setNumber: inspection.batchLot?.setNumber != null ? String(inspection.batchLot.setNumber) : '',
       notes: inspection.notes ?? '',
+      quantity:
+        inspection.receivedQuantity != null ? String(inspection.receivedQuantity) : '',
     });
+    setReviewError('');
     setError('');
   };
 
   const closeReview = () => {
     if (savingReview) return;
     setReviewing(null);
+    setReviewError('');
   };
 
   /** Save the inspector's observations and any set-number edit without deciding the result yet. */
   const saveComment = async () => {
     if (!reviewing) return;
     setSavingReview('comment');
-    setError('');
+    setReviewError('');
     try {
       await axiosClient.patch(`/qa/inspections/${reviewing.id}/comment`, {
         notes: reviewForm.notes,
         setNumber: reviewForm.setNumber.trim() || undefined,
+        quantity:
+          reviewing.inspectionType === 'GRN' && reviewForm.quantity.trim()
+            ? Number(reviewForm.quantity)
+            : undefined,
       });
       const refreshed = await refreshOne(reviewing.id);
       if (refreshed) {
@@ -155,10 +166,12 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
         setReviewForm({
           notes: refreshed.notes ?? '',
           setNumber: refreshed.batchLot?.setNumber != null ? String(refreshed.batchLot.setNumber) : '',
+          quantity:
+            refreshed.receivedQuantity != null ? String(refreshed.receivedQuantity) : '',
         });
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to save the comment');
+      setReviewError(err?.response?.data?.error || 'Failed to save the comment');
     } finally {
       setSavingReview(null);
     }
@@ -169,21 +182,34 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     if (reviewForm.setNumber.trim()) {
       const setNumber = Number(reviewForm.setNumber);
       if (!Number.isInteger(setNumber) || setNumber <= 0) {
-        setError('Set number must be a positive whole number.');
+        setReviewError('Set number must be a positive whole number.');
+        return;
+      }
+    }
+    if (reviewing.inspectionType === 'GRN' && reviewForm.quantity.trim()) {
+      const quantity = Number(reviewForm.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        setReviewError('Received quantity must be greater than zero.');
         return;
       }
     }
     setSavingReview(action);
-    setError('');
+    setReviewError('');
     try {
       await axiosClient.post(`/qa/inspections/${reviewing.id}/${action}`, {
         setNumber: reviewForm.setNumber.trim() || undefined,
         notes: reviewForm.notes.trim() || undefined,
+        quantity:
+          action === 'release' &&
+          reviewing.inspectionType === 'GRN' &&
+          reviewForm.quantity.trim()
+            ? Number(reviewForm.quantity)
+            : undefined,
       });
       setReviewing(null);
       await load();
     } catch (err: any) {
-      setError(err?.response?.data?.error || `Failed to ${action} batch`);
+      setReviewError(err?.response?.data?.error || `Failed to ${action} batch`);
     } finally {
       setSavingReview(null);
     }
@@ -412,8 +438,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               <button type="button" onClick={closeReview} disabled={!!savingReview} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
-            {error && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
+            {reviewError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{reviewError}</div>
             )}
 
             <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 grid grid-cols-2 gap-x-4 gap-y-2">
@@ -461,6 +487,30 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 );
               })()}
             </div>
+
+            {reviewing.inspectionType === 'GRN' && (
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Received quantity (QA edit)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="any"
+                    value={reviewForm.quantity}
+                    onChange={(e) => setReviewForm({ ...reviewForm, quantity: e.target.value })}
+                    className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
+                  />
+                  <span className="shrink-0 text-[10px] font-semibold text-slate-500">
+                    {reviewing.receivedUnitOfMeasure ?? reviewing.material?.unitOfMeasure ?? 'unit'}
+                  </span>
+                </div>
+                <p className="text-[9px] text-slate-400">
+                  Only QA can change the received quantity. This adjusts the GRN line, stock ledger and PO received balance.
+                </p>
+              </div>
+            )}
 
             <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QA Comments</label>
