@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Boxes, Calculator, ChevronDown, ChevronRight, Loader, PackageCheck, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Boxes, ChevronDown, ChevronRight, Loader, PackageCheck, RefreshCw } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
-import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
-import { IngredientRequirementsPanel, type RequirementsResponse } from '../components/IngredientRequirementsPanel';
 
 interface AggregatedIngredient {
   id: string;
@@ -24,7 +21,6 @@ interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
   bom: { productName: string; finishedSku?: { name: string; sku: string } | null };
 }
 
@@ -37,7 +33,6 @@ interface Plan {
   createdBy?: { fullName: string } | null;
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
-  stationWorkOrders?: StationBalance[];
   releasedAt?: string | null;
   outstandingClosedAt?: string | null;
   outstandingCloseReason?: string | null;
@@ -56,15 +51,15 @@ interface Plan {
   };
 }
 
-interface StockRow {
-  materialId: string;
-  batchLotId: string | null;
-  batchNumber: string | null;
-  manufacturingDate?: string | null;
-  expiryDate?: string | null;
-  warehouseId: string;
-  quantity: number;
+interface ReleaseRecord {
+  id: string;
+  planNumber: string | null;
+  materialName: string;
   unitOfMeasure: string;
+  quantity: number;
+  warehouseName: string | null;
+  issuedByName: string | null;
+  issuedAt: string;
 }
 
 const statusBadge: Record<string, string> = {
@@ -77,46 +72,39 @@ function apiError(err: any, fallback: string) {
   return err?.response?.data?.error || err?.message || fallback;
 }
 
-/** FIFO: oldest manufactured first, then soonest to expire (unknowns last). */
-function fifoSort(a: StockRow, b: StockRow) {
-  const aMfg = a.manufacturingDate ? new Date(a.manufacturingDate).getTime() : Infinity;
-  const bMfg = b.manufacturingDate ? new Date(b.manufacturingDate).getTime() : Infinity;
-  if (aMfg !== bMfg) return aMfg - bMfg;
-  const aExp = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
-  const bExp = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
-  return aExp - bExp;
-}
-
 export default function StockIssue() {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
-  const [stock, setStock] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [calcOpenId, setCalcOpenId] = useState<string | null>(null);
-  const [requirements, setRequirements] = useState<Record<string, RequirementsResponse>>({});
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const [warehouseId, setWarehouseId] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [historyPlans, setHistoryPlans] = useState<Plan[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [warehouseId, setWarehouseId] = useState('');
-  const [lines, setLines] = useState<Record<string, { quantity: string; batchLotId: string }>>({});
+  const [lines, setLines] = useState<Record<string, string>>({});
+  const [releases, setReleases] = useState<ReleaseRecord[]>([]);
+  const [releasesLoading, setReleasesLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setReleasesLoading(true);
     try {
-      const [queueRes, whRes] = await Promise.all([
+      const [queueRes, releaseRes, warehouseRes] = await Promise.all([
         axiosClient.get('/production-line/queue', { params: { station: 'ISSUE' } }),
+        axiosClient.get('/production-line/releases', { params: { limit: 100 } }),
         axiosClient.get('/master-data/warehouses'),
       ]);
       setPlans(queueRes.data.plans || []);
-      setWarehouses(whRes.data.warehouses || []);
+      setReleases(releaseRes.data.releases || []);
+      setWarehouses(warehouseRes.data.warehouses || []);
       setError('');
     } catch (err: any) {
-      setError(apiError(err, 'Failed to load plans awaiting issue'));
+      setError(apiError(err, 'Failed to load plans awaiting release'));
     } finally {
       setLoading(false);
+      setReleasesLoading(false);
     }
   }, []);
 
@@ -124,91 +112,6 @@ export default function StockIssue() {
     load();
   }, [load]);
 
-  const batchesFor = useMemo(
-    () =>
-      (materialId: string, whId: string): StockRow[] =>
-        stock
-          .filter(
-            (s) => s.materialId === materialId && s.warehouseId === whId && Number(s.quantity) > 0
-          )
-          .sort(fifoSort),
-    [stock]
-  );
-
-  const availableFor = useMemo(
-    () =>
-      (materialId: string, whId: string): number =>
-        stock
-          .filter((s) => s.materialId === materialId && s.warehouseId === whId)
-          .reduce((sum, s) => sum + Number(s.quantity), 0),
-    [stock]
-  );
-
-  const expandedPlan = useMemo(
-    () => plans.find((p) => p.id === expandedId) ?? null,
-    [plans, expandedId]
-  );
-
-  const dashboardRows = useMemo(() => {
-    if (!expandedPlan) return [];
-    const data = requirements[expandedPlan.id];
-    if (!data) return [];
-
-    const aggregated = new Map(
-      expandedPlan.aggregatedIngredients.map((row) => [row.materialId, row])
-    );
-    const expectedTotal = new Map(
-      data.consolidated.map((row) => [row.materialId, Number(row.totalRequired)])
-    );
-
-    return data.formulas.flatMap((formula) =>
-      formula.ingredients.map((line) => {
-        const agg = aggregated.get(line.materialId);
-        const materialExpected = expectedTotal.get(line.materialId) ?? Number(line.totalRequired);
-        const issued = Number(agg?.issuedQuantity ?? 0);
-        const share = materialExpected > 0 ? Number(line.totalRequired) / materialExpected : 0;
-        const prepared = issued * share;
-        const outstanding = Math.max(0, Number(line.totalRequired) - prepared);
-        return {
-          ...line,
-          formula,
-          prepared,
-          transferred: prepared,
-          outstanding,
-          status:
-            outstanding <= 0.0001 ? 'Completed' : prepared > 0 ? 'In Progress' : 'Pending',
-        };
-      })
-    );
-  }, [expandedPlan, requirements]);
-
-  // Buffer memory: when a warehouse is picked, default every line to the oldest
-  // available batch so existing stock is consumed before anything newer.
-  useEffect(() => {
-    if (!warehouseId || !expandedPlan) return;
-    setLines((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const agg of expandedPlan.aggregatedIngredients) {
-        if (agg.status === 'RELEASED') continue;
-        const line = next[agg.id];
-        if (!line || line.batchLotId) continue;
-        const batches = stock
-          .filter(
-            (s) =>
-              s.materialId === agg.materialId &&
-              s.warehouseId === warehouseId &&
-              Number(s.quantity) > 0
-          )
-          .sort(fifoSort);
-        if (batches[0]?.batchLotId) {
-          next[agg.id] = { ...line, batchLotId: batches[0].batchLotId };
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [warehouseId, stock, expandedPlan]);
 
   const openPlan = async (plan: Plan) => {
     if (expandedId === plan.id) {
@@ -216,30 +119,16 @@ export default function StockIssue() {
       return;
     }
     setExpandedId(plan.id);
-    setWarehouseId('');
 
-    const next: Record<string, { quantity: string; batchLotId: string }> = {};
+    // Default each line to what is still outstanding, so a full release is one
+    // click and a partial release is just editing the number.
+    const next: Record<string, string> = {};
     for (const agg of plan.aggregatedIngredients) {
-      // Release already took the stock, so the released quantity is what the
-      // station is receiving.
-      const quantity = Number(agg.issuedQuantity ?? agg.totalQuantity);
-      next[agg.id] = { quantity: quantity > 0 ? String(quantity) : '', batchLotId: '' };
+      const outstanding = Number(agg.totalQuantity) - Number(agg.issuedQuantity ?? 0);
+      next[agg.id] = outstanding > 0.0001 ? String(outstanding) : '';
     }
     setLines(next);
 
-    try {
-      const res = await axiosClient.get('/inventory/stock');
-      setStock(res.data.stock || []);
-    } catch {
-      setStock([]);
-    }
-
-    if (!requirements[plan.id]) {
-      axiosClient
-        .get<RequirementsResponse>(`/production/production-plans/${plan.id}/ingredient-requirements`)
-        .then((res) => setRequirements((prev) => ({ ...prev, [plan.id]: res.data })))
-        .catch(() => {});
-    }
   };
 
   const toggleHistory = async () => {
@@ -263,31 +152,46 @@ export default function StockIssue() {
   };
 
   const submit = async (plan: Plan) => {
-    setError('');
-
     const payloadLines = Object.entries(lines)
-      .map(([aggregatedIngredientId, v]) => ({
+      .map(([aggregatedIngredientId, value]) => ({
         aggregatedIngredientId,
-        quantity: Number(v.quantity),
-        batchLotId: v.batchLotId || null,
+        quantity: Number(value),
       }))
-      .filter((l) => l.quantity > 0);
+      .filter((line) => Number(line.quantity) > 0);
 
     if (payloadLines.length === 0) {
-      setError('Enter a quantity for at least one ingredient.');
+      setError('Enter a quantity to release for at least one ingredient.');
       return;
     }
 
+    setError('');
     setSubmitting(true);
     try {
-      await axiosClient.post(`/production-line/plans/${plan.id}/issue`, {
-        warehouseId,
+      // Deducts what was entered (earliest-expiry lots first, across warehouses)
+      // and hands the released quantity to the Grinding Station.
+      const res = await axiosClient.post(`/production-line/plans/${plan.id}/issue`, {
         lines: payloadLines,
+        warehouseId: warehouseId || null,
       });
-      setExpandedId(null);
+
+      // Repopulate the inputs with whatever is still outstanding.
+      const updated = res.data?.plan;
+      if (updated?.aggregatedIngredients) {
+        const next: Record<string, string> = {};
+        for (const agg of updated.aggregatedIngredients as Array<{
+          id: string;
+          totalQuantity: string | number;
+          issuedQuantity?: string | number | null;
+        }>) {
+          const outstanding = Number(agg.totalQuantity) - Number(agg.issuedQuantity ?? 0);
+          next[agg.id] = outstanding > 0.0001 ? String(outstanding) : '';
+        }
+        setLines(next);
+      }
+
       await load();
     } catch (err: any) {
-      setError(apiError(err, 'Failed to issue ingredients'));
+      setError(apiError(err, 'Failed to release the ingredients'));
     } finally {
       setSubmitting(false);
     }
@@ -298,7 +202,7 @@ export default function StockIssue() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight text-[#171717]">Ingredients Station</h2>
-          <PageDescription>Ingredients released for each order. Stock is already deducted — confirm what arrived and pass it to grinding.</PageDescription>
+          <PageDescription>Orders released by production. Release the ingredients to grinding — that is when stock is deducted.</PageDescription>
         </div>
         <button
           onClick={load}
@@ -343,7 +247,6 @@ export default function StockIssue() {
         <div className="space-y-3">
           {plans.map((plan) => {
             const isOpen = expandedId === plan.id;
-            const pending = plan.aggregatedIngredients.filter((a) => a.status !== 'RELEASED');
 
             return (
               <div key={plan.id} className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
@@ -382,164 +285,17 @@ export default function StockIssue() {
 
                 {isOpen && (
                   <div className="space-y-4 border-t border-slate-100 px-4 py-4">
-                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="INGREDIENT" />
-
-                    {/* Station dashboard — expected vs prepared/transferred per formula */}
-                    <div className="overflow-hidden rounded-lg border border-slate-200">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          Ingredient requirement dashboard
-                        </p>
-                        {requirements[plan.id] && (
-                          <p className="text-[9px] text-slate-400">
-                            Actual prepared/transferred allocated across formulas by expected share
-                          </p>
-                        )}
-                      </div>
-
-                      {!requirements[plan.id] ? (
-                        <div className="space-y-2 p-3">
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-2/3" />
-                        </div>
-                      ) : dashboardRows.length === 0 ? (
-                        <p className="px-3 py-4 text-center text-[11px] text-slate-400">
-                          No ingredient requirements generated for this plan.
-                        </p>
-                      ) : (
-                        <div className="max-h-80 overflow-auto">
-                          <table className="w-full min-w-[1100px] text-left">
-                            <thead className="sticky top-0 bg-white">
-                              <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
-                                <th className="px-3 py-2 font-semibold">Production date</th>
-                                <th className="px-3 py-2 font-semibold">Order</th>
-                                <th className="px-3 py-2 font-semibold">Product</th>
-                                <th className="px-3 py-2 font-semibold">Batch code</th>
-                                <th className="px-3 py-2 font-semibold">Ingredient</th>
-                                <th className="px-3 py-2 font-semibold">Per batch</th>
-                                <th className="px-3 py-2 text-right font-semibold">Batches</th>
-                                <th className="px-3 py-2 font-semibold">Expected</th>
-                                <th className="px-3 py-2 font-semibold">Prepared</th>
-                                <th className="px-3 py-2 font-semibold">Transferred</th>
-                                <th className="px-3 py-2 font-semibold">Outstanding</th>
-                                <th className="px-3 py-2 font-semibold">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {dashboardRows.map((row) => (
-                                <tr
-                                  key={`${row.formula.planItemId}-${row.materialId}`}
-                                  className="border-b border-slate-50 last:border-0"
-                                >
-                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-500">
-                                    {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : '—'}
-                                  </td>
-                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] text-slate-500">
-                                    {plan.planNumber}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
-                                    {row.formula.productName}
-                                  </td>
-                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] text-[#0077A8]">
-                                    {row.formula.batchCode ?? 'Pending QA'}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-700">{row.name}</td>
-                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-500">
-                                    {row.isPercentage
-                                      ? `${formatNumber(row.quantityPerBatch)}%`
-                                      : formatQty(row.perBatchRequired, row.unitOfMeasure)}
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
-                                    {formatNumber(row.batchCount)}
-                                  </td>
-                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] font-semibold text-slate-700">
-                                    {formatQty(row.totalRequired, row.unitOfMeasure)}
-                                  </td>
-                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-600">
-                                    {formatQty(row.prepared, row.unitOfMeasure)}
-                                  </td>
-                                  <td className="whitespace-nowrap px-3 py-2 text-[10px] text-slate-600">
-                                    {formatQty(row.transferred, row.unitOfMeasure)}
-                                  </td>
-                                  <td className={`whitespace-nowrap px-3 py-2 text-[10px] font-bold ${row.outstanding > 0.0001 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                    {formatQty(row.outstanding, row.unitOfMeasure)}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <span
-                                      className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
-                                        row.status === 'Completed'
-                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                          : row.status === 'In Progress'
-                                            ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                            : 'border-slate-200 bg-slate-50 text-slate-500'
-                                      }`}
-                                    >
-                                      {row.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Requirement calculation — shows exactly how the quantities were derived */}
-                    <div className="overflow-hidden rounded-lg border border-slate-200">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCalcOpenId((prev) => (prev === plan.id ? null : plan.id))
-                        }
-                        className="flex w-full items-center justify-between gap-2 bg-slate-50/70 px-3 py-2 text-left hover:bg-slate-100/70"
-                      >
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          <Calculator className="h-3.5 w-3.5 text-[#00B4D8]" />
-                          Requirement calculation
-                          <span className="hidden font-normal normal-case tracking-normal text-slate-400 sm:inline">
-                            — per batch × batches = total required
-                          </span>
-                        </span>
-                        {calcOpenId === plan.id ? (
-                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                        )}
-                      </button>
-                      {calcOpenId === plan.id && (
-                        <div className="border-t border-slate-200 p-3">
-                          <IngredientRequirementsPanel planId={plan.id} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Products in this plan
-                      </p>
-                      <p className="text-[11px] text-slate-600">
-                        {plan.items
-                          .map(
-                            (i) =>
-                              `${i.bom?.finishedSku?.name ?? i.bom?.productName}: ${formatNumber(i.targetQuantity)}${
-                                i.batchLot?.lotCode ? ` · ${i.batchLot.lotCode}` : ''
-                              }`
-                          )
-                          .join(' · ')}
-                      </p>
-                    </div>
 
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Deduct from warehouse
+                        Release from warehouse
                       </label>
                       <select
                         value={warehouseId}
                         onChange={(e) => setWarehouseId(e.target.value)}
-                        className="h-9 w-full max-w-sm rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                        className="h-9 w-full max-w-sm rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                       >
-                        <option value="">Select warehouse…</option>
+                        <option value="">Any warehouse — earliest expiry first</option>
                         {warehouses.map((w) => (
                           <option key={w.id} value={w.id}>
                             {w.name}
@@ -554,79 +310,61 @@ export default function StockIssue() {
                           <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
                             <th className="px-3 py-2 font-semibold">Ingredient</th>
                             <th className="px-3 py-2 font-semibold">Required</th>
-                            <th className="px-3 py-2 font-semibold">Issued</th>
-                            <th className="px-3 py-2 font-semibold">Available</th>
-                            <th className="px-3 py-2 font-semibold">Issue now</th>
-                            <th className="px-3 py-2 font-semibold">Batch lot</th>
+                            <th className="px-3 py-2 font-semibold">Released</th>
+                            <th className="px-3 py-2 font-semibold">Outstanding</th>
+                            <th className="px-3 py-2 font-semibold">Release now</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {pending.map((agg) => {
-                            const batches = warehouseId ? batchesFor(agg.materialId, warehouseId) : [];
-                            const line = lines[agg.id] ?? { quantity: '', batchLotId: '' };
+                          {plan.aggregatedIngredients.map((agg) => {
+                            const issued = Number(agg.issuedQuantity ?? 0);
+                            const required = Number(agg.totalQuantity);
+                            const outstanding = Math.max(0, required - issued);
+                            // The material's pack label is the unit — the row always
+                            // reads as a count of those packs (50 × 25 KG).
+                            const uom = agg.material.unitOfMeasure ?? agg.unitOfMeasure;
                             return (
-                              <tr key={agg.id} className="border-b border-slate-50">
+                              <tr key={agg.id} className="border-b border-slate-50 last:border-0">
                                 <td className="px-3 py-2">
                                   <p className="text-[11px] font-bold text-slate-700">{agg.material.name}</p>
                                   <p className="text-[9px] font-mono text-slate-400">{agg.material.sku}</p>
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-600">
-                                  {formatQty(agg.totalQuantity, agg.unitOfMeasure)}
+                                  {formatQty(required, uom)}
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-500">
-                                  {formatNumber(agg.issuedQuantity ?? 0)}
+                                <td className="px-3 py-2 text-[11px]">
+                                  <span
+                                    className={
+                                      outstanding > 0.0001
+                                        ? 'font-semibold text-amber-600'
+                                        : 'font-semibold text-emerald-600'
+                                    }
+                                  >
+                                    {formatNumber(issued)} / {formatNumber(required)}
+                                  </span>
+                                  <p className="text-[9px] text-slate-400">{uom}</p>
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-500">
-                                  {warehouseId ? (
-                                    <span
-                                      className={
-                                        availableFor(agg.materialId, warehouseId) <
-                                        Number(agg.totalQuantity) - Number(agg.issuedQuantity ?? 0)
-                                          ? 'font-semibold text-amber-600'
-                                          : 'text-slate-500'
-                                      }
-                                    >
-                                      {formatNumber(availableFor(agg.materialId, warehouseId))}
-                                    </span>
-                                  ) : (
-                                    '—'
-                                  )}
+                                <td
+                                  className={`px-3 py-2 text-[11px] font-bold ${
+                                    outstanding > 0.0001 ? 'text-amber-600' : 'text-emerald-600'
+                                  }`}
+                                >
+                                  {formatNumber(outstanding)}
                                 </td>
                                 <td className="px-3 py-2">
                                   <input
                                     type="number"
-                                    min="0.0001"
+                                    min="0"
                                     step="any"
-                                    value={line.quantity}
+                                    value={lines[agg.id] ?? ''}
                                     onChange={(e) =>
-                                      setLines((prev) => ({
-                                        ...prev,
-                                        [agg.id]: { ...line, quantity: e.target.value },
-                                      }))
+                                      setLines((prev) => ({ ...prev, [agg.id]: e.target.value }))
                                     }
-                                    className="h-8 w-28 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                                    disabled={outstanding <= 0.0001}
+                                    placeholder={outstanding > 0.0001 ? String(outstanding) : '0'}
+                                    className="h-8 w-24 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50 disabled:text-slate-400"
                                   />
-                                  <PackQuantityPreview quantity={line.quantity} unit={agg.unitOfMeasure} />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <select
-                                    value={line.batchLotId}
-                                    onChange={(e) =>
-                                      setLines((prev) => ({
-                                        ...prev,
-                                        [agg.id]: { ...line, batchLotId: e.target.value },
-                                      }))
-                                    }
-                                    disabled={!warehouseId}
-                                    className="h-8 w-36 rounded-lg border border-[#E9E9E9] bg-white px-2 text-[10px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
-                                  >
-                                    <option value="">Auto / none</option>
-                                    {batches.map((b) => (
-                                      <option key={b.batchLotId ?? 'none'} value={b.batchLotId ?? ''}>
-                                        {b.batchNumber ?? 'no batch'} ({formatNumber(b.quantity)})
-                                      </option>
-                                    ))}
-                                  </select>
+                                  <p className="text-[9px] text-slate-400">{uom}</p>
                                 </td>
                               </tr>
                             );
@@ -635,24 +373,55 @@ export default function StockIssue() {
                       </table>
                     </div>
 
-                    {pending.length === 0 ? (
-                      <p className="flex items-center gap-2 text-xs text-emerald-700">
-                        <PackageCheck className="h-4 w-4" /> All ingredients have been issued.
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="max-w-md text-[10px] text-slate-400">
+                        Enter what you are handing over. Stock is deducted from the selected warehouse (or the
+                        earliest-expiry lots across all of them) and released to the Grinding Station.
                       </p>
-                    ) : (
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => submit(plan)}
-                          disabled={submitting}
-                          className="flex items-center gap-2 rounded-lg bg-[#EA4335] px-4 h-9 text-xs font-semibold text-white hover:bg-[#d3362a] disabled:opacity-50"
-                        >
-                          {submitting ? (
-                            <Loader className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <PackageCheck className="h-3.5 w-3.5" />
-                          )}
-                          Issue ingredients
-                        </button>
+                      <button
+                        onClick={() => submit(plan)}
+                        disabled={submitting}
+                        className="flex items-center gap-2 rounded-lg bg-[#EA4335] px-4 h-9 text-xs font-semibold text-white hover:bg-[#d3362a] disabled:opacity-50"
+                      >
+                        {submitting ? (
+                          <Loader className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <PackageCheck className="h-3.5 w-3.5" />
+                        )}
+                        Release to grinding
+                      </button>
+                    </div>
+
+                    {/* Release record for this order */}
+                    {plan.ingredientIssues && plan.ingredientIssues.length > 0 && (
+                      <div className="overflow-hidden rounded-lg border border-slate-100">
+                        <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Release record
+                        </div>
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                              <th className="px-3 py-1.5 font-semibold">Released at</th>
+                              <th className="px-3 py-1.5 font-semibold">Ingredient</th>
+                              <th className="px-3 py-1.5 text-right font-semibold">Quantity</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {plan.ingredientIssues.map((issue) => (
+                              <tr key={issue.id} className="border-b border-slate-50 last:border-0">
+                                <td className="px-3 py-1.5 text-[10px] text-slate-500">
+                                  {new Date(issue.issuedAt).toLocaleString()}
+                                </td>
+                                <td className="px-3 py-1.5 text-[10px] text-slate-600">
+                                  {issue.material?.name ?? issue.materialId}
+                                </td>
+                                <td className="px-3 py-1.5 text-right text-[10px] font-semibold text-slate-700">
+                                  {formatQty(issue.quantity, issue.unitOfMeasure)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>
@@ -662,6 +431,72 @@ export default function StockIssue() {
           })}
         </div>
       )}
+
+      {/* Release history — every ingredient handed to grinding */}
+      <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <div>
+            <p className="text-[11px] font-bold text-[#171717]">Release history</p>
+            <p className="text-[10px] text-slate-400">
+              Every ingredient handed to grinding, newest first.
+            </p>
+          </div>
+          <span className="text-[9px] font-semibold text-slate-400">
+            {formatNumber(releases.length)} line(s)
+          </span>
+        </div>
+
+        {releasesLoading ? (
+          <div className="space-y-2 p-4">
+            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        ) : releases.length === 0 ? (
+          <EmptyState
+            title="No releases yet"
+            hint="Released ingredients appear here with the order, quantity and user."
+          />
+        ) : (
+          <div className="max-h-96 overflow-auto">
+            <table className="w-full min-w-[760px] text-left">
+              <thead className="sticky top-0 bg-white">
+                <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-2 font-semibold">Released at</th>
+                  <th className="px-4 py-2 font-semibold">Order</th>
+                  <th className="px-4 py-2 font-semibold">Ingredient</th>
+                  <th className="px-4 py-2 text-right font-semibold">Quantity</th>
+                  <th className="px-4 py-2 font-semibold">Warehouse</th>
+                  <th className="px-4 py-2 font-semibold">By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releases.map((release) => (
+                  <tr key={release.id} className="border-b border-slate-50 last:border-0">
+                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                      {new Date(release.issuedAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-[10px] text-slate-600">
+                      {release.planNumber ?? '—'}
+                    </td>
+                    <td className="px-4 py-2 text-[10px] font-medium text-slate-700">
+                      {release.materialName}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[10px] font-semibold text-slate-700">
+                      {formatQty(release.quantity, release.unitOfMeasure)}
+                    </td>
+                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                      {release.warehouseName ?? '—'}
+                    </td>
+                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                      {release.issuedByName ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {showHistory && (
         <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">

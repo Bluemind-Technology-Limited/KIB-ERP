@@ -108,21 +108,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
   });
   /** Selected batch formulations and their target quantities, keyed by BOM id. */
   const [wizardBoms, setWizardBoms] = useState<Record<string, string>>({});
-  // release — one confirmation, and stock leaves the store here
-  const [actingOrder, setActingOrder] = useState<ProductionOrder | null>(null);
-  const [action, setAction] = useState<'release' | null>(null);
-  const [actionForm, setActionForm] = useState({ warehouseId: '' });
-  /** Stock by material and warehouse, used to show where each requirement sits. */
-  const [stock, setStock] = useState<
-    Array<{
-      materialId: string;
-      warehouseId: string;
-      warehouseName: string;
-      quantity: number;
-      unitOfMeasure: string;
-    }>
-  >([]);
-  const [stockLoading, setStockLoading] = useState(false);
+  // One button releases every planned order for a day.
+  const [releasingDay, setReleasingDay] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -342,124 +329,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
     }
   };
 
-  const openAction = async (order: ProductionOrder) => {
-    setActingOrder(order);
-    setAction('release');
-    setActionForm({ warehouseId: '' });
-    setError('');
-    setStockLoading(true);
-    try {
-      const res = await axiosClient.get<{
-        stock: Array<{
-          materialId: string;
-          warehouseId: string;
-          warehouseName: string;
-          quantity: number;
-          unitOfMeasure: string;
-        }>;
-      }>('/inventory/stock');
-      setStock(res.data.stock ?? []);
-    } catch {
-      setStock([]);
-    } finally {
-      setStockLoading(false);
-    }
-  };
-
-  const submitAction = async () => {
-    if (!actingOrder) return;
-    setSaving(true);
-    try {
-      if (!actionForm.warehouseId) {
-        setError('Select the warehouse the ingredients are released from');
-        setSaving(false);
-        return;
-      }
-
-      // One call: deducts the ingredient requirement (earliest-expiry lots
-      // first), provisions the production batch lot, creates the three station
-      // work orders and notifies the stations.
-      await axiosClient.post(`/production/production-orders/${actingOrder.id}/release`, {
-        warehouseId: actionForm.warehouseId,
-      }, { toast: { success: 'Ingredients released and deducted from stock' } });
-      setActingOrder(null);
-      setAction(null);
-      setError('');
-      load();
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Action failed');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /** Each requirement plus the warehouses that actually hold it (positive stock only). */
-  const releaseLines = useMemo(() => {
-    if (!actingOrder) return [];
-    return (actingOrder.productionIngredients ?? []).map((ing) => {
-      const holders = new Map<
-        string,
-        { warehouseId: string; name: string; qty: number; unit: string }
-      >();
-      for (const row of stock) {
-        if (row.materialId !== ing.materialId) continue;
-        const qty = Number(row.quantity);
-        if (!(qty > 0)) continue;
-        const prev = holders.get(row.warehouseId);
-        holders.set(row.warehouseId, {
-          warehouseId: row.warehouseId,
-          name: row.warehouseName,
-          qty: (prev?.qty ?? 0) + qty,
-          unit: row.unitOfMeasure || ing.material.unitOfMeasure,
-        });
-      }
-      return {
-        id: ing.id,
-        name: ing.material.name,
-        unit: ing.material.unitOfMeasure,
-        required: Number(ing.projectedQuantity),
-        holders: [...holders.values()].sort((a, b) => b.qty - a.qty),
-      };
-    });
-  }, [actingOrder, stock]);
-
-  /** Only the warehouses that hold at least one requirement, flagged ready or short. */
-  const releaseWarehouses = useMemo(() => {
-    const total = releaseLines.length;
-    const rows = warehouses.map((w) => {
-      const missing: string[] = [];
-      let covered = 0;
-      let holds = 0;
-
-      for (const line of releaseLines) {
-        const held = line.holders.find((h) => h.warehouseId === w.id)?.qty ?? 0;
-        if (held > 0) holds += 1;
-        if (held + 0.0001 >= line.required) covered += 1;
-        else missing.push(line.name);
-      }
-
-      return { ...w, covered, total, missing, holds, ready: total > 0 && covered === total };
-    });
-
-    return rows
-      .filter((w) => w.holds > 0)
-      .sort((a, b) => Number(b.ready) - Number(a.ready) || b.covered - a.covered);
-  }, [warehouses, releaseLines]);
-
-  // Preselect a warehouse that can cover the whole requirement.
-  useEffect(() => {
-    if (action !== 'release' || actionForm.warehouseId) return;
-    const preferred = releaseWarehouses.find((w) => w.ready) ?? releaseWarehouses[0];
-    if (preferred) setActionForm({ warehouseId: preferred.id });
-  }, [action, actionForm.warehouseId, releaseWarehouses]);
-
-  const selectedReleaseWarehouse =
-    releaseWarehouses.find((w) => w.id === actionForm.warehouseId) ?? null;
-
-  // Release deducts everything at once, so it stays blocked until the selected
-  // warehouse can cover every ingredient.
-  const canRelease = Boolean(actionForm.warehouseId) && Boolean(selectedReleaseWarehouse?.ready);
-
   const filtered = orders.filter(
     (o) =>
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -499,6 +368,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             rows.map((r) => r.bom?.finishedSku?.name ?? r.bom?.productName ?? r.orderNumber)
           ).size,
           plannedQty: rows.reduce((sum, r) => sum + Number(r.targetQuantity || 0), 0),
+          // Orders still waiting to be handed to the Ingredients Station.
+          schedulableIds: rows.filter((r) => r.status === 'SCHEDULED').map((r) => r.id),
           statusSummary: [...statusCounts.entries()]
             .map(([status, count]) => `${count} ${status.toLowerCase()}`)
             .join(' · '),
@@ -508,6 +379,25 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
   const deleteProductionOrder = async (id: string) => {
     setDeleteConfirmation(id);
+  };
+
+  /** One release order for the whole production day. */
+  const releaseDay = async (group: { key: string; schedulableIds: string[] }) => {
+    if (group.schedulableIds.length === 0) return;
+    setReleasingDay(group.key);
+    setError('');
+    try {
+      await axiosClient.post(
+        '/production/production-orders/release-day',
+        { orderIds: group.schedulableIds },
+        { toast: { success: 'Release order created for the Ingredients Station' } }
+      );
+      load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to release the orders');
+    } finally {
+      setReleasingDay(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -610,14 +500,32 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                           {group.statusSummary}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => planForDate(group.key)}
-                            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#EA4335]/30 text-[#EA4335] text-[10px] font-semibold hover:bg-rose-50"
-                            title="Add more products to this production date"
-                          >
-                            <Plus className="w-3 h-3" /> Plan more
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => releaseDay(group)}
+                              disabled={group.schedulableIds.length === 0 || releasingDay === group.key}
+                              title={
+                                group.schedulableIds.length === 0
+                                  ? 'No orders waiting to be released for this date'
+                                  : 'Create the release order for this day'
+                              }
+                              className="btn-3d h-7 shrink-0 px-2.5 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                {releasingDay === group.key ? 'Releasing…' : 'Release Order'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => planForDate(group.key)}
+                              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#EA4335]/30 text-[#EA4335] text-[10px] font-semibold hover:bg-rose-50"
+                              title="Add more products to this production date"
+                            >
+                              <Plus className="w-3 h-3" /> Plan more
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
@@ -687,16 +595,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       <ViewButton onClick={() => setViewing(o)} />
                       {o.status === 'SCHEDULED' && (
-                        <>
-                          <button onClick={() => openAction(o)} className="btn-3d h-7 shrink-0 whitespace-nowrap px-3">
-                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-white">
-                              <CheckCircle2 className="w-3 h-3 shrink-0" /> Release Ingredients
-                            </span>
-                          </button>
-                          <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50">
-                            <Trash2 className="w-3 h-3 shrink-0" /> Delete
-                          </button>
-                        </>
+                        <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50">
+                          <Trash2 className="w-3 h-3 shrink-0" /> Delete
+                        </button>
                       )}
                       {(o.status === 'RELEASED' || o.status === 'PROCESSING') && (
                         <span
@@ -918,145 +819,6 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
         </Modal>
       )}
 
-      {/* 4. Action Modals (Release / Mix / Returns / Complete) */}
-      {actingOrder && action && (
-        <Modal onClose={() => { setActingOrder(null); setAction(null); }}>
-          <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Release Ingredients</h3>
-              <button onClick={() => { setActingOrder(null); setAction(null); }} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            <p className="text-[11px] text-slate-500">
-              <span className="font-mono font-bold text-slate-700">{actingOrder.orderNumber}</span> —{' '}
-              {actingOrder.bom?.finishedSku?.name ?? actingOrder.bom?.productName ?? ''}
-            </p>
-
-            {action === 'release' && (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                  <p className="text-[10px] text-blue-700">
-                    Releasing deducts the full ingredient requirement from the selected warehouse and sends
-                    the batch to the three stations. Earliest-expiry lots are used first.
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Release from warehouse *
-                  </label>
-                  {releaseWarehouses.length === 0 ? (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-700">
-                      No warehouse holds these ingredients right now. Receive stock against the purchase order first.
-                    </p>
-                  ) : (
-                    <>
-                      <select
-                        value={actionForm.warehouseId}
-                        onChange={(e) => setActionForm({ warehouseId: e.target.value })}
-                        className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
-                      >
-                        <option value="">Select warehouse…</option>
-                        {releaseWarehouses.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name} ({w.code}) —{' '}
-                            {w.ready
-                              ? `ready · ${w.covered} of ${w.total} ingredients`
-                              : `short on ${w.missing.join(', ')}`}
-                          </option>
-                        ))}
-                      </select>
-                      {selectedReleaseWarehouse && (
-                        <span
-                          className={`mt-1 inline-flex rounded border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
-                            selectedReleaseWarehouse.ready
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : 'border-amber-200 bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {selectedReleaseWarehouse.ready
-                            ? `Covers all ${selectedReleaseWarehouse.total} ingredient(s)`
-                            : `Short on ${selectedReleaseWarehouse.missing.join(', ')}`}
-                        </span>
-                      )}
-                      {selectedReleaseWarehouse && !selectedReleaseWarehouse.ready && (
-                        <p className="text-[9px] text-amber-700">
-                          Release stays blocked until every ingredient is available in one warehouse.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                <div className="overflow-hidden rounded-lg border border-slate-100">
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                      Requirement to release
-                    </span>
-                    {stockLoading && <span className="text-[9px] text-slate-400">Checking stock…</span>}
-                  </div>
-                  <div className="max-h-56 divide-y divide-slate-100 overflow-y-auto p-2">
-                    {releaseLines.map((line) => (
-                      <div key={line.id} className="flex items-start justify-between gap-3 py-1.5 text-xs">
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-700">{line.name}</p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {line.holders.length === 0 ? (
-                              <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-rose-600">
-                                No stock
-                              </span>
-                            ) : (
-                              line.holders.map((holder) => (
-                                <span
-                                  key={holder.warehouseId}
-                                  className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[8px] font-semibold text-slate-600"
-                                >
-                                  {holder.name} · {formatNumber(holder.qty)} {holder.unit}
-                                </span>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                        <span className="shrink-0 font-mono text-[10px] font-bold text-slate-700">
-                          {formatNumber(line.required)} {line.unit}
-                        </span>
-                      </div>
-                    ))}
-                    {releaseLines.length === 0 && (
-                      <p className="py-2 text-[10px] text-slate-400">
-                        Requirements are calculated from the approved batch formula on release.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {error && (
-                  <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] text-rose-600">{error}</p>
-                )}
-              </div>
-            )}
-
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button onClick={() => { setActingOrder(null); setAction(null); }} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
-              <button
-                onClick={submitAction}
-                disabled={saving || stockLoading || !canRelease}
-                title={
-                  canRelease
-                    ? 'Release the ingredients'
-                    : 'Every ingredient must be available before releasing'
-                }
-                className="btn-3d px-4 h-9 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="text-white text-xs font-semibold">
-                  {saving ? 'Releasing…' : 'Release Ingredients'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
       {/* 5. Waste Logging Modal */}
       {showWaste && (
         <Modal onClose={() => setShowWaste(false)}>

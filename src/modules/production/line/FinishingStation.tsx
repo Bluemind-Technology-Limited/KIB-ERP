@@ -7,15 +7,12 @@ import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
-import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
 
 interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
   bom: { productName: string; yieldUnit?: string | null; finishedSku?: { name: string; sku: string } | null; expectedYield?: string | number | null };
-  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
-  batchApprovedAt?: string | null;
   grindingRecord?: { achievedQuantity: string | number } | null;
   finishingRecord?: { achievedQuantity: string | number; batchNumber?: string | null } | null;
   expectedBatches?: number;
@@ -34,7 +31,6 @@ interface Plan {
   planNumber: string;
   status: string;
   items: PlanItem[];
-  stationWorkOrders?: StationBalance[];
   progress: { finishing: { totalItems: number; done: number; complete: boolean } };
 }
 
@@ -144,14 +140,6 @@ export default function FinishingStation() {
       setError('Select the warehouse that receives the finished goods.');
       return;
     }
-    if (!item.batchLot) {
-      setError('This batch has no QA batch code yet. Release the ingredients first.');
-      return;
-    }
-    if (item.batchLot.status === 'REJECTED') {
-      setError('This batch was rejected by QA and cannot be finished.');
-      return;
-    }
 
     setBusyItem(item.id);
     try {
@@ -246,9 +234,20 @@ export default function FinishingStation() {
                 </button>
 
                 {isOpen && (
-                  <div className="space-y-3 border-t border-slate-100 px-4 py-4">
-                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="PRODUCTION" />
-
+                  <div className={`space-y-3 border-t border-slate-100 px-4 py-4 ${
+                    plan.status === 'SCHEDULED' ||
+                    !plan.items.some((item) => Number(item.groundQuantity ?? 0) > 0.0001)
+                      ? 'pointer-events-none opacity-50'
+                      : ''
+                  }`}>
+                    {(plan.status === 'SCHEDULED' ||
+                      !plan.items.some((item) => Number(item.groundQuantity ?? 0) > 0.0001)) && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-700">
+                        {plan.status === 'SCHEDULED'
+                          ? 'Waiting for the Ingredients Station to release the ingredients.'
+                          : 'Waiting for the Grinding Station to hand over ground material.'}
+                      </div>
+                    )}
                     {/* Production dashboard — expected vs finished */}
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
@@ -276,7 +275,6 @@ export default function FinishingStation() {
                           <thead>
                             <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
                               <th className="px-3 py-2 font-semibold">Product</th>
-                              <th className="px-3 py-2 font-semibold">Batch code</th>
                               <th className="px-3 py-2 text-right font-semibold">Expected batches</th>
                               <th className="px-3 py-2 font-semibold">Expected finished</th>
                               <th className="px-3 py-2 font-semibold">Received from grinding</th>
@@ -291,9 +289,6 @@ export default function FinishingStation() {
                               <tr key={item.id} className="border-b border-slate-50 last:border-0">
                                 <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
                                   {item.bom?.finishedSku?.name ?? item.bom?.productName}
-                                </td>
-                                <td className="px-3 py-2 font-mono text-[10px] text-[#0077A8]">
-                                  {item.batchLot?.lotCode ?? 'Pending QA'}
                                 </td>
                                 <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
                                   {formatNumber(item.expectedBatches ?? 0)}
@@ -419,39 +414,6 @@ export default function FinishingStation() {
                                 placeholder="0"
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                               />
-                            </div>
-                            <div className="space-y-1 md:col-span-2">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                                QA-approved batch code
-                              </label>
-                              <div
-                                className={`flex h-8 items-center justify-between gap-2 rounded-lg border px-2 ${
-                                  item.batchLot?.status === 'REJECTED'
-                                    ? 'border-rose-200 bg-rose-50'
-                                    : item.batchApprovedAt
-                                      ? 'border-emerald-200 bg-emerald-50'
-                                      : 'border-amber-200 bg-amber-50'
-                                }`}
-                              >
-                                <span className="truncate font-mono text-xs font-bold text-slate-800">
-                                  {item.batchLot?.lotCode ?? item.batchLot?.batchNumber ?? 'Pending'}
-                                </span>
-                                <span
-                                  className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                                    item.batchLot?.status === 'REJECTED'
-                                      ? 'border-rose-200 text-rose-700'
-                                      : item.batchApprovedAt
-                                        ? 'border-emerald-200 text-emerald-700'
-                                        : 'border-amber-200 text-amber-700'
-                                  }`}
-                                >
-                                  {item.batchLot?.status === 'REJECTED'
-                                    ? 'Rejected'
-                                    : item.batchApprovedAt
-                                      ? 'QA approved'
-                                      : 'Awaiting QA'}
-                                </span>
-                              </div>
                             </div>
                           </div>
 

@@ -7,7 +7,6 @@ import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
-import { StationFlowPanel, type StationBalance } from './StationFlowPanel';
 
 interface AggregatedIngredient {
   id: string;
@@ -33,7 +32,6 @@ interface PlanItem {
   sequence: number;
   targetQuantity: string | number;
   bom: { productName: string; yieldUnit?: string | null; expectedYield?: string | number | null };
-  batchLot?: { id: string; batchNumber: string; lotCode?: string | null; status: string } | null;
   grindingRecord?: { achievedQuantity: string | number; remainderQuantity: string | number } | null;
   grindingRecords?: Array<{ inputQuantity?: string | number; achievedQuantity: string | number; remainderQuantity: string | number }>;
   expectedBatches?: number;
@@ -54,7 +52,6 @@ interface Plan {
   status: string;
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
-  stationWorkOrders?: StationBalance[];
   progress: { grinding: { totalItems: number; done: number; complete: boolean } };
 }
 
@@ -330,9 +327,14 @@ export default function GrindingStation() {
                 </button>
 
                 {isOpen && (
-                  <div className="space-y-3 border-t border-slate-100 px-4 py-4">
-                    <StationFlowPanel stations={plan.stationWorkOrders} activeStation="GRINDING" />
-
+                  <div className={`space-y-3 border-t border-slate-100 px-4 py-4 ${
+                    plan.status === 'SCHEDULED' ? 'pointer-events-none opacity-50' : ''
+                  }`}>
+                    {plan.status === 'SCHEDULED' && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-700">
+                        Waiting for the Ingredients Station to release the ingredients.
+                      </div>
+                    )}
                     {/* Grinding dashboard — batches and yield */}
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                       <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2">
@@ -433,19 +435,14 @@ export default function GrindingStation() {
                             <p className="text-xs font-bold text-[#171717]">
                               Batch {item.sequence} · {item.bom?.productName}
                             </p>
-                            <div className="flex items-center gap-2">
-                              <span className="rounded border border-[#00B4D8]/30 bg-[#00B4D8]/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#0077A8]">
-                                {item.batchLot?.lotCode ?? item.batchLot?.batchNumber ?? 'Code pending'}
-                              </span>
-                              <span className="text-[10px] text-slate-400">
-                                Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
-                              </span>
-                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
+                            </span>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                          <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Input qty
                               </label>
                               <input
@@ -456,10 +453,12 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { inputQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
-                              <PackQuantityPreview quantity={form.inputQuantity} unit={item.bom?.yieldUnit} />
+                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                <PackQuantityPreview quantity={form.inputQuantity} unit={item.bom?.yieldUnit} />
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Achieved
                               </label>
                               <input
@@ -470,10 +469,12 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { achievedQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
-                              <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
+                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Received from ingredients
                               </label>
                               <input
@@ -484,10 +485,12 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { receivedQuantity: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
-                              <PackQuantityPreview quantity={form.receivedQuantity} unit={item.bom?.yieldUnit} />
+                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                <PackQuantityPreview quantity={form.receivedQuantity} unit={item.bom?.yieldUnit} />
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Batches processed
                               </label>
                               <input
@@ -498,40 +501,40 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { batchesProcessed: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
-                              <p className="text-[9px] text-slate-400">
-                                Planned {formatNumber(item.expectedBatches ?? 0)} batches
+                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                Planned {formatNumber(item.expectedBatches ?? 0)}
                               </p>
                             </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between gap-1">
-                                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex min-h-[24px] items-start justify-between gap-1">
+                                <label className="block text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                   Grinding batch no.
                                 </label>
                                 <button
                                   type="button"
                                   onClick={openSequenceEditor}
-                                  className="text-[9px] font-semibold text-[#AA3BFF] hover:underline"
+                                  className="shrink-0 text-[9px] font-semibold text-[#AA3BFF] hover:underline"
                                 >
                                   Set last
                                 </button>
                               </div>
-                              <p className="text-[9px] text-slate-400">
-                                Last batch number:{' '}
-                                <span className="font-mono font-semibold text-slate-600">
-                                  {sequence.lastNumber === null ? 'Not set' : formatNumber(sequence.lastNumber, 0)}
-                                </span>
-                              </p>
                               <input
                                 type="number"
                                 min="1"
                                 value={form.grindingBatchNumber}
                                 onChange={(e) => update(item.id, { grindingBatchNumber: e.target.value })}
-                                placeholder={sequence.nextNumber === null ? 'Enter number' : String(sequence.nextNumber)}
+                                placeholder={sequence.nextNumber === null ? 'Enter' : String(sequence.nextNumber)}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
+                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                Last:{' '}
+                                <span className="font-mono font-semibold text-slate-600">
+                                  {sequence.lastNumber === null ? '—' : formatNumber(sequence.lastNumber, 0)}
+                                </span>
+                              </p>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Mix units
                               </label>
                               <input
@@ -542,10 +545,12 @@ export default function GrindingStation() {
                                 placeholder="e.g. 5"
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
-                              <p className="text-[9px] text-slate-400">Stamped as MIX-… on the order</p>
+                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
+                                MIX- code on submit
+                              </p>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                            <div className="flex flex-col gap-1">
+                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
                                 Date
                               </label>
                               <input
@@ -554,6 +559,7 @@ export default function GrindingStation() {
                                 onChange={(e) => update(item.id, { productionDate: e.target.value })}
                                 className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
                               />
+                              <div className="min-h-[12px]" />
                             </div>
                           </div>
 
