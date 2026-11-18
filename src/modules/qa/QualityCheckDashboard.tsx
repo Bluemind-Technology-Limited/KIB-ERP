@@ -78,7 +78,7 @@ export default function QualityCheckDashboard() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 flex items-start gap-2">
+      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 flex items-start gap-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
         <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
         {error}
       </div>
@@ -89,16 +89,16 @@ export default function QualityCheckDashboard() {
     <div className="w-full space-y-6">
       {/* Header */}
       <div className="min-w-0">
-        <h2 className="text-xl font-bold tracking-tight text-[#171717]">Quality Checks</h2>
-        <p className="text-xs text-[#737373] mt-1">Review and approve consignments for release to inventory</p>
+        <h2 className="text-xl font-bold tracking-tight text-ink">Quality Checks</h2>
+        <p className="text-xs text-ink-muted mt-1">Review and approve consignments for release to inventory</p>
       </div>
 
       {/* Pending Count Badge */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 dark:border-blue-500/30">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-blue-700 mb-1">Awaiting QA Review</p>
-            <p className="text-2xl font-bold text-blue-900">{consignments.length}</p>
+            <p className="text-xs font-semibold text-blue-700 mb-1 dark:text-blue-300">Awaiting QA Review</p>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">{consignments.length}</p>
           </div>
           <Clock className="w-8 h-8 text-blue-300" />
         </div>
@@ -108,14 +108,14 @@ export default function QualityCheckDashboard() {
       <div className="space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4">
               <Skeleton className="h-4 w-48 mb-3" />
               <Skeleton className="h-3 w-full mb-2" />
               <Skeleton className="h-3 w-80" />
             </div>
           ))
         ) : consignments.length === 0 ? (
-          <div className="bg-white border border-[#E9E9E9] rounded-xl">
+          <div className="bg-surface border border-line rounded-xl">
             <EmptyState title="No pending consignments" hint="All consignments have been reviewed" />
           </div>
         ) : (
@@ -126,16 +126,16 @@ export default function QualityCheckDashboard() {
             return (
               <div
                 key={consignment.id}
-                className="bg-white border border-[#E9E9E9] rounded-xl p-4 hover:shadow-md transition-shadow"
+                className="bg-surface border border-line rounded-xl p-4 hover:shadow-md transition-shadow"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-sm font-bold text-slate-700">{consignment.consignmentNumber}</h3>
-                    <p className="text-[9px] text-slate-500 mt-0.5">
+                    <h3 className="text-sm font-bold text-ink-2">{consignment.consignmentNumber}</h3>
+                    <p className="text-[9px] text-ink-muted mt-0.5">
                       From {consignment.supplier?.supplierName} → {consignment.warehouse?.warehouseName}
                     </p>
-                    <p className="text-[9px] text-slate-400 mt-1">
+                    <p className="text-[9px] text-ink-faint mt-1">
                       Received: {new Date(consignment.receivedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -143,17 +143,17 @@ export default function QualityCheckDashboard() {
                   {/* Status Badge */}
                   <div className="flex items-center gap-2">
                     {hasFailures ? (
-                      <span className="flex items-center gap-1 px-2 py-1 bg-rose-100 border border-rose-200 text-rose-700 rounded text-[9px] font-semibold">
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-rose-600 text-white">
                         <AlertCircle className="w-3 h-3" />
                         FAILED
                       </span>
                     ) : completion === 100 ? (
-                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 border border-green-200 text-green-700 rounded text-[9px] font-semibold">
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-green-600 text-white">
                         <CheckCircle2 className="w-3 h-3" />
                         READY
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 border border-blue-200 text-blue-700 rounded text-[9px] font-semibold">
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-blue-600 text-white">
                         <Loader className="w-3 h-3 animate-spin" />
                         IN PROGRESS
                       </span>
@@ -164,10 +164,10 @@ export default function QualityCheckDashboard() {
                 {/* Progress Bar */}
                 <div className="mb-3">
                   <div className="flex justify-between mb-1.5">
-                    <span className="text-[9px] font-semibold text-slate-600">Check Progress</span>
-                    <span className="text-[9px] font-bold text-slate-700">{completion}%</span>
+                    <span className="text-[9px] font-semibold text-ink-muted">Check Progress</span>
+                    <span className="text-[9px] font-bold text-ink-2">{completion}%</span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-surface-3 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${getProgressColor(completion)} transition-all`}
                       style={{ width: `${completion}%` }}
@@ -177,19 +177,19 @@ export default function QualityCheckDashboard() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-slate-50 rounded p-2">
-                    <p className="text-[9px] text-slate-500 mb-0.5">Total Items</p>
-                    <p className="text-sm font-bold text-slate-700">{consignment.qualityApproval.totalItems}</p>
+                  <div className="bg-surface-2 rounded p-2">
+                    <p className="text-[9px] text-ink-muted mb-0.5">Total Items</p>
+                    <p className="text-sm font-bold text-ink-2">{consignment.qualityApproval.totalItems}</p>
                   </div>
-                  <div className="bg-green-50 rounded p-2">
-                    <p className="text-[9px] text-green-600 mb-0.5">Passed</p>
-                    <p className="text-sm font-bold text-green-700">{consignment.qualityApproval.passedItems}</p>
+                  <div className="bg-green-50 rounded p-2 dark:bg-green-500/10">
+                    <p className="text-[9px] text-green-600 mb-0.5 dark:text-green-300">Passed</p>
+                    <p className="text-sm font-bold text-green-700 dark:text-green-300">{consignment.qualityApproval.passedItems}</p>
                   </div>
-                  <div className={`${hasFailures ? 'bg-rose-50' : 'bg-slate-50'} rounded p-2`}>
-                    <p className={`text-[9px] ${hasFailures ? 'text-rose-600' : 'text-slate-500'} mb-0.5`}>
+                  <div className={`${hasFailures ? 'bg-rose-50 dark:bg-rose-500/10' : 'bg-surface-2'} rounded p-2`}>
+                    <p className={`text-[9px] ${hasFailures ? 'text-rose-600 dark:text-rose-300' : 'text-ink-muted'} mb-0.5`}>
                       Failed
                     </p>
-                    <p className={`text-sm font-bold ${hasFailures ? 'text-rose-700' : 'text-slate-700'}`}>
+                    <p className={`text-sm font-bold ${hasFailures ? 'text-rose-700 dark:text-rose-300' : 'text-ink-2'}`}>
                       {consignment.qualityApproval.failedItems}
                     </p>
                   </div>
@@ -206,7 +206,7 @@ export default function QualityCheckDashboard() {
                   <button
                     onClick={() => handleDelete(consignment.qualityApproval.id, consignment.consignmentNumber)}
                     disabled={deleting === consignment.qualityApproval.id}
-                    className="px-3 py-2 bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-200 transition-colors disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                    className="px-3 py-2 bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg hover:bg-rose-200 transition-colors disabled:opacity-50 flex items-center gap-1 whitespace-nowrap dark:bg-rose-500/15 dark:text-rose-300"
                     title="Delete quality checks and revert consignment"
                   >
                     {deleting === consignment.qualityApproval.id ? (

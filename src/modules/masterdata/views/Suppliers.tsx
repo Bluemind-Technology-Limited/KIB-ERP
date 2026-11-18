@@ -22,8 +22,8 @@ interface Supplier {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  INACTIVE: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
 };
 
 export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }) {
@@ -135,7 +135,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Supplier Directory</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Supplier Directory</h2>
           <PageDescription>Supplier profiles used by the procurement workflow (requisitions → purchase orders).</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -148,11 +148,11 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. Table */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={6} rows={6} hasAvatar={false} />
         ) : filtered.length === 0 ? (
@@ -161,7 +161,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Supplier</th>
                   <th className="px-4 py-3 font-semibold">Contact</th>
                   <th className="px-4 py-3 font-semibold">Phone</th>
@@ -173,29 +173,29 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
               </thead>
               <tbody>
                 {filtered.map((s) => (
-                  <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr key={s.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <Handshake className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
-                        <p title={s.name} className="text-xs font-bold text-[#171717] leading-none max-w-[180px] truncate">{s.name}</p>
+                        <p title={s.name} className="text-xs font-bold text-ink leading-none max-w-[180px] truncate">{s.name}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p title={s.contactPerson || '—'} className="text-xs text-slate-600 max-w-[180px] truncate">{s.contactPerson || '—'}</p>
+                        <p title={s.contactPerson || '—'} className="text-xs text-ink-muted max-w-[180px] truncate">{s.contactPerson || '—'}</p>
                         {s.email && (
-                          <p title={s.email} className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 max-w-[180px]">
+                          <p title={s.email} className="text-[10px] text-ink-faint mt-0.5 flex items-center gap-1 max-w-[180px]">
                             <Mail className="w-2.5 h-2.5 shrink-0" /> <span className="truncate">{s.email}</span>
                           </p>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{s.phone || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px] truncate" title={s.address || '—'}>{s.address || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-ink-muted">{s.phone || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-ink-muted max-w-[180px] truncate" title={s.address || '—'}>{s.address || '—'}</td>
                     <td className="px-4 py-3">
-                      {s.taxId ? <span className="text-[10px] font-mono text-slate-500">{s.taxId}</span> : <span className="text-[10px] text-slate-300">—</span>}
+                      {s.taxId ? <span className="text-[10px] font-mono text-ink-muted">{s.taxId}</span> : <span className="text-[10px] text-ink-faint">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[s.status] || statusBadge.ACTIVE}`}>{s.status}</span>
@@ -203,10 +203,10 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ViewButton onClick={() => setViewing(s)} />
-                        <button onClick={() => openEdit(s)} className="text-slate-400 hover:text-indigo-600 p-1 transition-colors">
+                        <button onClick={() => openEdit(s)} className="text-ink-faint hover:text-indigo-600 p-1 transition-colors dark:hover:text-indigo-300">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => deleteSupplier(s.id)} className="text-slate-400 hover:text-rose-600 p-1 transition-colors">
+                        <button onClick={() => deleteSupplier(s.id)} className="text-ink-faint hover:text-rose-600 p-1 transition-colors dark:hover:text-rose-300">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -265,46 +265,46 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
       {/* 3. Add/Edit Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={submit} className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">{editing ? 'Edit Supplier' : 'Add Supplier'}</h3>
-              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="text-sm font-bold text-ink">{editing ? 'Edit Supplier' : 'Add Supplier'}</h3>
+              <button type="button" onClick={() => setShowModal(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Name *</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Name *</label>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact Person</label>
-                <input value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Contact Person</label>
+                <input value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email</label>
-                <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Email</label>
+                <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phone</label>
-                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Phone</label>
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tax ID</label>
-                <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Tax ID</label>
+                <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vendor Code</label>
-                <input value={form.vendorCode} onChange={(e) => setForm({ ...form, vendorCode: e.target.value })} placeholder="e.g. A" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-                <p className="text-[9px] text-slate-400">Used in lot codes (SOP KIB/QCA/010). Optional.</p>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Vendor Code</label>
+                <input value={form.vendorCode} onChange={(e) => setForm({ ...form, vendorCode: e.target.value })} placeholder="e.g. A" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <p className="text-[9px] text-ink-faint">Used in lot codes (SOP KIB/QCA/010). Optional.</p>
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Address</label>
-                <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Address</label>
+                <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">
+              <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">
                 Cancel
               </button>
               <button type="submit" className="btn-3d px-4 h-9">

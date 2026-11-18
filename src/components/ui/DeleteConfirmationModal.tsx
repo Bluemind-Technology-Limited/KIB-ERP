@@ -1,5 +1,5 @@
-import { Trash2 } from 'lucide-react';
 import { Modal } from './Modal';
+import { Button } from './Button';
 
 interface DeleteConfirmationModalProps {
   title: string;
@@ -18,31 +18,26 @@ export function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   return (
     <Modal onClose={onCancel}>
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-6 space-y-4">
+      <div className="w-full max-w-sm bg-surface rounded-xl shadow-lg p-6 space-y-4">
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
-            <Trash2 className="w-5 h-5 text-rose-600" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-[#171717]">{title}</h3>
-            <p className="text-xs text-slate-500 mt-1">{description}</p>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-ink">{title}</h3>
+          <p className="mt-1 text-xs text-ink-muted">{description}</p>
         </div>
 
         {/* Buttons */}
         <div className="flex gap-2 pt-2">
-          <button
+          <Button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 h-8 px-3 text-xs disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+            className="btn-3d flex-1 h-8 px-3 text-xs disabled:opacity-50 flex items-center justify-center gap-1"
           >
             {isLoading ? (
               <>
@@ -51,11 +46,10 @@ export function DeleteConfirmationModal({
               </>
             ) : (
               <>
-                <Trash2 className="w-3 h-3" />
                 Delete
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

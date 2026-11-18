@@ -110,24 +110,24 @@ interface ActivityRow {
 }
 
 const statusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  SCHEDULED: 'bg-blue-50 text-blue-700 border-blue-200',
-  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CANCELLED: 'bg-slate-100 text-slate-500 border-slate-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  SCHEDULED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
+  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  CANCELLED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 const stageStatusBadge: Record<string, string> = {
-  SUBMITTED: 'bg-slate-100 text-slate-600 border-slate-200',
-  VERIFIED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  FLAGGED: 'bg-rose-50 text-rose-600 border-rose-200',
+  SUBMITTED: 'bg-surface-3 text-ink-muted border-line',
+  VERIFIED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  FLAGGED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 const moduleBadge: Record<string, string> = {
-  inventory: 'bg-sky-50 text-sky-700 border-sky-200',
-  production: 'bg-amber-50 text-amber-700 border-amber-200',
-  qa: 'bg-[#AA3BFF]/10 text-[#AA3BFF] border-[#AA3BFF]/30',
-  procurement: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  inventory: 'bg-sky-600 text-white',
+  production: 'bg-amber-600 text-white',
+  qa: 'bg-[#AA3BFF] text-white',
+  procurement: 'bg-emerald-600 text-white',
 };
 
 function downloadCSV(rows: ActivityRow[]) {
@@ -211,21 +211,21 @@ export default function AuditReport() {
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Audit &amp; Report</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Audit &amp; Report</h2>
           <PageDescription>The whole production flow and every ERP activity in a date range.</PageDescription>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => downloadCSV(activity?.rows ?? [])}
             disabled={!activity || activity.rows.length === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 h-9 text-xs font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
           <button
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 h-9 text-xs font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
@@ -233,31 +233,31 @@ export default function AuditReport() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#E9E9E9] bg-white p-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-surface p-4 md:grid-cols-4">
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">From</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">From</label>
           <input
             type="date"
             value={filters.dateFrom}
             onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-            className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+            className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">To</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">To</label>
           <input
             type="date"
             value={filters.dateTo}
             onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-            className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+            className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Module</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Module</label>
           <select
             value={filters.entity}
             onChange={(e) => setFilters({ ...filters, entity: e.target.value })}
-            className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+            className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
           >
             <option value="">All</option>
             <option value="inventory">Inventory</option>
@@ -279,7 +279,7 @@ export default function AuditReport() {
               setFilters(cleared);
               setApplied(cleared);
             }}
-            className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="h-9 rounded-lg border border-line px-3 text-xs font-semibold text-ink-muted hover:bg-surface-2"
           >
             Clear
           </button>
@@ -287,29 +287,29 @@ export default function AuditReport() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="flex w-fit items-center gap-1 rounded-lg border border-[#E9E9E9] bg-white p-1">
+      <div className="flex w-fit items-center gap-1 rounded-lg border border-line bg-surface p-1">
         <button
           onClick={() => setTab('flow')}
-          className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'flow' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+          className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'flow' ? 'bg-[#EA4335] text-white' : 'text-ink-muted hover:bg-surface-2'}`}
         >
           Production flow ({formatNumber(flow?.rows.length ?? 0)})
         </button>
         <button
           onClick={() => setTab('activity')}
-          className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'activity' ? 'bg-[#EA4335] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+          className={`px-3 h-7 rounded-md text-[10px] font-semibold ${tab === 'activity' ? 'bg-[#EA4335] text-white' : 'text-ink-muted hover:bg-surface-2'}`}
         >
           ERP activity ({formatNumber(activity?.rows.length ?? 0)})
         </button>
       </div>
 
       {loading ? (
-        <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
           <TableSkeleton cols={6} rows={6} />
         </div>
       ) : tab === 'flow' ? (
@@ -334,25 +334,25 @@ export default function AuditReport() {
           )}
 
           {(flow?.rows.length ?? 0) === 0 ? (
-            <div className="rounded-xl border border-[#E9E9E9] bg-white">
+            <div className="rounded-xl border border-line bg-surface">
               <EmptyState title="No production plans in range." hint="Adjust the date filters." />
             </div>
           ) : (
             flow?.rows.map((plan) => {
               const isOpen = expandedPlan === plan.planId;
               return (
-                <div key={plan.planId} className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+                <div key={plan.planId} className="overflow-hidden rounded-xl border border-line bg-surface">
                   <button
                     onClick={() => setExpandedPlan(isOpen ? null : plan.planId)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-2/60"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EA4335]/10">
                         <Factory className="h-4 w-4 text-[#EA4335]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
-                        <p className="truncate text-[10px] text-slate-400">
+                        <p className="text-xs font-bold text-ink">{plan.planNumber}</p>
+                        <p className="truncate text-[10px] text-ink-faint">
                           {formatNumber(plan.items.length)} product(s) · {formatNumber(plan.issue.issuedIngredients)}/
                           {formatNumber(plan.issue.totalIngredients)} issued
                           {plan.createdBy ? ` · ${plan.createdBy}` : ''}
@@ -360,20 +360,20 @@ export default function AuditReport() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className={`rounded border px-2 py-0.5 text-[9px] font-bold ${statusBadge[plan.status] ?? statusBadge.DRAFT}`}>
+                      <span className={`rounded px-2 py-0.5 text-[9px] font-bold ${statusBadge[plan.status] ?? statusBadge.DRAFT}`}>
                         {plan.status}
                       </span>
-                      {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                      {isOpen ? <ChevronDown className="h-4 w-4 text-ink-faint" /> : <ChevronRight className="h-4 w-4 text-ink-faint" />}
                     </div>
                   </button>
 
                   {isOpen && (
-                    <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+                    <div className="space-y-4 border-t border-line px-4 py-4">
                       {/* Items flow */}
-                      <div className="overflow-x-auto rounded-lg border border-slate-100">
+                      <div className="overflow-x-auto rounded-lg border border-line">
                         <table className="w-full text-left">
                           <thead>
-                            <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                            <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                               <th className="px-3 py-2 font-semibold">Product</th>
                               <th className="px-3 py-2 font-semibold">Target</th>
                               <th className="px-3 py-2 font-semibold">Ground</th>
@@ -385,19 +385,19 @@ export default function AuditReport() {
                           </thead>
                           <tbody>
                             {plan.items.map((item) => (
-                              <tr key={item.planItemId} className="border-b border-slate-50">
+                              <tr key={item.planItemId} className="border-b border-line">
                                 <td className="px-3 py-2">
-                                  <p className="text-[11px] font-bold text-slate-700">{item.productName ?? '—'}</p>
-                                  <p className="text-[9px] font-mono text-slate-400">{item.sku ?? ''}</p>
+                                  <p className="text-[11px] font-bold text-ink-2">{item.productName ?? '—'}</p>
+                                  <p className="text-[9px] font-mono text-ink-faint">{item.sku ?? ''}</p>
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-600">{formatNumber(item.targetQuantity)}</td>
-                                <td className="px-3 py-2 text-[11px] text-slate-600">
+                                <td className="px-3 py-2 text-[11px] text-ink-muted">{formatNumber(item.targetQuantity)}</td>
+                                <td className="px-3 py-2 text-[11px] text-ink-muted">
                                   {item.grinding ? `${formatNumber(item.grinding.achieved)} / in ${formatNumber(item.grinding.input)}` : '—'}
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-600">
+                                <td className="px-3 py-2 text-[11px] text-ink-muted">
                                   {item.achievedQuantity == null ? '—' : formatNumber(item.achievedQuantity)}
                                 </td>
-                                <td className="px-3 py-2 text-[10px] text-slate-500">
+                                <td className="px-3 py-2 text-[10px] text-ink-muted">
                                   {item.grindingYieldPct !== null && (
                                     <span>g {formatPercent(item.grindingYieldPct)}</span>
                                   )}
@@ -409,9 +409,9 @@ export default function AuditReport() {
                                 </td>
                                 <td className="px-3 py-2 text-[11px]">
                                   {item.variance === null ? (
-                                    <span className="text-slate-400">—</span>
+                                    <span className="text-ink-faint">—</span>
                                   ) : (
-                                    <span className={item.variance < 0 ? 'font-semibold text-rose-600' : 'font-semibold text-emerald-700'}>
+                                    <span className={item.variance < 0 ? 'font-semibold text-rose-600 dark:text-rose-300' : 'font-semibold text-emerald-700 dark:text-emerald-300'}>
                                       {item.variance > 0 ? '+' : ''}
                                       {formatNumber(item.variance)} ({formatPercent(item.variancePct)})
                                     </span>
@@ -419,17 +419,17 @@ export default function AuditReport() {
                                 </td>
                                 <td className="px-3 py-2">
                                   {item.inspections.length === 0 ? (
-                                    <span className="text-[10px] text-slate-400">—</span>
+                                    <span className="text-[10px] text-ink-faint">—</span>
                                   ) : (
                                     item.inspections.map((ins) => (
                                       <span
                                         key={ins.id}
-                                        className={`mr-1 rounded border px-1.5 py-0.5 text-[9px] font-bold ${
+                                        className={`mr-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${
                                           ins.result === 'PASSED'
-                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            ? 'bg-emerald-600 text-white'
                                             : ins.result === 'FAILED'
-                                              ? 'border-rose-200 bg-rose-50 text-rose-600'
-                                              : 'border-slate-200 bg-slate-50 text-slate-500'
+                                              ? 'bg-rose-600 text-white'
+                                              : 'border-line bg-surface-2 text-ink-muted'
                                         }`}
                                       >
                                         {ins.result}
@@ -444,8 +444,8 @@ export default function AuditReport() {
                       </div>
 
                       {canApprove && (
-                        <div className="rounded-lg border border-slate-100 p-3">
-                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="rounded-lg border border-line p-3">
+                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                             Stage sign-off
                           </p>
                           <div className="space-y-1.5">
@@ -472,23 +472,23 @@ export default function AuditReport() {
                               })
                               .map((rec) => (
                                 <div key={rec.id} className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="text-[10px] text-slate-600">
+                                  <span className="text-[10px] text-ink-muted">
                                     {rec.label}
                                     {rec.yieldPct !== null ? ` · yield ${formatPercent(rec.yieldPct)}` : ''}
                                   </span>
                                   <div className="flex items-center gap-2">
-                                    <span className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${stageStatusBadge[rec.status] ?? stageStatusBadge.SUBMITTED}`}>
+                                    <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${stageStatusBadge[rec.status] ?? stageStatusBadge.SUBMITTED}`}>
                                       {rec.status}
                                     </span>
                                     <button
                                       onClick={() => setRecordStatus(rec.id, 'VERIFIED')}
-                                      className="rounded border border-emerald-200 px-2 h-6 text-[9px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                                      className="rounded border border-emerald-200 px-2 h-6 text-[9px] font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                                     >
                                       Verify
                                     </button>
                                     <button
                                       onClick={() => setRecordStatus(rec.id, 'FLAGGED')}
-                                      className="rounded border border-rose-200 px-2 h-6 text-[9px] font-semibold text-rose-600 hover:bg-rose-50"
+                                      className="rounded border border-rose-200 px-2 h-6 text-[9px] font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                                     >
                                       Flag
                                     </button>
@@ -500,47 +500,47 @@ export default function AuditReport() {
                       )}
 
                       {/* Issue */}
-                      <div className="rounded-lg border border-slate-100 p-3">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <div className="rounded-lg border border-line p-3">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                           Ingredient issue
                         </p>
                         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
                           {plan.issue.ingredients.map((ing, idx) => (
                             <div key={`${ing.sku}-${idx}`} className="flex items-center justify-between text-[10px]">
-                              <span className="truncate text-slate-600">{ing.material ?? ing.sku}</span>
-                              <span className="ml-2 shrink-0 font-mono text-slate-500">
+                              <span className="truncate text-ink-muted">{ing.material ?? ing.sku}</span>
+                              <span className="ml-2 shrink-0 font-mono text-ink-muted">
                                 req {formatNumber(ing.required)} · iss {formatNumber(ing.issued)}
-                                {ing.returned > 0 && <span className="text-amber-600"> · ret {formatNumber(ing.returned)}</span>}
+                                {ing.returned > 0 && <span className="text-amber-600 dark:text-amber-300"> · ret {formatNumber(ing.returned)}</span>}
                               </span>
                             </div>
                           ))}
                           {plan.issue.ingredients.length === 0 && (
-                            <p className="text-[10px] text-slate-400">No aggregated ingredients.</p>
+                            <p className="text-[10px] text-ink-faint">No aggregated ingredients.</p>
                           )}
                         </div>
                       </div>
 
                       {/* Movements */}
                       {plan.movements.length > 0 && (
-                        <div className="overflow-x-auto rounded-lg border border-slate-100">
-                          <div className="border-b border-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="overflow-x-auto rounded-lg border border-line">
+                          <div className="border-b border-line px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                             Ledger movements
                           </div>
                           <table className="w-full text-left">
                             <tbody>
                               {plan.movements.map((m) => (
-                                <tr key={m.id} className="border-b border-slate-50">
-                                  <td className="px-3 py-1.5 text-[10px] text-slate-500">
+                                <tr key={m.id} className="border-b border-line">
+                                  <td className="px-3 py-1.5 text-[10px] text-ink-muted">
                                     {new Date(m.createdAt).toLocaleDateString()}
                                   </td>
-                                  <td className="px-3 py-1.5 text-[10px] font-semibold text-slate-600">
+                                  <td className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted">
                                     {m.referenceType}
                                   </td>
-                                  <td className="px-3 py-1.5 text-[10px] text-slate-600">{m.material ?? '—'}</td>
-                                  <td className="px-3 py-1.5 text-[10px] font-mono text-slate-600">
+                                  <td className="px-3 py-1.5 text-[10px] text-ink-muted">{m.material ?? '—'}</td>
+                                  <td className="px-3 py-1.5 text-[10px] font-mono text-ink-muted">
                                     {formatQty(m.quantity, m.unitOfMeasure)}
                                   </td>
-                                  <td className="px-3 py-1.5 text-[10px] text-slate-400">{m.warehouse ?? '—'}</td>
+                                  <td className="px-3 py-1.5 text-[10px] text-ink-faint">{m.warehouse ?? '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -565,14 +565,14 @@ export default function AuditReport() {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
             {!activity || activity.rows.length === 0 ? (
               <EmptyState title="No ERP activity in range." hint="Adjust the filters." />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                       <th className="px-4 py-3 font-semibold">When</th>
                       <th className="px-4 py-3 font-semibold">Module</th>
                       <th className="px-4 py-3 font-semibold">Event</th>
@@ -584,26 +584,26 @@ export default function AuditReport() {
                   </thead>
                   <tbody>
                     {activity.rows.map((r) => (
-                      <tr key={`${r.type}-${r.id}`} className="border-b border-slate-50 hover:bg-slate-50/50">
-                        <td className="px-4 py-2.5 text-[10px] text-slate-500">
+                      <tr key={`${r.type}-${r.id}`} className="border-b border-line hover:bg-surface-2/50">
+                        <td className="px-4 py-2.5 text-[10px] text-ink-muted">
                           {new Date(r.timestamp).toLocaleString()}
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${moduleBadge[r.module] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${moduleBadge[r.module] ?? 'bg-slate-600 text-white'}`}>
                             {r.module}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-[10px] font-semibold text-slate-600">{r.type}</td>
-                        <td className="px-4 py-2.5 text-[10px] text-slate-600">
+                        <td className="px-4 py-2.5 text-[10px] font-semibold text-ink-muted">{r.type}</td>
+                        <td className="px-4 py-2.5 text-[10px] text-ink-muted">
                           <div className="max-w-[180px] truncate" title={r.description}>{r.description}</div>
                           {r.detail && (
-                            <div className="max-w-[180px] truncate text-[9px] text-slate-400" title={r.detail}>
+                            <div className="max-w-[180px] truncate text-[9px] text-ink-faint" title={r.detail}>
                               {r.detail}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-[10px] text-slate-500">{r.actor ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-right text-[10px] font-mono text-slate-600">
+                        <td className="px-4 py-2.5 text-[10px] text-ink-muted">{r.actor ?? '—'}</td>
+                        <td className="px-4 py-2.5 text-right text-[10px] font-mono text-ink-muted">
                           {r.amount === null ? '—' : formatNumber(r.amount)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
@@ -625,7 +625,7 @@ export default function AuditReport() {
           subtitle={viewing.description}
           status={{
             label: viewing.module,
-            className: moduleBadge[viewing.module] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+            className: moduleBadge[viewing.module] ?? 'bg-surface-3 text-ink-muted border-line',
           }}
           onClose={() => setViewing(null)}
           sections={[
@@ -663,10 +663,10 @@ export default function AuditReport() {
 
 function Kpi({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
-      <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="text-xl font-bold text-[#171717]">{value}</p>
-      {sub && <p className="mt-0.5 text-[9px] text-slate-400">{sub}</p>}
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-ink-muted">{label}</p>
+      <p className="text-xl font-bold text-ink">{value}</p>
+      {sub && <p className="mt-0.5 text-[9px] text-ink-faint">{sub}</p>}
     </div>
   );
 }

@@ -76,36 +76,36 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
   const statusIcon = (status: string) => {
     switch (status) {
       case 'VERIFIED':
-        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+        return <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-300" />;
       case 'FLAGGED':
-        return <AlertCircle className="w-4 h-4 text-rose-600" />;
+        return <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-300" />;
       default:
-        return <Loader className="w-4 h-4 text-amber-600" />;
+        return <Loader className="w-4 h-4 text-amber-600 dark:text-amber-300" />;
     }
   };
 
   const statusColor = (status: string) => {
     switch (status) {
       case 'VERIFIED':
-        return 'bg-green-50 border-green-200 text-green-700';
+        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300';
       case 'FLAGGED':
-        return 'bg-rose-50 border-rose-200 text-rose-700';
+        return 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300';
       default:
-        return 'bg-amber-50 border-amber-200 text-amber-700';
+        return 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300';
     }
   };
 
   const varianceColor = (percent: number) => {
-    if (percent > 5) return 'text-rose-600';
-    if (percent < -5) return 'text-amber-600';
-    return 'text-green-600';
+    if (percent > 5) return 'text-rose-600 dark:text-rose-300';
+    if (percent < -5) return 'text-amber-600 dark:text-amber-300';
+    return 'text-green-600 dark:text-green-300';
   };
 
   if (loading) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4">
+          <div key={i} className="bg-surface border border-line rounded-xl p-4">
             <Skeleton className="h-4 w-48 mb-3" />
             <Skeleton className="h-3 w-full" />
           </div>
@@ -116,7 +116,7 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
 
   if (reconciliations.length === 0) {
     return (
-      <div className="bg-white border border-[#E9E9E9] rounded-xl">
+      <div className="bg-surface border border-line rounded-xl">
         <EmptyState
           title="No reconciliations yet"
           hint="Create one with “Reconcile day” once production has been recorded."
@@ -127,7 +127,7 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
 
   return (
     <div className="w-full space-y-3">
-      <h3 className="text-sm font-bold text-[#171717]">Reconciliation History</h3>
+      <h3 className="text-sm font-bold text-ink">Reconciliation History</h3>
       {reconciliations.map((recon) => {
         const percent = Number(recon.variancePercentage ?? 0);
         const planned = Number(recon.plannedTotalQuantity ?? 0);
@@ -135,22 +135,22 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
         const variance = Number(recon.quantityVariance ?? 0);
 
         return (
-          <div key={recon.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+          <div key={recon.id} className="bg-surface border border-line rounded-xl overflow-hidden">
             <button
               onClick={() => setExpandedId(expandedId === recon.id ? null : recon.id)}
-              className="w-full text-left p-4 hover:bg-slate-50 flex items-center justify-between"
+              className="w-full text-left p-4 hover:bg-surface-2 flex items-center justify-between"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   {statusIcon(recon.status)}
-                  <span className="text-sm font-bold text-slate-700">
+                  <span className="text-sm font-bold text-ink-2">
                     {new Date(recon.reconciliationDate).toLocaleDateString()}
                   </span>
                   <span className={`text-xs font-semibold px-2 py-1 rounded border ${statusColor(recon.status)}`}>
                     {recon.status}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">By {recon.supervisor?.fullName ?? '—'}</p>
+                <p className="text-xs text-ink-muted">By {recon.supervisor?.fullName ?? '—'}</p>
               </div>
 
               <div className="text-right mr-2">
@@ -158,27 +158,27 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
                   {percent > 0 ? '+' : ''}
                   {formatPercent(percent, 1)}
                 </p>
-                <p className="text-[9px] text-slate-500">variance</p>
+                <p className="text-[9px] text-ink-muted">variance</p>
               </div>
 
-              <div className={`text-slate-400 transition-transform ${expandedId === recon.id ? 'rotate-180' : ''}`}>
+              <div className={`text-ink-faint transition-transform ${expandedId === recon.id ? 'rotate-180' : ''}`}>
                 ▼
               </div>
             </button>
 
             {expandedId === recon.id && (
-              <div className="border-t border-slate-100 p-4 bg-slate-50 space-y-4">
+              <div className="border-t border-line p-4 bg-surface-2 space-y-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <p className="text-[9px] font-semibold text-slate-500 mb-1">Planned</p>
-                    <p className="text-sm font-bold text-slate-700">{formatNumber(planned, 2)}</p>
+                    <p className="text-[9px] font-semibold text-ink-muted mb-1">Planned</p>
+                    <p className="text-sm font-bold text-ink-2">{formatNumber(planned, 2)}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold text-slate-500 mb-1">Actual</p>
-                    <p className="text-sm font-bold text-slate-700">{formatNumber(actual, 2)}</p>
+                    <p className="text-[9px] font-semibold text-ink-muted mb-1">Actual</p>
+                    <p className="text-sm font-bold text-ink-2">{formatNumber(actual, 2)}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold text-slate-500 mb-1">Variance</p>
+                    <p className="text-[9px] font-semibold text-ink-muted mb-1">Variance</p>
                     <p className={`text-sm font-bold ${varianceColor(percent)}`}>
                       {variance > 0 ? '+' : ''}
                       {formatNumber(variance, 2)}
@@ -187,9 +187,9 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
                 </div>
 
                 {recon.discrepancyNotes && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                    <p className="text-[9px] font-semibold text-amber-700 mb-1">Note</p>
-                    <p className="text-xs text-amber-700">{recon.discrepancyNotes}</p>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <p className="text-[9px] font-semibold text-amber-700 mb-1 dark:text-amber-300">Note</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{recon.discrepancyNotes}</p>
                   </div>
                 )}
 
@@ -199,20 +199,20 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
                       <button
                         onClick={() => act(recon.id, 'verify')}
                         disabled={busyId === recon.id}
-                        className="flex-1 px-3 py-2 bg-green-100 text-green-700 font-semibold text-xs rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors"
+                        className="flex-1 px-3 py-2 bg-green-100 text-green-700 font-semibold text-xs rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors dark:bg-green-500/15 dark:text-green-300"
                       >
                         Verify
                       </button>
                       <button
                         onClick={() => act(recon.id, 'flag')}
                         disabled={busyId === recon.id}
-                        className="flex-1 px-3 py-2 bg-rose-100 text-rose-700 font-semibold text-xs rounded-lg hover:bg-rose-200 disabled:opacity-50 transition-colors"
+                        className="flex-1 px-3 py-2 bg-rose-100 text-rose-700 font-semibold text-xs rounded-lg hover:bg-rose-200 disabled:opacity-50 transition-colors dark:bg-rose-500/15 dark:text-rose-300"
                       >
                         Flag Issue
                       </button>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-ink-faint">
                       Awaiting manager sign-off — production managers verify or flag reconciliations.
                     </p>
                   )

@@ -43,10 +43,10 @@ interface BatchFormulation {
 }
 
 const versionStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  ARCHIVED: 'bg-slate-100 text-slate-500 border-slate-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  ARCHIVED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 const emptyIngredient = { materialId: '', quantity: '', unitOfMeasure: '', isPercentage: false };
@@ -250,7 +250,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Batch Formulation</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Batch Formulation</h2>
           <PageDescription>Ingredient recipes with % / absolute quantities and expected yield.</PageDescription>
         </div>
         <button onClick={openAdd} className="btn-3d px-4 h-9">
@@ -261,7 +261,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       </div>
 
       {error && (
-        <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. BOM List */}
@@ -269,7 +269,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+              <div key={i} className="bg-surface border border-line rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Skeleton className="w-8 h-8 rounded-lg" />
@@ -287,7 +287,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-[#E9E9E9] rounded-xl">
+          <div className="bg-surface border border-line rounded-xl">
             <EmptyState title="No BOMs found." hint="Create your first recipe." />
           </div>
         ) : (
@@ -296,29 +296,29 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
             const bomIngredients = bom.ingredients ?? [];
             const ingCount = bomIngredients.length;
             return (
-              <div key={bom.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+              <div key={bom.id} className="bg-surface border border-line rounded-xl overflow-hidden">
                 <button
                   onClick={() => toggleExpanded(bom.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50/60 text-left"
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2/60 text-left"
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                       <FlaskConical className="w-4 h-4 text-[#EA4335]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-bold text-[#171717] max-w-[220px] truncate" title={bom.productName}>{bom.productName}</p>
-                      <p className="text-[10px] text-slate-400 max-w-[280px] truncate">
+                      <p className="text-xs font-bold text-ink max-w-[220px] truncate" title={bom.productName}>{bom.productName}</p>
+                      <p className="text-[10px] text-ink-faint max-w-[280px] truncate">
                         {bom.finishedSku?.name ?? '—'} · Yield {bom.expectedYield != null ? formatQty(bom.expectedYield, bom.yieldUnit) : '—'} · {formatNumber(ingCount)} ingredients
                       </p>
                       {!isOpen && ingCount > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {bomIngredients.slice(0, 3).map((ing) => (
-                            <span key={ing.id} className="text-[9px] text-slate-500 bg-slate-100/50 px-1.5 py-0.5 rounded">
+                            <span key={ing.id} className="text-[9px] text-white bg-slate-600 px-1.5 py-0.5 rounded">
                               {ing.material.name} {ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)}
                             </span>
                           ))}
                           {ingCount > 3 && (
-                            <span className="text-[9px] text-slate-400 px-1.5 py-0.5">
+                            <span className="text-[9px] text-ink-faint px-1.5 py-0.5">
                               +{formatNumber(ingCount - 3)} more
                             </span>
                           )}
@@ -336,22 +336,22 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                         e.stopPropagation();
                         deleteBom(bom.id);
                       }}
-                      className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
+                      className="text-ink-faint hover:text-rose-600 transition-colors p-1.5 dark:hover:text-rose-300"
                       title="Delete formulation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                    {isOpen ? <ChevronDown className="w-4 h-4 text-ink-faint" /> : <ChevronRight className="w-4 h-4 text-ink-faint" />}
                   </div>
                 </button>
 
                 {isOpen && (
-                  <div className="border-t border-slate-100 px-4 py-4 space-y-4">
-                    <div className="rounded-lg border border-slate-100 p-3 space-y-3">
+                  <div className="border-t border-line px-4 py-4 space-y-4">
+                    <div className="rounded-lg border border-line p-3 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <FileCog className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-[11px] font-bold text-slate-700">
+                          <FileCog className="w-3.5 h-3.5 text-ink-faint" />
+                          <span className="text-[11px] font-bold text-ink-2">
                             {bom.finishedSku?.name ?? '—'}
                           </span>
                           <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
@@ -359,8 +359,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400">
-                            Yield: <b className="text-slate-600">{bom.expectedYield != null ? formatQty(bom.expectedYield, bom.yieldUnit) : '—'}</b>
+                          <span className="text-[10px] text-ink-faint">
+                            Yield: <b className="text-ink-muted">{bom.expectedYield != null ? formatQty(bom.expectedYield, bom.yieldUnit) : '—'}</b>
                           </span>
                           {bom.status === 'DRAFT' && (
                             <button onClick={() => approveFormulation(bom.id)} className="btn-3d px-3 h-7">
@@ -372,7 +372,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           {bom.status === 'ACTIVE' && (
                             <button
                               onClick={() => archiveFormulation(bom.id)}
-                              className="h-7 px-3 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
+                              className="h-7 px-3 rounded-lg border border-line text-[10px] font-semibold text-ink-muted hover:bg-surface-2"
                             >
                               Archive
                             </button>
@@ -381,12 +381,12 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       </div>
 
                       {ingCount === 0 ? (
-                        <p className="text-[10px] text-slate-400">No ingredients on this formulation.</p>
+                        <p className="text-[10px] text-ink-faint">No ingredients on this formulation.</p>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-left">
                             <thead>
-                              <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                              <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                                 <th className="px-2 py-1.5 font-semibold">Ingredient</th>
                                 <th className="px-2 py-1.5 font-semibold">Type</th>
                                 <th className="px-2 py-1.5 font-semibold text-right">Quantity</th>
@@ -395,17 +395,17 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                             </thead>
                             <tbody>
                               {bomIngredients.map((ing) => (
-                                <tr key={ing.id} className="border-b border-slate-50">
-                                  <td className="px-2 py-2 text-[11px] font-semibold text-slate-700 max-w-[180px] truncate" title={ing.material.name}>{ing.material.name}</td>
+                                <tr key={ing.id} className="border-b border-line">
+                                  <td className="px-2 py-2 text-[11px] font-semibold text-ink-2 max-w-[180px] truncate" title={ing.material.name}>{ing.material.name}</td>
                                   <td className="px-2 py-2">
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${ing.material.type === 'RAW' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${ing.material.type === 'RAW' ? 'bg-amber-600 text-white' : 'bg-sky-600 text-white'}`}>
                                       {ing.material.type}
                                     </span>
                                   </td>
-                                  <td className="px-2 py-2 text-right text-[11px] font-mono text-slate-600">
+                                  <td className="px-2 py-2 text-right text-[11px] font-mono text-ink-muted">
                                     {ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatNumber(ing.quantity)}
                                   </td>
-                                  <td className="px-2 py-2 text-[11px] text-slate-500">{ing.unitOfMeasure}</td>
+                                  <td className="px-2 py-2 text-[11px] text-ink-muted">{ing.unitOfMeasure}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -424,19 +424,19 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 3. Add BOM Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
-          <form onSubmit={submit} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={submit} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-4 h-4 text-[#EA4335]" />
-                <h3 className="text-sm font-bold text-[#171717]">New Batch Formulation</h3>
+                <h3 className="text-sm font-bold text-ink">New Batch Formulation</h3>
               </div>
-              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowModal(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {/* 3a. Basic recipe info */}
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Finished Product *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Finished Product *</label>
                 <select
                   value={form.finishedSkuId}
                   onChange={(e) => {
@@ -450,14 +450,14 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       yieldUnit: form.yieldUnit || product?.unitOfMeasure || '',
                     });
                   }}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 >
                   <option value="">Select finished product…</option>
                   {finishedMaterials.map((m) => (
                     <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
                   ))}
                 </select>
-                <p className="text-[9px] text-slate-400">
+                <p className="text-[9px] text-ink-faint">
                   {form.productName
                     ? `Product name: ${form.productName}`
                     : 'The product name is taken from the finished good you pick.'}
@@ -465,44 +465,44 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected Yield *</label>
-                  <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Expected Yield *</label>
+                  <input value={form.expectedYield} onChange={(e) => setForm({ ...form, expectedYield: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 100" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                   <PackQuantityPreview quantity={form.expectedYield} unit={form.yieldUnit} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Yield Unit (from product)</label>
-                  <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 flex items-center text-xs font-mono text-slate-600">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Yield Unit (from product)</label>
+                  <div className="h-9 w-full rounded-lg border border-line bg-surface-2 px-3 flex items-center text-xs font-mono text-ink-muted">
                     {form.yieldUnit || '—'}
                   </div>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Description</label>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
             {/* 3b. Ingredients */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ingredients *</label>
-                <span className="text-[9px] text-slate-400">{formatNumber(ingredients.filter((i) => i.materialId && i.quantity).length)} added</span>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Ingredients *</label>
+                <span className="text-[9px] text-ink-faint">{formatNumber(ingredients.filter((i) => i.materialId && i.quantity).length)} added</span>
               </div>
 
               <div className="space-y-2">
                 {ingredients.map((ing, i) => {
                   const mat = materials.find((m) => m.id === ing.materialId);
                   return (
-                    <div key={i} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                    <div key={i} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-500">Ingredient {i + 1}</span>
-                        <button type="button" onClick={() => removeIngredientRow(i)} className="text-slate-300 hover:text-rose-500 p-0.5">
+                        <span className="text-[10px] font-bold text-ink-muted">Ingredient {i + 1}</span>
+                        <button type="button" onClick={() => removeIngredientRow(i)} className="text-ink-faint hover:text-rose-500 p-0.5">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
-                        <select value={ing.materialId} onChange={(e) => updateIngredient(i, 'materialId', e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                        <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
+                        <select value={ing.materialId} onChange={(e) => updateIngredient(i, 'materialId', e.target.value)} className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                           <option value="">Select material…</option>
                           {rawMaterials.map((m) => (
                             <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
@@ -511,15 +511,15 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                          <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" min="0.0001" max={ing.isPercentage ? 100 : undefined} step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
+                          <input value={ing.quantity} onChange={(e) => updateIngredient(i, 'quantity', e.target.value)} type="number" min="0.0001" max={ing.isPercentage ? 100 : undefined} step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                           <PackQuantityPreview
                             quantity={ing.quantity}
                             unit={ing.isPercentage ? null : ing.unitOfMeasure}
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Measured As</label>
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Measured As</label>
                           <div className="flex gap-1 h-9">
                             <button
                               type="button"
@@ -527,7 +527,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                               className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
                                 !ing.isPercentage
                                   ? 'bg-[#EA4335] text-white border-[#EA4335]'
-                                  : 'bg-white text-slate-400 border-[#E9E9E9] hover:border-slate-300'
+                                  : 'bg-surface text-ink-faint border-line hover:border-line-strong'
                               }`}
                             >
                               Unit
@@ -538,7 +538,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                               className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
                                 ing.isPercentage
                                   ? 'bg-[#EA4335] text-white border-[#EA4335]'
-                                  : 'bg-white text-slate-400 border-[#E9E9E9] hover:border-slate-300'
+                                  : 'bg-surface text-ink-faint border-line hover:border-line-strong'
                               }`}
                             >
                               % of Batch
@@ -548,8 +548,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       </div>
                       {!ing.isPercentage && (
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit (from material)</label>
-                          <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-2 flex items-center text-xs font-mono text-slate-600">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit (from material)</label>
+                          <div className="h-9 w-full rounded-lg border border-line bg-surface-2 px-2 flex items-center text-xs font-mono text-ink-muted">
                             {mat?.unitOfMeasure ?? ing.unitOfMeasure ?? '—'}
                           </div>
                         </div>
@@ -559,14 +559,14 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                 })}
               </div>
 
-              <button type="button" onClick={addIngredientRow} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+              <button type="button" onClick={addIngredientRow} className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Add Ingredient
               </button>
-              <p className="text-[9px] text-slate-400">Choose "Unit" for absolute amounts or "% of Batch" to scale with batch size.</p>
+              <p className="text-[9px] text-ink-faint">Choose "Unit" for absolute amounts or "% of Batch" to scale with batch size.</p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" disabled={saving} className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Create'}</span>
               </button>

@@ -1,11 +1,75 @@
 @import "tailwindcss";
 
+/* `.dark` on <html> is our theme switch (not the OS preference). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * KIB theme tokens.
+ *
+ * Every surface/text/border colour in the app resolves through these, so a
+ * single `.dark` class on <html> flips the whole product. The `@theme` block
+ * only forwards the raw values, which keeps the utilities pointing at variables
+ * (and therefore theme-able at runtime).
+ */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
+  --kib-app: #fafafa;
+  --kib-surface: #ffffff;
+  --kib-surface-2: #fbfbfb;
+  --kib-surface-3: #f4f4f4;
+  --kib-surface-4: #ececec;
+  --kib-line: #e9e9e9;
+  --kib-line-strong: #d9d9d9;
+  --kib-ink: #171717;
+  --kib-ink-2: #313131;
+  --kib-ink-3: #525252;
+  --kib-ink-muted: #737373;
+  --kib-ink-faint: #a1a1a1;
+  --kib-inverted: #171717;
+  --kib-inverted-ink: #ffffff;
+  color-scheme: light;
+}
+
+html.dark {
+  --kib-app: #141414;
+  --kib-surface: #1c1c1c;
+  --kib-surface-2: #191919;
+  --kib-surface-3: #242424;
+  --kib-surface-4: #2e2e2e;
+  --kib-line: #2c2c2c;
+  --kib-line-strong: #3a3a3a;
+  --kib-ink: #ffffff;
+  --kib-ink-2: #ededed;
+  --kib-ink-3: #d4d4d4;
+  --kib-ink-muted: #a3a3a3;
+  --kib-ink-faint: #7c7c7c;
+  --kib-inverted: #f5f5f5;
+  --kib-inverted-ink: #141414;
+  color-scheme: dark;
+}
+
+@theme {
+  --color-app: var(--kib-app);
+  --color-surface: var(--kib-surface);
+  --color-surface-2: var(--kib-surface-2);
+  --color-surface-3: var(--kib-surface-3);
+  --color-surface-4: var(--kib-surface-4);
+  --color-line: var(--kib-line);
+  --color-line-strong: var(--kib-line-strong);
+  --color-ink: var(--kib-ink);
+  --color-ink-2: var(--kib-ink-2);
+  --color-ink-3: var(--kib-ink-3);
+  --color-ink-muted: var(--kib-ink-muted);
+  --color-ink-faint: var(--kib-ink-faint);
+  --color-inverted: var(--kib-inverted);
+  --color-inverted-ink: var(--kib-inverted-ink);
+}
+
+:root {
+  --text: var(--kib-ink-muted);
+  --text-h: var(--kib-ink);
+  --bg: var(--kib-app);
+  --border: var(--kib-line);
+  --code-bg: var(--kib-surface-3);
   --accent: #aa3bff;
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
@@ -33,23 +97,15 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
   #social .button-icon {
     filter: invert(1) brightness(2);
   }
+}
+
+html,
+body {
+  background-color: var(--kib-app);
+  color: var(--kib-ink);
 }
 
 #root {
@@ -148,10 +204,42 @@ code {
   box-shadow: 0px 0px 0px 1px #b82318, 0px 0.5px 1px rgba(0, 0, 0, 0.02);
 }
 
+/* Hairline scrollbar for the sidebar nav — visible, but only just. */
+.kib-scroll-thin {
+  scrollbar-width: thin; /* Firefox (thinnest it allows) */
+  scrollbar-color: var(--kib-line-strong) transparent;
+}
+.kib-scroll-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.kib-scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kib-scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--kib-line-strong);
+  border-radius: 999px;
+}
+.kib-scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--kib-ink-faint);
+}
+
+/* Theme switch knob — eases out with a tiny overshoot so it lands with a
+   small bounce rather than a hard stop. */
+.kib-switch-knob {
+  transition:
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 300ms ease-in-out;
+}
+
+.kib-switch-track {
+  transition: background-color 300ms ease-in-out, border-color 300ms ease-in-out;
+}
+
 /* Custom scrollbar — always visible, thin KIB-styled track/thumb */
 .kib-scroll {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #d9d9d9 #f4f4f4; /* Firefox thumb/track */
+  scrollbar-color: var(--kib-line-strong) var(--kib-surface-3); /* Firefox thumb/track */
   -webkit-overflow-scrolling: touch;
 }
 .kib-scroll::-webkit-scrollbar {
@@ -159,15 +247,15 @@ code {
   height: 8px;
 }
 .kib-scroll::-webkit-scrollbar-track {
-  background: #f4f4f4;
+  background: var(--kib-surface-3);
   border-radius: 8px;
 }
 .kib-scroll::-webkit-scrollbar-thumb {
-  background: #d9d9d9;
+  background: var(--kib-line-strong);
   border-radius: 8px;
-  border: 2px solid #f4f4f4;
+  border: 2px solid var(--kib-surface-3);
 }
 .kib-scroll::-webkit-scrollbar-thumb:hover {
-  background: #c4c4c4;
+  background: var(--kib-ink-faint);
 }
 

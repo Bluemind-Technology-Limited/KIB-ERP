@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -26,7 +27,15 @@ export default function ProductionPlanDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'in-progress' | 'completed'>('all');
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  /** Selected plan is kept in the URL so the header Back/Forward control can leave the detail view. */
+  const selectedPlanId = searchParams.get('plan');
+  const setSelectedPlanId = (id: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set('plan', id);
+    else next.delete('plan');
+    setSearchParams(next);
+  };
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -49,29 +58,29 @@ export default function ProductionPlanDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
-        return 'bg-blue-50 border-blue-200 text-blue-700';
+        return 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300';
       case 'IN_PROGRESS':
-        return 'bg-amber-50 border-amber-200 text-amber-700';
+        return 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300';
       case 'COMPLETED':
-        return 'bg-green-50 border-green-200 text-green-700';
+        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300';
       default:
-        return 'bg-slate-50 border-slate-200 text-slate-700';
+        return 'bg-surface-2 border-line text-ink-2';
     }
   };
 
   const getVarianceColor = (variance: number) => {
-    if (variance > 5) return 'text-rose-600';
-    if (variance < -5) return 'text-amber-600';
-    return 'text-green-600';
+    if (variance > 5) return 'text-rose-600 dark:text-rose-300';
+    if (variance < -5) return 'text-amber-600 dark:text-amber-300';
+    return 'text-green-600 dark:text-green-300';
   };
 
   if (selectedPlanId) {
-    return <PlanDetailView planId={selectedPlanId} onBack={() => setSelectedPlanId(null)} />;
+    return <PlanDetailView planId={selectedPlanId} />;
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
         {error}
       </div>
     );
@@ -82,8 +91,8 @@ export default function ProductionPlanDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Plans</h2>
-          <p className="text-xs text-[#737373] mt-1">Monitor and manage daily production schedules</p>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Production Plans</h2>
+          <p className="text-xs text-ink-muted mt-1">Monitor and manage daily production schedules</p>
         </div>
       </div>
 
@@ -96,7 +105,7 @@ export default function ProductionPlanDashboard() {
             className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
               filter === f
                 ? 'bg-[#AA3BFF] text-white border-[#AA3BFF]'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                : 'bg-surface text-ink-muted border-line hover:border-line-strong'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}
@@ -109,7 +118,7 @@ export default function ProductionPlanDashboard() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4">
+              <div key={i} className="bg-surface border border-line rounded-xl p-4">
                 <Skeleton className="h-4 w-48 mb-3" />
                 <Skeleton className="h-3 w-full mb-2" />
                 <Skeleton className="h-3 w-80" />
@@ -117,27 +126,27 @@ export default function ProductionPlanDashboard() {
             ))}
           </div>
         ) : plans.length === 0 ? (
-          <div className="bg-white border border-[#E9E9E9] rounded-xl">
+          <div className="bg-surface border border-line rounded-xl">
             <EmptyState title="No plans found" hint="Production plans will appear here" />
           </div>
         ) : (
           plans.map((plan) => (
             <div
               key={plan.id}
-              className="bg-white border border-[#E9E9E9] rounded-xl p-4 hover:shadow-md transition-shadow"
+              className="bg-surface border border-line rounded-xl p-4 hover:shadow-md transition-shadow"
             >
               {/* Plan Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-slate-700">{plan.planNumber}</h3>
+                    <h3 className="text-sm font-bold text-ink-2">{plan.planNumber}</h3>
                     <span
                       className={`text-xs font-semibold px-2 py-1 rounded border ${getStatusColor(plan.status)}`}
                     >
                       {plan.status}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-muted">
                     Scheduled: {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : 'TBD'}
                   </p>
                 </div>
@@ -153,28 +162,28 @@ export default function ProductionPlanDashboard() {
               {plan.executionStatus && (
                 <div className="grid grid-cols-4 gap-3">
                   {/* Items Progress */}
-                  <div className="bg-slate-50 rounded-lg p-2.5">
-                    <p className="text-[9px] text-slate-500 mb-1">Items</p>
-                    <p className="text-sm font-bold text-slate-700">{plan.executionStatus.totalItems}</p>
+                  <div className="bg-surface-2 rounded-lg p-2.5">
+                    <p className="text-[9px] text-ink-muted mb-1">Items</p>
+                    <p className="text-sm font-bold text-ink-2">{plan.executionStatus.totalItems}</p>
                   </div>
 
                   {/* Completion % */}
-                  <div className="bg-slate-50 rounded-lg p-2.5">
-                    <p className="text-[9px] text-slate-500 mb-1">Completion</p>
-                    <p className="text-sm font-bold text-slate-700">{plan.executionStatus.completionPercentage}%</p>
+                  <div className="bg-surface-2 rounded-lg p-2.5">
+                    <p className="text-[9px] text-ink-muted mb-1">Completion</p>
+                    <p className="text-sm font-bold text-ink-2">{plan.executionStatus.completionPercentage}%</p>
                   </div>
 
                   {/* Planned Qty */}
-                  <div className="bg-slate-50 rounded-lg p-2.5">
-                    <p className="text-[9px] text-slate-500 mb-1">Planned</p>
-                    <p className="text-sm font-bold text-slate-700">
+                  <div className="bg-surface-2 rounded-lg p-2.5">
+                    <p className="text-[9px] text-ink-muted mb-1">Planned</p>
+                    <p className="text-sm font-bold text-ink-2">
                       {Math.round(plan.executionStatus.plannedTotalQty)}
                     </p>
                   </div>
 
                   {/* Variance */}
-                  <div className="bg-slate-50 rounded-lg p-2.5">
-                    <p className="text-[9px] text-slate-500 mb-1">Variance</p>
+                  <div className="bg-surface-2 rounded-lg p-2.5">
+                    <p className="text-[9px] text-ink-muted mb-1">Variance</p>
                     <p className={`text-sm font-bold ${getVarianceColor(plan.executionStatus.variancePercentage)}`}>
                       {plan.executionStatus.variancePercentage > 0 ? '+' : ''}
                       {formatPercent(plan.executionStatus.variancePercentage, 1)}
@@ -185,7 +194,7 @@ export default function ProductionPlanDashboard() {
 
               {/* Progress Bar */}
               {plan.executionStatus && (
-                <div className="mt-3 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="mt-3 w-full h-2 bg-surface-3 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#AA3BFF] transition-all"
                     style={{ width: `${plan.executionStatus.completionPercentage}%` }}

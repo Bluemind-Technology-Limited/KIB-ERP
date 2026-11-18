@@ -16,7 +16,7 @@ export function PackQuantityPreview({
   quantity,
   unit,
   label = 'Total',
-  className = 'text-slate-400',
+  className = 'text-ink-faint',
 }: PackQuantityPreviewProps) {
   const qty = Number(quantity);
   if (!unit || !Number.isFinite(qty) || qty <= 0 || !parseUom(unit)) return null;

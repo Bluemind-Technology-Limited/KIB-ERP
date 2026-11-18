@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ChevronDown, ChevronRight, Cog, Loader, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
-import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
-import { formatNumber, formatQty } from '../../../lib/format';
+import { formatNumber } from '../../../lib/format';
+import { Button } from '../../../components/ui/Button';
 
 interface AggregatedIngredient {
   id: string;
@@ -19,19 +19,17 @@ interface AggregatedIngredient {
   material: { id: string; name: string; sku: string };
 }
 
-interface StockRow {
-  materialId: string;
-  batchLotId: string | null;
-  batchNumber: string | null;
-  warehouseId: string;
-  quantity: number;
-}
 
 interface PlanItem {
   id: string;
   sequence: number;
   targetQuantity: string | number;
-  bom: { productName: string; yieldUnit?: string | null; expectedYield?: string | number | null };
+  bom: {
+    productName: string;
+    yieldUnit?: string | null;
+    expectedYield?: string | number | null;
+    finishedSku?: { name: string; sku: string; unitOfMeasure: string } | null;
+  };
   grindingRecord?: { achievedQuantity: string | number; remainderQuantity: string | number } | null;
   grindingRecords?: Array<{ inputQuantity?: string | number; achievedQuantity: string | number; remainderQuantity: string | number }>;
   expectedBatches?: number;
@@ -50,6 +48,7 @@ interface Plan {
   id: string;
   planNumber: string;
   status: string;
+  scheduledFor?: string | null;
   items: PlanItem[];
   aggregatedIngredients: AggregatedIngredient[];
   progress: { grinding: { totalItems: number; done: number; complete: boolean } };
@@ -75,6 +74,14 @@ interface GrindingSequence {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** "Curry 100g" / "curry100g" → "Curry": the size is not part of the product. */
+function familyName(name: string) {
+  const cleaned = String(name ?? '')
+    .replace(/\s*\d+(?:[.,]\d+)?\s*(?:g|kg|mg|ml|l|oz|lb)\b\.?$/i, '')
+    .trim();
+  return cleaned || String(name ?? '');
+}
 
 function emptyForm(
   item: PlanItem,
@@ -114,11 +121,23 @@ function apiError(err: any, fallback: string) {
 export default function GrindingStation() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [machines, setMachines] = useState<{ id: string; name: string; code?: string }[]>([]);
-  const [stock, setStock] = useState<StockRow[]>([]);
   const [forms, setForms] = useState<Record<string, FormState>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  /** Selected production day (date key) in the detail view — kept in the URL so Back/Forward work. */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openDayKey = searchParams.get('day');
+  const setOpenDayKey = useCallback(
+    (key: string | null) => {
+      const next = new URLSearchParams(searchParams);
+      if (key) next.set('day', key);
+      else next.delete('day');
+      setSearchParams(next);
+    },
+    [searchParams, setSearchParams]
+  );
+  /** The plan item currently being recorded in the modal. */
+  const [entry, setEntry] = useState<{ planId: string; itemId: string } | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
   /** Continuous grinding batch serial (seeded by the grinding manager). */
   const [sequence, setSequence] = useState<GrindingSequence>({ lastNumber: null, nextNumber: null });
@@ -150,34 +169,7 @@ export default function GrindingStation() {
     load();
   }, [load]);
 
-  const openPlan = async (plan: Plan) => {
-    if (expandedId === plan.id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(plan.id);
-    const next: Record<string, FormState> = {};
-    let offset = 0;
-    for (const item of plan.items) {
-      const outstanding = Number(item.grindingOutstanding ?? item.targetQuantity ?? 0);
-      if (outstanding <= 0.0001) continue;
-      const prefilled =
-        sequence.nextNumber === null ? '' : String(sequence.nextNumber + offset);
-      next[item.id] = emptyForm(item, plan.aggregatedIngredients, prefilled);
-      offset += 1;
-    }
-    setForms(next);
 
-    try {
-      const res = await axiosClient.get('/inventory/stock');
-      setStock(res.data.stock || []);
-    } catch {
-      setStock([]);
-    }
-  };
-
-  const update = (itemId: string, patch: Partial<FormState>) =>
-    setForms((prev) => ({ ...prev, [itemId]: { ...prev[itemId], ...patch } }));
 
   const openSequenceEditor = () => {
     setSequenceInput(sequence.lastNumber === null ? '' : String(sequence.lastNumber));
@@ -201,7 +193,6 @@ export default function GrindingStation() {
       setSequenceEditorOpen(false);
       // Re-prefill the open batches from the new counter.
       setForms({});
-      setExpandedId(null);
     } catch (err: any) {
       setSequenceError(apiError(err, 'Failed to update the grinding batch sequence'));
     } finally {
@@ -235,6 +226,12 @@ export default function GrindingStation() {
 
     setBusyItem(item.id);
     try {
+      // Untouched field → let the server allocate the block atomically.
+      const typedBatch = form.grindingBatchNumber.trim();
+      const isDefaultBatch =
+        typedBatch === '' ||
+        (sequence.nextNumber !== null && Number(typedBatch) === sequence.nextNumber);
+
       await axiosClient.post(`/production-line/plans/${plan.id}/items/${item.id}/grinding`, {
         inputQuantity: Number(form.inputQuantity),
         achievedQuantity: Number(form.achievedQuantity),
@@ -244,7 +241,7 @@ export default function GrindingStation() {
         remainders,
         inputs,
         machineId: form.machineId || null,
-        grindingBatchNumber: form.grindingBatchNumber ? Number(form.grindingBatchNumber) : null,
+        grindingBatchNumber: isDefaultBatch ? null : Number(typedBatch),
         mixUnits: form.mixUnits ? Number(form.mixUnits) : undefined,
         productionDate: form.productionDate,
         remarks: form.remarks || undefined,
@@ -257,25 +254,92 @@ export default function GrindingStation() {
     }
   };
 
+  /** Grinding work grouped by production day. */
+  const grindDays = useMemo(() => {
+    const byDate = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        totalBatches: number;
+        families: Array<{ name: string; batches: number; uom: string }>;
+        items: Array<{ plan: Plan; item: PlanItem }>;
+        complete: boolean;
+        started: boolean;
+      }
+    >();
+
+    for (const plan of plans) {
+      const raw = plan.scheduledFor ? new Date(plan.scheduledFor) : new Date();
+      const key = `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(
+        raw.getDate()
+      ).padStart(2, '0')}`;
+
+      let day = byDate.get(key);
+      if (!day) {
+        day = {
+          key,
+          label: raw.toLocaleDateString(),
+          totalBatches: 0,
+          families: [],
+          items: [],
+          complete: true,
+          started: false,
+        };
+        byDate.set(key, day);
+      }
+
+      for (const item of plan.items) {
+        const full = item.bom?.finishedSku?.name ?? item.bom?.productName ?? 'Product';
+        const name = familyName(full);
+        const uom = item.bom?.finishedSku?.unitOfMeasure ?? item.bom?.yieldUnit ?? '';
+        const batches = Number(item.expectedBatches ?? item.targetQuantity ?? 0);
+        const ground = Number(item.batchesGround ?? 0);
+
+        day.totalBatches += batches;
+        day.items.push({ plan, item });
+        if (ground > 0.0001) day.started = true;
+        if (Number(item.grindingOutstanding ?? batches) > 0.0001) day.complete = false;
+
+        const existing = day.families.find((f) => f.name === name && f.uom === uom);
+        if (existing) existing.batches += batches;
+        else day.families.push({ name, batches, uom });
+      }
+    }
+
+    return [...byDate.values()].sort((a, b) => b.key.localeCompare(a.key));
+  }, [plans]);
+
+  /** Open the modal that records grinding for one plan item. */
+  const openEntry = async (plan: Plan, item: PlanItem) => {
+    const prefilled = sequence.nextNumber === null ? '' : String(sequence.nextNumber);
+    setForms({ [item.id]: emptyForm(item, plan.aggregatedIngredients, prefilled) });
+    setEntry({ planId: plan.id, itemId: item.id });
+    setError('');
+  };
+
+  const entryPlan = entry ? plans.find((plan) => plan.id === entry.planId) ?? null : null;
+  const entryItem =
+    entryPlan && entry ? entryPlan.items.find((item) => item.id === entry.itemId) ?? null : null;
+
   return (
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Grinding Station</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Grinding Station</h2>
           <PageDescription>Record what you actually ground for each batch, and return any unused ingredients.</PageDescription>
         </div>
-        <button
+        <Button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 h-9 text-xs disabled:opacity-50"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </button>
+          Refresh
+        </Button>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           {error}
         </div>
       )}
@@ -283,466 +347,435 @@ export default function GrindingStation() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+            <div key={i} className="rounded-xl border border-line bg-surface p-4">
               <Skeleton className="mb-3 h-4 w-48" />
               <Skeleton className="h-3 w-full" />
             </div>
           ))}
         </div>
       ) : plans.length === 0 ? (
-        <div className="rounded-xl border border-[#E9E9E9] bg-white">
+        <div className="rounded-xl border border-line bg-surface">
           <EmptyState title="No batches to grind" hint="Batches appear once the store issues the ingredients." />
         </div>
-      ) : (
+      ) : openDayKey ? (
         <div className="space-y-3">
-          {plans.map((plan) => {
-            const isOpen = expandedId === plan.id;
-            const pending = plan.items.filter(
-              (i) => Number(i.grindingOutstanding ?? i.targetQuantity ?? 0) > 0.0001
-            );
-            const issued = plan.aggregatedIngredients.filter((a) => a.status === 'RELEASED');
-
+          {(() => {
+            const day = grindDays.find((d) => d.key === openDayKey);
+            if (!day) return null;
             return (
-              <div key={plan.id} className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-                <button
-                  onClick={() => openPlan(plan)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">{day.label}</h3>
+                  </div>
+                  <span
+                    className={`inline-block rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      day.complete
+                        ? 'bg-emerald-600 text-white'
+                        : day.started
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-slate-600 text-white'
+                    }`}
+                  >
+                    {day.complete ? 'Completed' : day.started ? 'Started' : 'Pending'}
+                  </span>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-line bg-surface">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
+                        <th className="w-full px-4 py-2 font-semibold">Product</th>
+                        <th className="px-4 py-2 text-right font-semibold">Batches</th>
+                        <th className="px-4 py-2 text-right font-semibold">Ground</th>
+                        <th className="px-4 py-2 text-right font-semibold">Outstanding</th>
+                        <th className="px-4 py-2 text-right font-semibold">Action</th>
+                        <th className="px-4 py-2 text-right font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {day.items.map(({ plan, item }) => {
+                        const batches = Number(item.expectedBatches ?? item.targetQuantity ?? 0);
+                        const ground = Number(item.batchesGround ?? 0);
+                        const outstanding = Math.max(
+                          0,
+                          Number(item.grindingOutstanding ?? batches - ground)
+                        );
+                        const status =
+                          outstanding <= 0.0001
+                            ? 'Completed'
+                            : plan.status === 'SCHEDULED'
+                              ? 'Waiting'
+                              : ground > 0
+                                ? 'Started'
+                                : 'Pending';
+                        return (
+                          <tr
+                            key={`${plan.id}-${item.id}`}
+                            className="border-b border-line last:border-0"
+                          >
+                            <td className="px-4 py-3 text-[11px] font-semibold text-ink-2">
+                              {familyName(
+                                item.bom?.finishedSku?.name ?? item.bom?.productName ?? 'Product'
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[11px] font-bold text-ink">
+                              {formatNumber(batches)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[11px] text-ink-muted">
+                              {formatNumber(ground)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[11px] font-semibold text-ink-muted">
+                              {formatNumber(outstanding)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Button
+                                type="button"
+                                onClick={() => openEntry(plan, item)}
+                                disabled={outstanding <= 0.0001 || plan.status === 'SCHEDULED'}
+                                title={
+                                  plan.status === 'SCHEDULED'
+                                    ? 'Waiting for the Ingredients Station'
+                                    : outstanding <= 0.0001
+                                      ? 'Already ground'
+                                      : 'Record grinding'
+                                }
+                                className="flex h-7 items-center gap-1 px-2.5 text-[10px] disabled:opacity-40 ml-auto"
+                              >
+                                Record
+                              </Button>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span
+                                className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                                  status === 'Completed'
+                                    ? 'bg-emerald-600 text-white'
+                                    : status === 'Started'
+                                      ? 'bg-amber-600 text-white'
+                                      : 'bg-slate-600 text-white'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
+                <th className="w-full px-4 py-3 font-semibold">Date</th>
+                <th className="px-4 py-3 text-right font-semibold">Batches</th>
+                <th className="px-4 py-3 text-right font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {grindDays.map((day) => (
+                <tr
+                  key={day.key}
+                  onClick={() => setOpenDayKey(day.key)}
+                  className="cursor-pointer border-b border-line hover:bg-surface-2/60 last:border-0"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#AA3BFF]/10">
-                      <Cog className="h-4 w-4 text-[#AA3BFF]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
-                      <p className="truncate text-[10px] text-slate-400">
-                        {formatNumber(plan.progress.grinding.done)}/{formatNumber(plan.progress.grinding.totalItems)} batches ground
+                  <td className="px-4 py-3 text-[11px] font-semibold text-ink-2">
+                    {day.label}
+                  </td>
+                  <td className="px-4 py-3 text-right text-[11px] font-bold text-ink">
+                    {formatNumber(day.totalBatches)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span
+                      className={`inline-block rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        day.complete
+                          ? 'bg-emerald-600 text-white'
+                          : day.started
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-slate-600 text-white'
+                      }`}
+                    >
+                      {day.complete ? 'Completed' : day.started ? 'Started' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {entryPlan && entryItem && forms[entryItem.id] && (
+        <Modal onClose={() => setEntry(null)}>
+          <div className="w-full max-w-3xl space-y-4 rounded-xl bg-surface p-5 max-h-[88vh] overflow-y-auto">
+            {(() => {
+              const form = forms[entryItem.id];
+              const patch = (next: Partial<FormState>) =>
+                setForms((prev) => ({
+                  ...prev,
+                  [entryItem.id]: { ...prev[entryItem.id], ...next },
+                }));
+              const issued = entryPlan.aggregatedIngredients.filter(
+                (agg) => agg.status === 'RELEASED' || Number(agg.issuedQuantity ?? 0) > 0
+              );
+
+              // One serial per batch ground: the entry walks the block forward.
+              // Mirrors the server: the batch count drives it, falling back to the
+              // achieved quantity when the batch field is left blank.
+              const blockBatches = (() => {
+                const typed = Number(form.batchesProcessed);
+                const raw = typed > 0 ? typed : Number(form.achievedQuantity);
+                const n = Math.round(raw);
+                return Number.isFinite(n) && n >= 1 ? n : 1;
+              })();
+              const blockStart = Number(form.grindingBatchNumber || sequence.nextNumber || 0);
+              const blockEnd = blockStart > 0 ? blockStart + blockBatches - 1 : 0;
+
+              return (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">
+                        Record grinding · {entryPlan.planNumber}
+                      </p>
+                      <h3 className="text-sm font-bold text-ink">
+                        {familyName(
+                          entryItem.bom?.finishedSku?.name ??
+                            entryItem.bom?.productName ??
+                            'Product'
+                        )}
+                      </h3>
+                      <p className="text-[10px] text-ink-faint">
+                        Planned {formatNumber(entryItem.expectedBatches ?? 0)} batch(es)
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setEntry(null)}
+                      className="text-ink-faint hover:text-ink-muted"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  {isOpen ? (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                  )}
-                </button>
 
-                {isOpen && (
-                  <div className={`space-y-3 border-t border-slate-100 px-4 py-4 ${
-                    plan.status === 'SCHEDULED' ? 'pointer-events-none opacity-50' : ''
-                  }`}>
-                    {plan.status === 'SCHEDULED' && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-700">
-                        Waiting for the Ingredients Station to release the ingredients.
+                  <div className="grid grid-cols-2 items-start gap-3 md:grid-cols-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex min-h-[24px] items-start justify-between gap-1">
+                        <label className="text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                          Grinding batch no.
+                        </label>
+                        <Button
+                          type="button"
+                          onClick={openSequenceEditor}
+                          className="shrink-0 text-[9px] text-[#AA3BFF]"
+                        >
+                          Set last
+                        </Button>
                       </div>
-                    )}
-                    {/* Grinding dashboard — batches and yield */}
-                    <div className="overflow-hidden rounded-lg border border-slate-200">
-                      <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          Grinding dashboard
-                        </p>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[980px] text-left">
-                          <thead>
-                            <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
-                              <th className="px-3 py-2 font-semibold">Product</th>
-                              <th className="px-3 py-2 text-right font-semibold">Total batches</th>
-                              <th className="px-3 py-2 font-semibold">Yield / batch</th>
-                              <th className="px-3 py-2 font-semibold">Total expected</th>
-                              <th className="px-3 py-2 font-semibold">Received</th>
-                              <th className="px-3 py-2 text-right font-semibold">Batches ground</th>
-                              <th className="px-3 py-2 font-semibold">Ground qty</th>
-                              <th className="px-3 py-2 font-semibold">Transferred</th>
-                              <th className="px-3 py-2 font-semibold">Loss</th>
-                              <th className="px-3 py-2 font-semibold">Outstanding</th>
-                              <th className="px-3 py-2 font-semibold">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {plan.items.map((item) => {
-                              const loss = (item.grindingRecords ?? []).reduce(
-                                (sum, record) =>
-                                  sum +
-                                  Math.max(
-                                    0,
-                                    Number(record.inputQuantity ?? 0) -
-                                      Number(record.achievedQuantity ?? 0)
-                                  ),
-                                0
-                              );
-                              return (
-                                <tr key={item.id} className="border-b border-slate-50 last:border-0">
-                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
-                                    {item.bom?.productName}
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
-                                    {formatNumber(item.expectedBatches ?? 0)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-500">
-                                    {formatQty(item.bom?.expectedYield ?? 0, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-600">
-                                    {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-600">
-                                    {formatQty(item.receivedQuantity ?? 0, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600">
-                                    {formatNumber(item.batchesGround ?? 0)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] font-semibold text-slate-700">
-                                    {formatQty(item.groundQuantity ?? 0, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-600">
-                                    {formatQty(item.groundQuantity ?? 0, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2 text-[10px] text-slate-500">
-                                    {formatQty(loss, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className={`px-3 py-2 text-[10px] font-bold ${Number(item.grindingOutstanding ?? 0) > 0.0001 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                    {formatQty(item.grindingOutstanding ?? 0, item.bom?.yieldUnit)}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <span
-                                      className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
-                                        item.grindingStatus === 'COMPLETED'
-                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                          : item.grindingStatus === 'IN_PROGRESS'
-                                            ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                            : 'border-slate-200 bg-slate-50 text-slate-500'
-                                        }`}
-                                      >
-                                        {item.grindingStatus ?? 'PENDING'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={form.grindingBatchNumber}
+                        onChange={(e) => patch({ grindingBatchNumber: e.target.value })}
+                        placeholder={sequence.nextNumber === null ? 'Enter' : String(sequence.nextNumber)}
+                        className="h-8 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                      <p
+                        className="text-[9px] leading-tight text-ink-faint"
+                        title="Numbers consumed by this record"
+                      >
+                        {blockStart > 0
+                          ? blockEnd > blockStart
+                            ? `${formatNumber(blockStart, 0)} – ${formatNumber(blockEnd, 0)}`
+                            : formatNumber(blockStart, 0)
+                          : 'Set last first'}
+                      </p>
                     </div>
-                    {pending.length === 0 && (
-                      <p className="text-xs text-emerald-700">All batches for this plan are ground.</p>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Batch(es)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={form.batchesProcessed}
+                        onChange={(e) => patch({ batchesProcessed: e.target.value })}
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Mix units
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={form.mixUnits}
+                        onChange={(e) => patch({ mixUnits: e.target.value })}
+                        placeholder="e.g. 5"
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        value={form.productionDate}
+                        onChange={(e) => patch({ productionDate: e.target.value })}
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Input qty
+                      </label>
+                      <input
+                        type="number"
+                        min="0.0001"
+                        step="any"
+                        value={form.inputQuantity}
+                        onChange={(e) => patch({ inputQuantity: e.target.value })}
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Received
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={form.receivedQuantity}
+                        onChange={(e) => patch({ receivedQuantity: e.target.value })}
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                        Achieved
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={form.achievedQuantity}
+                        onChange={(e) => patch({ achievedQuantity: e.target.value })}
+                        className="h-8 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                      />
+                    </div>
+                    {machines.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <label className="min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-ink-faint">
+                          Machine
+                        </label>
+                        <select
+                          value={form.machineId}
+                          onChange={(e) => patch({ machineId: e.target.value })}
+                          className="h-8 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                        >
+                          <option value="">Not specified</option>
+                          {machines.map((machine) => (
+                            <option key={machine.id} value={machine.id}>
+                              {machine.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     )}
-                    {pending.map((item) => {
-                      const form = forms[item.id];
-                      if (!form) return null;
-                      return (
-                        <div key={item.id} className="rounded-xl border border-slate-200 p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-[#171717]">
-                              Batch {item.sequence} · {item.bom?.productName}
-                            </p>
-                            <span className="text-[10px] text-slate-400">
-                              Target {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Input qty
-                              </label>
-                              <input
-                                type="number"
-                                min="0.0001"
-                                step="any"
-                                value={form.inputQuantity}
-                                onChange={(e) => update(item.id, { inputQuantity: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                <PackQuantityPreview quantity={form.inputQuantity} unit={item.bom?.yieldUnit} />
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Achieved
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                value={form.achievedQuantity}
-                                onChange={(e) => update(item.id, { achievedQuantity: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                <PackQuantityPreview quantity={form.achievedQuantity} unit={item.bom?.yieldUnit} />
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Received from ingredients
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                value={form.receivedQuantity}
-                                onChange={(e) => update(item.id, { receivedQuantity: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <div className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                <PackQuantityPreview quantity={form.receivedQuantity} unit={item.bom?.yieldUnit} />
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Batches processed
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                value={form.batchesProcessed}
-                                onChange={(e) => update(item.id, { batchesProcessed: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                Planned {formatNumber(item.expectedBatches ?? 0)}
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <div className="flex min-h-[24px] items-start justify-between gap-1">
-                                <label className="block text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                  Grinding batch no.
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={openSequenceEditor}
-                                  className="shrink-0 text-[9px] font-semibold text-[#AA3BFF] hover:underline"
-                                >
-                                  Set last
-                                </button>
-                              </div>
-                              <input
-                                type="number"
-                                min="1"
-                                value={form.grindingBatchNumber}
-                                onChange={(e) => update(item.id, { grindingBatchNumber: e.target.value })}
-                                placeholder={sequence.nextNumber === null ? 'Enter' : String(sequence.nextNumber)}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                Last:{' '}
-                                <span className="font-mono font-semibold text-slate-600">
-                                  {sequence.lastNumber === null ? '—' : formatNumber(sequence.lastNumber, 0)}
-                                </span>
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Mix units
-                              </label>
-                              <input
-                                type="number"
-                                min="1"
-                                value={form.mixUnits}
-                                onChange={(e) => update(item.id, { mixUnits: e.target.value })}
-                                placeholder="e.g. 5"
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <p className="min-h-[12px] text-[9px] leading-tight text-slate-400">
-                                MIX- code on submit
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="block min-h-[24px] text-[9px] font-semibold uppercase leading-tight tracking-wider text-slate-400">
-                                Date
-                              </label>
-                              <input
-                                type="date"
-                                value={form.productionDate}
-                                onChange={(e) => update(item.id, { productionDate: e.target.value })}
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              />
-                              <div className="min-h-[12px]" />
-                            </div>
-                          </div>
-
-                          {machines.length > 0 && (
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                                Grinding machine (optional)
-                              </label>
-                              <select
-                                value={form.machineId}
-                                onChange={(e) => update(item.id, { machineId: e.target.value })}
-                                className="h-8 w-full max-w-xs rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                              >
-                                <option value="">Not specified</option>
-                                {machines.map((m) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {/* Batch lots ground — exact traceability lineage */}
-                          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                              Batch lots ground (for exact traceability)
-                            </p>
-                            {issued.length === 0 ? (
-                              <p className="text-[11px] text-slate-400">No issued ingredients to record.</p>
-                            ) : (
-                              <div className="space-y-2">
-                                {issued.map((agg) => {
-                                  const batches = stock.filter(
-                                    (s) =>
-                                      s.materialId === agg.materialId &&
-                                      (!agg.issuedWarehouseId || s.warehouseId === agg.issuedWarehouseId) &&
-                                      Number(s.quantity) > 0
-                                  );
-                                  const line = form.inputs[agg.materialId] ?? {
-                                    quantity: '',
-                                    batchLotId: '',
-                                  };
-                                  return (
-                                    <div key={agg.id} className="flex flex-wrap items-center gap-2">
-                                      <span className="min-w-[8rem] flex-1 truncate text-[10px] text-slate-600">
-                                        {agg.material.name}
-                                      </span>
-                                      <select
-                                        value={line.batchLotId}
-                                        onChange={(e) =>
-                                          update(item.id, {
-                                            inputs: {
-                                              ...form.inputs,
-                                              [agg.materialId]: {
-                                                ...line,
-                                                batchLotId: e.target.value,
-                                              },
-                                            },
-                                          })
-                                        }
-                                        className="h-7 w-44 rounded border border-[#E9E9E9] bg-white px-2 text-[10px] focus:outline-none focus:border-[#AA3BFF]"
-                                      >
-                                        <option value="">Select batch…</option>
-                                        {batches.map((b) => (
-                                          <option key={b.batchLotId ?? 'none'} value={b.batchLotId ?? ''}>
-                                            {b.batchNumber ?? 'no batch'} ({formatNumber(b.quantity)})
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        value={line.quantity}
-                                        onChange={(e) =>
-                                          update(item.id, {
-                                            inputs: {
-                                              ...form.inputs,
-                                              [agg.materialId]: {
-                                                ...line,
-                                                quantity: e.target.value,
-                                              },
-                                            },
-                                          })
-                                        }
-                                        placeholder="Qty"
-                                        className="h-7 w-20 rounded border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#AA3BFF]"
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Remainders: unused issued ingredients */}
-                          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                              Unused ingredients returned to store
-                            </p>
-                            {issued.length === 0 ? (
-                              <p className="text-[11px] text-slate-400">No issued ingredients to return.</p>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                                {issued.map((agg) => (
-                                  <div key={agg.id} className="flex items-center gap-2">
-                                    <span className="flex-1 truncate text-[10px] text-slate-600">
-                                      {agg.material.name}
-                                      <span className="ml-1 text-slate-400">({formatQty(agg.issuedQuantity ?? 0, agg.unitOfMeasure)})</span>
-                                    </span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="any"
-                                      value={form.remainders[agg.materialId] ?? ''}
-                                      onChange={(e) =>
-                                        update(item.id, {
-                                          remainders: { ...form.remainders, [agg.materialId]: e.target.value },
-                                        })
-                                      }
-                                      placeholder="0"
-                                      className="h-7 w-20 rounded border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#AA3BFF]"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <input
-                              value={form.remarks}
-                              onChange={(e) => update(item.id, { remarks: e.target.value })}
-                              placeholder="Remarks (optional)"
-                              className="h-8 flex-1 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
-                            />
-                            <button
-                              onClick={() => submit(plan, item)}
-                              disabled={busyItem === item.id}
-                              className="flex items-center gap-2 rounded-lg bg-[#AA3BFF] px-4 h-8 text-[11px] font-semibold text-white hover:bg-[#9a2ff5] disabled:opacity-50"
-                            >
-                              {busyItem === item.id ? (
-                                <Loader className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Cog className="h-3.5 w-3.5" />
-                              )}
-                              Record grinding
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  <div className="rounded-lg border border-line bg-surface-2/60 p-3">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                      Unused ingredients returned to store
+                    </p>
+                    {issued.length === 0 ? (
+                      <p className="text-[11px] text-ink-faint">No released ingredients to return.</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                        {issued.map((agg) => (
+                          <div key={agg.id} className="flex items-center gap-2">
+                            <span className="flex-1 truncate text-[10px] text-ink-muted">
+                              {agg.material.name}
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={form.remainders[agg.materialId] ?? ''}
+                              onChange={(e) =>
+                                patch({
+                                  remainders: {
+                                    ...form.remainders,
+                                    [agg.materialId]: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="0"
+                              className="h-7 w-20 rounded border border-line px-2 text-[11px] focus:outline-none focus:border-[#AA3BFF]"
+                            />
+                            <span className="text-[9px] text-ink-faint">{agg.unitOfMeasure}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <input
+                      value={form.remarks}
+                      onChange={(e) => patch({ remarks: e.target.value })}
+                      placeholder="Remarks (optional)"
+                      className="h-9 flex-1 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#AA3BFF]"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => submit(entryPlan, entryItem)}
+                      disabled={busyItem === entryItem.id}
+                      className="flex items-center gap-2 px-4 h-9 text-xs disabled:opacity-50"
+                    >
+                      {busyItem === entryItem.id ? 'Saving…' : 'Record grinding'}
+                    </Button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </Modal>
       )}
 
       {sequenceEditorOpen && (
         <Modal onClose={() => !savingSequence && setSequenceEditorOpen(false)}>
-          <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-5">
+          <div className="w-full max-w-sm space-y-4 rounded-xl bg-surface p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-[#171717]">Grinding batch number</h3>
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Set the last number already used. The next batch continues from there.
+                <h3 className="text-sm font-bold text-ink">Grinding batch number</h3>
+                <p className="mt-1 text-[10px] text-ink-faint">
+                  Set the last number already used. Each batch ground uses one number, so the
+                  next run continues from here.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSequenceEditorOpen(false)}
                 disabled={savingSequence}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-muted"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                 Last batch number
               </label>
               <input
@@ -751,11 +784,11 @@ export default function GrindingStation() {
                 value={sequenceInput}
                 onChange={(e) => setSequenceInput(e.target.value)}
                 placeholder="e.g. 800150"
-                className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs font-mono focus:outline-none focus:border-[#AA3BFF]"
+                className="h-9 w-full rounded-lg border border-line px-3 text-xs font-mono focus:outline-none focus:border-[#AA3BFF]"
               />
-              <p className="text-[9px] text-slate-400">
-                Next batch:{' '}
-                <span className="font-mono font-semibold text-slate-600">
+              <p className="text-[9px] text-ink-faint">
+                Next block starts at{' '}
+                <span className="font-mono font-semibold text-ink-muted">
                   {sequenceInput === '' || Number.isNaN(Number(sequenceInput))
                     ? '—'
                     : formatNumber(Number(sequenceInput) + 1, 0)}
@@ -764,28 +797,28 @@ export default function GrindingStation() {
             </div>
 
             {sequenceError && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
                 {sequenceError}
               </div>
             )}
 
-            <div className="flex justify-end gap-2 border-t border-slate-100 pt-2">
-              <button
+            <div className="flex justify-end gap-2 border-t border-line pt-2">
+              <Button
                 type="button"
                 onClick={() => setSequenceEditorOpen(false)}
                 disabled={savingSequence}
-                className="h-9 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-600 disabled:opacity-50"
+                className="h-9 px-4 text-xs disabled:opacity-50"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={saveSequence}
                 disabled={savingSequence}
-                className="h-9 rounded-lg bg-[#AA3BFF] px-4 text-xs font-semibold text-white hover:bg-[#9a2ff5] disabled:opacity-50"
+                className="btn-3d h-9 px-4 text-xs disabled:opacity-50"
               >
                 {savingSequence ? 'Saving…' : 'Save'}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

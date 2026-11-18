@@ -14,7 +14,7 @@ export function PageDescription({
   return (
     <p
       title={children}
-      className={`text-[#737373] text-xs truncate cursor-help ${className}`}
+      className={`text-ink-muted text-xs truncate cursor-help ${className}`}
     >
       {children}
     </p>

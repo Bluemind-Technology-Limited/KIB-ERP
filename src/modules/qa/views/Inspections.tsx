@@ -52,16 +52,16 @@ interface Inspection {
 }
 
 const resultBadge: Record<string, string> = {
-  PENDING: 'bg-slate-100 text-slate-600 border-slate-200',
-  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  FAILED: 'bg-rose-50 text-rose-600 border-rose-200',
+  PENDING: 'bg-surface-3 text-ink-muted border-line',
+  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  FAILED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
-  EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 /** Mirrors `buildLotCode` on the server so QA sees the code while editing. */
@@ -298,14 +298,14 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">QA Inspections</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">QA Inspections</h2>
           <PageDescription>Check received consignment items and finished production batches: attach documents, record comments and approve or assign the batch code.</PageDescription>
         </div>
         <div className="flex gap-2">
           <select
             value={resultFilter}
             onChange={(e) => setResultFilter(e.target.value)}
-            className="h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] px-2 focus:outline-none focus:border-[#EA4335]"
+            className="h-9 rounded-lg border border-line bg-surface text-xs text-ink px-2 focus:outline-none focus:border-[#EA4335]"
           >
             <option value="">All results</option>
             <option value="PENDING">Pending</option>
@@ -318,13 +318,13 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               title="Filter by inspection date"
-              className="h-9 rounded-lg border border-[#E9E9E9] bg-white text-xs text-[#171717] px-2 focus:outline-none focus:border-[#EA4335]"
+              className="h-9 rounded-lg border border-line bg-surface text-xs text-ink px-2 focus:outline-none focus:border-[#EA4335]"
             />
             {dateFilter && (
               <button
                 type="button"
                 onClick={() => setDateFilter('')}
-                className="h-9 px-2 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-500 hover:bg-slate-50"
+                className="h-9 px-2 rounded-lg border border-line text-[10px] font-semibold text-ink-muted hover:bg-surface-2"
                 title="Clear date filter"
               >
                 Clear
@@ -335,11 +335,11 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. Inspections Table */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={6} rows={6} />
         ) : filtered.length === 0 ? (
@@ -348,7 +348,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">Batch / Ref</th>
                   <th className="px-4 py-3 font-semibold">Date</th>
@@ -359,39 +359,39 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
               </thead>
               <tbody>
                 {filtered.map((i) => (
-                  <tr key={i.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr key={i.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <ShieldCheck className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[160px]" title={i.material?.name ?? ''}>
+                          <p className="text-xs font-bold text-ink leading-none truncate max-w-[160px]" title={i.material?.name ?? ''}>
                             {i.material?.name ?? '—'}
                           </p>
-                          <p className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[160px]">{i.material?.sku ?? ''}</p>
+                          <p className="text-[9px] font-mono text-ink-faint mt-0.5 truncate max-w-[160px]">{i.material?.sku ?? ''}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <span className={`text-[10px] font-mono ${i.batchLot?.lotCode ? 'text-slate-600' : 'text-amber-600'}`}>
+                        <span className={`text-[10px] font-mono ${i.batchLot?.lotCode ? 'text-ink-muted' : 'text-amber-600 dark:text-amber-300'}`}>
                           {i.batchLot?.lotCode ?? i.batchLot?.batchNumber ?? '—'}
                         </span>
                       </div>
                       {i.batchLot?.setNumber != null && (
                         <p className="text-[9px] whitespace-nowrap mt-0.5">
-                          <span className="text-slate-400">Set: </span>
-                          <span className="font-mono font-semibold text-slate-600">{i.batchLot.setNumber}</span>
+                          <span className="text-ink-faint">Set: </span>
+                          <span className="font-mono font-semibold text-ink-muted">{i.batchLot.setNumber}</span>
                         </p>
                       )}
-                      <p className="text-[9px] text-slate-400 whitespace-nowrap mt-0.5">
+                      <p className="text-[9px] text-ink-faint whitespace-nowrap mt-0.5">
                         Ref: {i.referenceLabel ?? '—'}
                       </p>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="text-[11px] text-slate-600">{displayDate(i.inspectedAt ?? i.createdAt)}</span>
-                      <p className="text-[9px] text-slate-400 mt-0.5">
+                      <span className="text-[11px] text-ink-muted">{displayDate(i.inspectedAt ?? i.createdAt)}</span>
+                      <p className="text-[9px] text-ink-faint mt-0.5">
                         {i.inspectedAt ? 'Inspected' : 'Received'}
                       </p>
                     </td>
@@ -426,37 +426,37 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
       {/* 3. QA review — set number + comments, then release/reject */}
       {reviewing && (
         <Modal onClose={closeReview}>
-          <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-[#171717] truncate">{reviewing.material?.name ?? 'Inspection'}</h3>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <h3 className="text-sm font-bold text-ink truncate">{reviewing.material?.name ?? 'Inspection'}</h3>
+                <p className="text-[10px] text-ink-faint mt-1">
                   {reviewing.material?.sku ?? ''}
                   {reviewing.referenceLabel ? ` · ${reviewing.referenceLabel}` : ' · GRN'}
                 </p>
               </div>
-              <button type="button" onClick={closeReview} disabled={!!savingReview} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={closeReview} disabled={!!savingReview} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {reviewError && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{reviewError}</div>
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{reviewError}</div>
             )}
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2.5 grid grid-cols-2 gap-x-4 gap-y-2">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Batch Status</p>
-                <p className="text-[11px] text-[#171717]">{reviewing.batchLot?.status ?? '—'}</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Batch Status</p>
+                <p className="text-[11px] text-ink">{reviewing.batchLot?.status ?? '—'}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Lot Code</p>
-                <p className={`text-[11px] font-mono ${reviewing.batchLot?.lotCode ? 'text-[#171717]' : 'text-amber-600'}`}>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Lot Code</p>
+                <p className={`text-[11px] font-mono ${reviewing.batchLot?.lotCode ? 'text-ink' : 'text-amber-600 dark:text-amber-300'}`}>
                   {reviewing.batchLot?.lotCode ?? 'Not set'}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2.5 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                 Material Set Number
               </label>
               <input
@@ -466,22 +466,22 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 value={reviewForm.setNumber}
                 onChange={(e) => setReviewForm({ ...reviewForm, setNumber: e.target.value })}
                 placeholder="e.g. 7"
-                className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
+                className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
               />
-              <p className="text-[9px] text-slate-400">
+              <p className="text-[9px] text-ink-faint">
                 The system assigns the next number automatically. Edit it to correct the lot code — vendor, ingredient and year stay fixed.
               </p>
               {(() => {
                 const preview = previewLotCode(reviewing.batchLot, reviewForm.setNumber);
                 const current = reviewing.batchLot?.lotCode ?? null;
                 if (preview && preview !== current) {
-                  return <p className="text-[10px] font-mono font-semibold text-[#171717]">New lot code: {preview}</p>;
+                  return <p className="text-[10px] font-mono font-semibold text-ink">New lot code: {preview}</p>;
                 }
                 if (current) {
-                  return <p className="text-[10px] font-mono text-slate-600">Lot code: {current}</p>;
+                  return <p className="text-[10px] font-mono text-ink-muted">Lot code: {current}</p>;
                 }
                 return (
-                  <p className="text-[9px] text-amber-600">
+                  <p className="text-[9px] text-amber-600 dark:text-amber-300">
                     Lot code cannot be built until the supplier vendor code and material traceability code are set.
                   </p>
                 );
@@ -489,8 +489,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
             </div>
 
             {reviewing.inspectionType === 'GRN' && (
-              <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2.5 space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                   Received quantity (QA edit)
                 </label>
                 <div className="flex items-center gap-2">
@@ -500,36 +500,36 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                     step="any"
                     value={reviewForm.quantity}
                     onChange={(e) => setReviewForm({ ...reviewForm, quantity: e.target.value })}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
+                    className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-xs font-mono focus:outline-none focus:border-[#EA4335]"
                   />
-                  <span className="shrink-0 text-[10px] font-semibold text-slate-500">
+                  <span className="shrink-0 text-[10px] font-semibold text-ink-muted">
                     {reviewing.receivedUnitOfMeasure ?? reviewing.material?.unitOfMeasure ?? 'unit'}
                   </span>
                 </div>
-                <p className="text-[9px] text-slate-400">
+                <p className="text-[9px] text-ink-faint">
                   Only QA can change the received quantity. This adjusts the GRN line, stock ledger and PO received balance.
                 </p>
               </div>
             )}
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QA Comments</label>
+            <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2.5 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">QA Comments</label>
               <textarea
                 value={reviewForm.notes}
                 onChange={(e) => setReviewForm({ ...reviewForm, notes: e.target.value })}
                 rows={3}
                 placeholder="Observations, test results, reasons…"
-                className="w-full rounded-lg border border-[#E9E9E9] bg-white px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
               />
             </div>
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 space-y-2">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Review document</p>
+            <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2.5 space-y-2">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Review document</p>
 
               {reviewing.reviewDocumentUrl ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2">
-                  <span className="inline-flex items-center gap-1 min-w-0 text-[10px] font-semibold text-slate-700">
-                    <Paperclip className="w-3 h-3 shrink-0 text-slate-400" />
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2">
+                  <span className="inline-flex items-center gap-1 min-w-0 text-[10px] font-semibold text-ink-2">
+                    <Paperclip className="w-3 h-3 shrink-0 text-ink-faint" />
                     <span className="truncate">{reviewing.reviewDocumentName ?? 'Document'}</span>
                   </span>
 
@@ -538,12 +538,12 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                       href={reviewing.reviewDocumentUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-600 hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-line text-[9px] font-semibold text-ink-muted hover:bg-surface-2"
                     >
                       <ExternalLink className="w-3 h-3" /> View
                     </a>
                     <label
-                      className={`inline-flex items-center gap-1 h-6 px-2 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-600 cursor-pointer hover:bg-slate-50 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
+                      className={`inline-flex items-center gap-1 h-6 px-2 rounded-md border border-line text-[9px] font-semibold text-ink-muted cursor-pointer hover:bg-surface-2 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
                     >
                       {busyId === reviewing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                       {busyId === reviewing.id ? 'Uploading…' : 'Replace'}
@@ -562,7 +562,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                       type="button"
                       onClick={() => setDocToDelete(reviewing)}
                       disabled={busyId === reviewing.id}
-                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-rose-200 text-[9px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-rose-200 text-[9px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                     >
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
@@ -570,7 +570,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 </div>
               ) : (
                 <label
-                  className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-lg border border-slate-200 bg-white text-[10px] font-semibold text-slate-600 cursor-pointer hover:bg-slate-50 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
+                  className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-lg border border-line bg-surface text-[10px] font-semibold text-ink-muted cursor-pointer hover:bg-surface-2 ${busyId === reviewing.id ? 'opacity-60 pointer-events-none' : ''}`}
                 >
                   {busyId === reviewing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                   {busyId === reviewing.id ? 'Uploading…' : 'Upload document'}
@@ -587,15 +587,15 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 </label>
               )}
 
-              <p className="text-[9px] text-slate-400">Any format — PDF, Word or image.</p>
+              <p className="text-[9px] text-ink-faint">Any format — PDF, Word or image.</p>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-line">
               <button
                 type="button"
                 onClick={closeReview}
                 disabled={!!savingReview}
-                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 disabled:opacity-50"
+                className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -603,7 +603,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 type="button"
                 onClick={saveComment}
                 disabled={!!savingReview}
-                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-50"
               >
                 {savingReview === 'comment' ? 'Saving…' : 'Save changes'}
               </button>
@@ -611,7 +611,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 type="button"
                 onClick={() => decide('reject')}
                 disabled={!!savingReview}
-                className="h-9 px-4 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                className="h-9 px-4 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
               >
                 <span className="flex items-center gap-1.5">
                   <XCircle className="w-3.5 h-3.5" /> {savingReview === 'reject' ? 'Rejecting…' : 'Reject'}
@@ -657,9 +657,9 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                   label: 'Material set number',
                   value:
                     viewing.batchLot?.setNumber != null ? (
-                      <span className="font-mono font-semibold text-slate-700">{viewing.batchLot.setNumber}</span>
+                      <span className="font-mono font-semibold text-ink-2">{viewing.batchLot.setNumber}</span>
                     ) : (
-                      <span className="text-slate-400">Not set</span>
+                      <span className="text-ink-faint">Not set</span>
                     ),
                 },
                 { label: 'Batch status', value: viewing.batchLot?.status ?? '—' },
@@ -682,20 +682,20 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                         href={viewing.reviewDocumentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-line bg-surface text-[10px] font-semibold text-ink-2 hover:bg-surface-2"
                       >
                         <ExternalLink className="w-3 h-3" /> View document
                       </a>
                       <button
                         type="button"
                         onClick={() => setDocToDelete(viewing)}
-                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-rose-200 bg-white text-[10px] font-semibold text-rose-600 hover:bg-rose-50"
+                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-rose-200 bg-surface text-[10px] font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                       >
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     </div>
                   ) : (
-                    <span className="text-slate-400">No document attached</span>
+                    <span className="text-ink-faint">No document attached</span>
                   ),
                 },
                 { label: 'QA comments', wide: true, value: viewing.notes ?? '—' },

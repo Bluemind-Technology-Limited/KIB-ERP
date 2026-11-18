@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  CheckCircle2,
-  Loader2,
-  RefreshCw,
-  TriangleAlert,
-  WifiOff,
-} from 'lucide-react';
+import { CheckCircle2, Loader2, TriangleAlert, WifiOff } from 'lucide-react';
 import { useNetworkStatus, type NetworkState } from '../hooks/useNetworkStatus';
 
 const THEME: Record<NetworkState, { bar: string; icon: typeof CheckCircle2; spin?: boolean }> = {
@@ -98,25 +92,12 @@ export default function NetworkMeter() {
       }`}
     >
       <div
-        className={`flex h-9 items-center justify-between gap-3 px-4 text-[11px] font-medium md:px-6 ${theme.bar}`}
+        className={`flex h-9 items-center gap-3 px-4 text-[11px] font-medium md:px-6 ${theme.bar}`}
       >
         <div className="flex min-w-0 items-center gap-2">
           <Icon className={`h-3.5 w-3.5 shrink-0 ${theme.spin ? 'animate-spin' : ''}`} />
           <span className="whitespace-nowrap font-semibold tracking-tight">{title}</span>
           <span className="hidden truncate text-white/75 sm:inline">· {detail}</span>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {(status.state === 'disconnected' || status.state === 'weak') && (
-            <button
-              type="button"
-              onClick={status.retry}
-              className="flex items-center gap-1 rounded border border-white/25 bg-white/10 px-2 py-0.5 text-[10px] font-semibold transition-colors hover:bg-white/20"
-            >
-              <RefreshCw className="h-2.5 w-2.5" />
-              {status.state === 'disconnected' ? 'Retry' : 'Check now'}
-            </button>
-          )}
         </div>
       </div>
     </div>

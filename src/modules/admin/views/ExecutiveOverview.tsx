@@ -80,11 +80,11 @@ export default function ExecutiveOverview() {
   };
 
   return (
-    <div className="space-y-8 text-[#171717]">
+    <div className="space-y-8 text-ink">
       {/* 1. Header Overview welcome */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">
+          <h2 className="text-xl font-bold tracking-tight text-ink">
             Welcome back, {user?.fullName || 'Admin'}
           </h2>
           <PageDescription>Live ERP state across procurement, inventory, production and quality.</PageDescription>
@@ -94,16 +94,16 @@ export default function ExecutiveOverview() {
             type="button"
             onClick={refresh}
             disabled={refreshing}
-            className="h-9 px-4 border border-slate-200 hover:bg-slate-50 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all cursor-pointer bg-white disabled:opacity-50"
+            className="h-9 px-4 border border-line hover:bg-surface-2 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all cursor-pointer bg-surface disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-ink-muted ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing…' : 'Refresh Metrics'}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {loading && (
@@ -111,7 +111,7 @@ export default function ExecutiveOverview() {
           {/* Metric cards skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white border border-[#E9E9E9] rounded-lg flex items-center gap-3 px-4 py-3">
+          <div key={i} className="bg-surface border border-line rounded-lg flex items-center gap-3 px-4 py-3">
             <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-3 w-24" />
@@ -124,7 +124,7 @@ export default function ExecutiveOverview() {
         ))}
           </div>
           {/* Chart skeleton */}
-          <div className="bg-white border border-[#E9E9E9] rounded-lg h-[400px] p-4 space-y-4">
+          <div className="bg-surface border border-line rounded-lg h-[400px] p-4 space-y-4">
             <Skeleton className="h-3 w-40" />
             <Skeleton className="h-56 w-full" />
           </div>
@@ -144,37 +144,43 @@ export default function ExecutiveOverview() {
           </div>
 
           {/* 3. Recharts Bar: Production orders by status */}
-          <div className="bg-[#F8F8F8] border border-[#E9E9E9] rounded-lg overflow-hidden flex flex-col w-full h-[400px] mb-6">
-            <div className="bg-[#F8F8F8] px-4 py-3.5 border-b border-[#E9E9E9] flex items-center justify-between">
+          <div className="bg-surface-2 border border-line rounded-lg overflow-hidden flex flex-col w-full h-[400px] mb-6">
+            <div className="bg-surface-2 px-4 py-3.5 border-b border-line flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Factory className="w-4 h-4 text-[#EA4335]" />
-                <span className="text-xs font-semibold text-[#737373]">Production orders by status</span>
+                <span className="text-xs font-semibold text-ink-muted">Production orders by status</span>
               </div>
-              <span className="text-[11px] font-semibold bg-white border border-slate-200 rounded-md px-2.5 py-1 text-[#171717]">
+              <span className="text-[11px] font-semibold bg-surface border border-line rounded-md px-2.5 py-1 text-ink">
                 {user?.email || 'Signed in'}
               </span>
             </div>
 
-            <div className="flex-1 bg-white p-4 relative">
+            <div className="flex-1 bg-surface p-4 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={metrics.ordersByStatus} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F2F2F2" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--kib-line)" />
                   <XAxis
                     dataKey="status"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fill: '#737373', fontSize: 10, fontWeight: 500 }}
+                    tick={{ fill: 'var(--kib-ink-faint)', fontSize: 10, fontWeight: 500 }}
                   />
                   <YAxis
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fill: '#737373', fontSize: 10, fontWeight: 500 }}
+                    tick={{ fill: 'var(--kib-ink-faint)', fontSize: 10, fontWeight: 500 }}
                   />
                   <Tooltip
-                    contentStyle={{ background: '#FFFFFF', border: '1px solid #E9E9E9', borderRadius: '8px', fontSize: '11px', color: '#171717' }}
-                    labelClassName="font-bold text-[#171717]"
-                    cursor={{ fill: '#F8F8F8' }}
+                    contentStyle={{
+                      background: 'var(--kib-surface)',
+                      border: '1px solid var(--kib-line)',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      color: 'var(--kib-ink)',
+                    }}
+                    labelClassName="font-bold text-ink"
+                    cursor={{ fill: 'var(--kib-surface-3)' }}
                   />
                   <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     {metrics.ordersByStatus.map((entry) => (
@@ -201,11 +207,11 @@ function MetricCard({
   sub: string;
 }) {
   return (
-    <div className="bg-white border border-[#E9E9E9] rounded-lg px-5 py-5">
-      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+    <div className="bg-surface border border-line rounded-lg px-5 py-5">
+      <p className="text-[11px] font-semibold text-ink-muted">{label}</p>
       <div className="flex items-baseline gap-2 mt-2">
-        <h4 className="text-3xl font-bold text-[#171717] leading-none tracking-tight">{formatNumber(value, 0)}</h4>
-        <span className="text-[10px] text-slate-400 truncate">{sub}</span>
+        <h4 className="text-3xl font-bold text-ink leading-none tracking-tight">{formatNumber(value, 0)}</h4>
+        <span className="text-[10px] text-ink-faint truncate">{sub}</span>
       </div>
     </div>
   );

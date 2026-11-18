@@ -130,7 +130,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Daily Production Records</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Daily Production Records</h2>
           <PageDescription>
             What each arm achieved per production day, and any remainder carried forward as WIP.
           </PageDescription>
@@ -138,10 +138,10 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={4} rows={6} hasAvatar={false} />
         ) : filtered.length === 0 ? (
@@ -153,7 +153,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Production Date</th>
                   <th className="px-4 py-3 font-semibold">Achieved</th>
                   <th className="px-4 py-3 font-semibold">WIP / Carryover</th>
@@ -167,18 +167,18 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
 
                   if (day.complete) {
                     return (
-                      <tr key={day.date} className="border-b border-slate-50 bg-emerald-50/60 hover:bg-emerald-50">
+                      <tr key={day.date} className="border-b border-line bg-emerald-50/60 hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                              <CalendarDays className="w-4 h-4 text-emerald-600" />
+                            <span className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 dark:bg-emerald-500/15">
+                              <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                             </span>
-                            <span className="text-xs font-bold text-[#171717]">{dayLabel(day.date)}</span>
+                            <span className="text-xs font-bold text-ink">{dayLabel(day.date)}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-[11px] text-slate-600">{achievedSummary}</td>
+                        <td className="px-4 py-3 text-[11px] text-ink-muted">{achievedSummary}</td>
                         <td className="px-4 py-3">
-                          <span className="text-[10px] font-semibold text-emerald-700">None — day complete</span>
+                          <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">None — day complete</span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <ViewButton onClick={() => setViewing({ day, arm: 'achieved' })} />
@@ -190,38 +190,38 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                   return (
                     <Fragment key={day.date}>
                       <tr
-                        className="border-b border-slate-100 hover:bg-slate-50/70 cursor-pointer"
+                        className="border-b border-line hover:bg-surface-2/70 cursor-pointer"
                         onClick={() => setExpanded((prev) => ({ ...prev, [day.date]: !prev[day.date] }))}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             {open ? (
-                              <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                              <ChevronDown className="w-4 h-4 text-ink-faint shrink-0" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
                             )}
                             <span className="w-7 h-7 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                               <CalendarDays className="w-4 h-4 text-[#EA4335]" />
                             </span>
-                            <span className="text-xs font-bold text-[#171717]">{dayLabel(day.date)}</span>
+                            <span className="text-xs font-bold text-ink">{dayLabel(day.date)}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-[11px] text-slate-600">{achievedSummary}</td>
+                        <td className="px-4 py-3 text-[11px] text-ink-muted">{achievedSummary}</td>
                         <td className="px-4 py-3">
-                          <span className="text-[10px] font-semibold text-amber-600">
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-300">
                             {formatNumber(day.wip.lines.length)} line(s) · {money(day.wip.value)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-[9px] text-slate-400">Expand</td>
+                        <td className="px-4 py-3 text-right text-[9px] text-ink-faint">Expand</td>
                       </tr>
 
                       {open && (
                         <>
-                          <tr className="bg-slate-50/60 border-b border-slate-100">
+                          <tr className="bg-surface-2/60 border-b border-line">
                             <td className="px-4 py-2.5 pl-12">
-                              <span className="text-[11px] font-semibold text-slate-600">Achieved</span>
+                              <span className="text-[11px] font-semibold text-ink-muted">Achieved</span>
                             </td>
-                            <td className="px-4 py-2.5 text-[10px] text-slate-500">
+                            <td className="px-4 py-2.5 text-[10px] text-ink-muted">
                               {achievedSummary} · {formatNumber(day.achieved.lines.length)} record(s)
                             </td>
                             <td />
@@ -232,12 +232,12 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                               />
                             </td>
                           </tr>
-                          <tr className="bg-amber-50/40 border-b border-slate-100">
+                          <tr className="bg-amber-50/40 border-b border-line">
                             <td className="px-4 py-2.5 pl-12">
-                              <span className="text-[11px] font-semibold text-amber-700">WIP</span>
+                              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">WIP</span>
                             </td>
                             <td />
-                            <td className="px-4 py-2.5 text-[10px] text-amber-700">
+                            <td className="px-4 py-2.5 text-[10px] text-amber-700 dark:text-amber-300">
                               {formatNumber(day.wip.lines.length)} line(s) · {money(day.wip.value)} carried forward
                             </td>
                             <td className="px-4 py-2.5 text-right">
@@ -265,15 +265,15 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
           }
           status={
             viewing.day.complete
-              ? { label: 'Complete', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-              : { label: 'WIP open', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+              ? { label: 'Complete', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' }
+              : { label: 'WIP open', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30' }
           }
           onClose={() => setViewing(null)}
           footer={
             <button
               type="button"
               onClick={() => setViewing(null)}
-              className="h-8 px-4 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+              className="h-8 px-4 rounded-lg border border-line text-[11px] font-semibold text-ink-muted hover:bg-surface-2"
             >
               Close
             </button>
@@ -304,19 +304,19 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                               {viewing.day.achieved.ingredients.map((line) => (
                                 <div
                                   key={line.materialId}
-                                  className="flex items-start justify-between gap-3 border-b border-slate-50 pb-1 last:border-0"
+                                  className="flex items-start justify-between gap-3 border-b border-line pb-1 last:border-0"
                                 >
                                   <span className="min-w-0">
                                     <span className="font-semibold">{line.name}</span>
-                                    <span className="text-slate-500">
+                                    <span className="text-ink-muted">
                                       {' '}
                                       {qty(line.quantity)} {line.unit}
                                     </span>
                                     {line.lots.length > 1 && (
-                                      <span className="text-slate-400"> ({breakdown(line.lots, line.unit)})</span>
+                                      <span className="text-ink-faint"> ({breakdown(line.lots, line.unit)})</span>
                                     )}
                                   </span>
-                                  <span className="shrink-0 font-mono text-slate-500">
+                                  <span className="shrink-0 font-mono text-ink-muted">
                                     {money(Number(line.value ?? 0))}
                                   </span>
                                 </div>
@@ -338,16 +338,16 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                           ) : (
                             <div className="space-y-1">
                               {viewing.day.achieved.materials.map((line) => (
-                                <div key={line.materialId} className="border-b border-slate-50 pb-1 last:border-0">
+                                <div key={line.materialId} className="border-b border-line pb-1 last:border-0">
                                   <span className="font-semibold">{line.name}</span>{' '}
-                                  <span className="text-slate-500">
+                                  <span className="text-ink-muted">
                                     {qty(line.quantity)} {line.unit}
                                   </span>
                                   {line.lots.length > 1 && (
-                                    <span className="text-slate-400"> ({breakdown(line.lots, line.unit)})</span>
+                                    <span className="text-ink-faint"> ({breakdown(line.lots, line.unit)})</span>
                                   )}
                                   {breakdownLabel(line.lots) && (
-                                    <p className="text-[9px] text-slate-400 font-mono">
+                                    <p className="text-[9px] text-ink-faint font-mono">
                                       {breakdownLabel(line.lots)}
                                     </p>
                                   )}
@@ -372,17 +372,17 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                               {viewing.day.achieved.lines.map((line) => (
                                 <div
                                   key={line.id}
-                                  className="flex items-center justify-between gap-2 border-b border-slate-50 pb-1 last:border-0"
+                                  className="flex items-center justify-between gap-2 border-b border-line pb-1 last:border-0"
                                 >
                                   <span className="min-w-0 truncate">
-                                    <span className="text-[9px] font-bold uppercase text-slate-400">
+                                    <span className="text-[9px] font-bold uppercase text-ink-faint">
                                       {line.stage}
                                     </span>{' '}
                                     {line.product}
                                   </span>
-                                  <span className="shrink-0 text-slate-500">
+                                  <span className="shrink-0 text-ink-muted">
                                     {qty(line.achieved)} / {qty(line.expected)} {line.unit}
-                                    {line.value > 0 && <span className="text-slate-400"> · {money(line.value)}</span>}
+                                    {line.value > 0 && <span className="text-ink-faint"> · {money(line.value)}</span>}
                                   </span>
                                 </div>
                               ))}
@@ -408,31 +408,31 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                         wide: true,
                         value:
                           viewing.day.wip.lines.length === 0 ? (
-                            <span className="text-emerald-600">Nothing outstanding.</span>
+                            <span className="text-emerald-600 dark:text-emerald-300">Nothing outstanding.</span>
                           ) : (
                             <div className="space-y-1">
                               {viewing.day.wip.lines.map((line, index) => (
                                 <div
                                   key={`${line.arm}-${line.materialId ?? line.name}-${index}`}
-                                  className="border-b border-slate-50 pb-1 last:border-0"
+                                  className="border-b border-line pb-1 last:border-0"
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <span className="min-w-0">
-                                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">
                                         {ARM_LABEL[line.arm]}
                                       </span>{' '}
                                       <span className="font-semibold">{line.name}</span>{' '}
-                                      <span className="text-slate-500">
+                                      <span className="text-ink-muted">
                                         {qty(line.quantity)} {line.unit}
                                       </span>
                                       {line.lots.length > 1 && (
-                                        <span className="text-slate-400"> ({breakdown(line.lots, line.unit)})</span>
+                                        <span className="text-ink-faint"> ({breakdown(line.lots, line.unit)})</span>
                                       )}
                                     </span>
-                                    <span className="shrink-0 font-mono text-slate-500">{money(Number(line.value ?? 0))}</span>
+                                    <span className="shrink-0 font-mono text-ink-muted">{money(Number(line.value ?? 0))}</span>
                                   </div>
                                   {breakdownLabel(line.lots) && (
-                                    <p className="text-[9px] text-slate-400 font-mono">{breakdownLabel(line.lots)}</p>
+                                    <p className="text-[9px] text-ink-faint font-mono">{breakdownLabel(line.lots)}</p>
                                   )}
                                 </div>
                               ))}

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Boxes, ChevronDown, ChevronRight, Loader, PackageCheck, RefreshCw } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber, formatQty } from '../../../lib/format';
+import { Button } from '../../../components/ui/Button';
 
 interface AggregatedIngredient {
   id: string;
@@ -63,9 +63,9 @@ interface ReleaseRecord {
 }
 
 const statusBadge: Record<string, string> = {
-  SCHEDULED: 'bg-blue-50 text-blue-700 border-blue-200',
-  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  SCHEDULED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
+  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
 };
 
 function apiError(err: any, fallback: string) {
@@ -201,28 +201,26 @@ export default function StockIssue() {
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Ingredients Station</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Ingredients Station</h2>
           <PageDescription>Orders released by production. Release the ingredients to grinding — that is when stock is deducted.</PageDescription>
         </div>
-        <button
+        <Button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 h-9 text-xs disabled:opacity-50"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </button>
-        <button
+          Refresh
+        </Button>
+        <Button
           onClick={toggleHistory}
-          className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          className="flex items-center gap-1.5 px-3 h-9 text-xs"
         >
-          {showHistory ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           History
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           {error}
         </div>
       )}
@@ -230,14 +228,14 @@ export default function StockIssue() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+            <div key={i} className="rounded-xl border border-line bg-surface p-4">
               <Skeleton className="mb-3 h-4 w-48" />
               <Skeleton className="h-3 w-full" />
             </div>
           ))}
         </div>
       ) : plans.length === 0 ? (
-        <div className="rounded-xl border border-[#E9E9E9] bg-white">
+        <div className="rounded-xl border border-line bg-surface">
           <EmptyState
             title="No plans awaiting ingredients"
             hint="Scheduled plans with unissued ingredients appear here."
@@ -249,18 +247,17 @@ export default function StockIssue() {
             const isOpen = expandedId === plan.id;
 
             return (
-              <div key={plan.id} className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-                <button
+              <div key={plan.id} className="overflow-hidden rounded-xl border border-line bg-surface">
+                <Button
                   onClick={() => openPlan(plan)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00B4D8]/10">
-                      <Boxes className="h-4 w-4 text-[#00B4D8]" />
-                    </div>
+                      </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#171717]">{plan.planNumber}</p>
-                      <p className="truncate text-[10px] text-slate-400">
+                      <p className="text-xs font-bold text-ink">{plan.planNumber}</p>
+                      <p className="truncate text-[10px] text-ink-faint">
                         {formatNumber(plan.items.length)} product(s) · {formatNumber(plan.progress.issue.issuedIngredients)}/
                         {formatNumber(plan.progress.issue.totalIngredients)} ingredients issued
                         {plan.createdBy?.fullName ? ` · ${plan.createdBy.fullName}` : ''}
@@ -269,31 +266,26 @@ export default function StockIssue() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span
-                      className={`rounded border px-2 py-0.5 text-[9px] font-bold ${
-                        statusBadge[plan.status] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                      className={`rounded px-2 py-0.5 text-[9px] font-bold ${
+                        statusBadge[plan.status] ?? 'bg-slate-600 text-white'
                       }`}
                     >
                       {plan.status}
                     </span>
-                    {isOpen ? (
-                      <ChevronDown className="h-4 w-4 text-slate-400" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-slate-400" />
-                    )}
                   </div>
-                </button>
+                </Button>
 
                 {isOpen && (
-                  <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+                  <div className="space-y-4 border-t border-line px-4 py-4">
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                         Release from warehouse
                       </label>
                       <select
                         value={warehouseId}
                         onChange={(e) => setWarehouseId(e.target.value)}
-                        className="h-9 w-full max-w-sm rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                        className="h-9 w-full max-w-sm rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                       >
                         <option value="">Any warehouse — earliest expiry first</option>
                         {warehouses.map((w) => (
@@ -304,10 +296,10 @@ export default function StockIssue() {
                       </select>
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-100">
+                    <div className="overflow-x-auto rounded-lg border border-line">
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                          <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                             <th className="px-3 py-2 font-semibold">Ingredient</th>
                             <th className="px-3 py-2 font-semibold">Required</th>
                             <th className="px-3 py-2 font-semibold">Released</th>
@@ -324,29 +316,29 @@ export default function StockIssue() {
                             // reads as a count of those packs (50 × 25 KG).
                             const uom = agg.material.unitOfMeasure ?? agg.unitOfMeasure;
                             return (
-                              <tr key={agg.id} className="border-b border-slate-50 last:border-0">
+                              <tr key={agg.id} className="border-b border-line last:border-0">
                                 <td className="px-3 py-2">
-                                  <p className="text-[11px] font-bold text-slate-700">{agg.material.name}</p>
-                                  <p className="text-[9px] font-mono text-slate-400">{agg.material.sku}</p>
+                                  <p className="text-[11px] font-bold text-ink-2">{agg.material.name}</p>
+                                  <p className="text-[9px] font-mono text-ink-faint">{agg.material.sku}</p>
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-600">
+                                <td className="px-3 py-2 text-[11px] text-ink-muted">
                                   {formatQty(required, uom)}
                                 </td>
                                 <td className="px-3 py-2 text-[11px]">
                                   <span
                                     className={
                                       outstanding > 0.0001
-                                        ? 'font-semibold text-amber-600'
-                                        : 'font-semibold text-emerald-600'
+                                        ? 'font-semibold text-amber-600 dark:text-amber-300'
+                                        : 'font-semibold text-emerald-600 dark:text-emerald-300'
                                     }
                                   >
                                     {formatNumber(issued)} / {formatNumber(required)}
                                   </span>
-                                  <p className="text-[9px] text-slate-400">{uom}</p>
+                                  <p className="text-[9px] text-ink-faint">{uom}</p>
                                 </td>
                                 <td
                                   className={`px-3 py-2 text-[11px] font-bold ${
-                                    outstanding > 0.0001 ? 'text-amber-600' : 'text-emerald-600'
+                                    outstanding > 0.0001 ? 'text-amber-600 dark:text-amber-300' : 'text-emerald-600 dark:text-emerald-300'
                                   }`}
                                 >
                                   {formatNumber(outstanding)}
@@ -362,9 +354,9 @@ export default function StockIssue() {
                                     }
                                     disabled={outstanding <= 0.0001}
                                     placeholder={outstanding > 0.0001 ? String(outstanding) : '0'}
-                                    className="h-8 w-24 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50 disabled:text-slate-400"
+                                    className="h-8 w-24 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2 disabled:text-ink-faint"
                                   />
-                                  <p className="text-[9px] text-slate-400">{uom}</p>
+                                  <p className="text-[9px] text-ink-faint">{uom}</p>
                                 </td>
                               </tr>
                             );
@@ -374,33 +366,28 @@ export default function StockIssue() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="max-w-md text-[10px] text-slate-400">
+                      <p className="max-w-md text-[10px] text-ink-faint">
                         Enter what you are handing over. Stock is deducted from the selected warehouse (or the
                         earliest-expiry lots across all of them) and released to the Grinding Station.
                       </p>
-                      <button
+                      <Button
                         onClick={() => submit(plan)}
                         disabled={submitting}
-                        className="flex items-center gap-2 rounded-lg bg-[#EA4335] px-4 h-9 text-xs font-semibold text-white hover:bg-[#d3362a] disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 h-9 text-xs disabled:opacity-50"
                       >
-                        {submitting ? (
-                          <Loader className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <PackageCheck className="h-3.5 w-3.5" />
-                        )}
-                        Release to grinding
-                      </button>
+                        {submitting ? 'Releasing…' : 'Release to grinding'}
+                      </Button>
                     </div>
 
                     {/* Release record for this order */}
                     {plan.ingredientIssues && plan.ingredientIssues.length > 0 && (
-                      <div className="overflow-hidden rounded-lg border border-slate-100">
-                        <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <div className="overflow-hidden rounded-lg border border-line">
+                        <div className="border-b border-line bg-surface-2/70 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-ink-muted">
                           Release record
                         </div>
                         <table className="w-full text-left">
                           <thead>
-                            <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                            <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                               <th className="px-3 py-1.5 font-semibold">Released at</th>
                               <th className="px-3 py-1.5 font-semibold">Ingredient</th>
                               <th className="px-3 py-1.5 text-right font-semibold">Quantity</th>
@@ -408,14 +395,14 @@ export default function StockIssue() {
                           </thead>
                           <tbody>
                             {plan.ingredientIssues.map((issue) => (
-                              <tr key={issue.id} className="border-b border-slate-50 last:border-0">
-                                <td className="px-3 py-1.5 text-[10px] text-slate-500">
+                              <tr key={issue.id} className="border-b border-line last:border-0">
+                                <td className="px-3 py-1.5 text-[10px] text-ink-muted">
                                   {new Date(issue.issuedAt).toLocaleString()}
                                 </td>
-                                <td className="px-3 py-1.5 text-[10px] text-slate-600">
+                                <td className="px-3 py-1.5 text-[10px] text-ink-muted">
                                   {issue.material?.name ?? issue.materialId}
                                 </td>
-                                <td className="px-3 py-1.5 text-right text-[10px] font-semibold text-slate-700">
+                                <td className="px-3 py-1.5 text-right text-[10px] font-semibold text-ink-2">
                                   {formatQty(issue.quantity, issue.unitOfMeasure)}
                                 </td>
                               </tr>
@@ -433,15 +420,15 @@ export default function StockIssue() {
       )}
 
       {/* Release history — every ingredient handed to grinding */}
-      <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <div>
-            <p className="text-[11px] font-bold text-[#171717]">Release history</p>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[11px] font-bold text-ink">Release history</p>
+            <p className="text-[10px] text-ink-faint">
               Every ingredient handed to grinding, newest first.
             </p>
           </div>
-          <span className="text-[9px] font-semibold text-slate-400">
+          <span className="text-[9px] font-semibold text-ink-faint">
             {formatNumber(releases.length)} line(s)
           </span>
         </div>
@@ -459,8 +446,8 @@ export default function StockIssue() {
         ) : (
           <div className="max-h-96 overflow-auto">
             <table className="w-full min-w-[760px] text-left">
-              <thead className="sticky top-0 bg-white">
-                <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+              <thead className="sticky top-0 bg-surface">
+                <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-2 font-semibold">Released at</th>
                   <th className="px-4 py-2 font-semibold">Order</th>
                   <th className="px-4 py-2 font-semibold">Ingredient</th>
@@ -471,23 +458,23 @@ export default function StockIssue() {
               </thead>
               <tbody>
                 {releases.map((release) => (
-                  <tr key={release.id} className="border-b border-slate-50 last:border-0">
-                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                  <tr key={release.id} className="border-b border-line last:border-0">
+                    <td className="px-4 py-2 text-[10px] text-ink-muted">
                       {new Date(release.issuedAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 font-mono text-[10px] text-slate-600">
+                    <td className="px-4 py-2 font-mono text-[10px] text-ink-muted">
                       {release.planNumber ?? '—'}
                     </td>
-                    <td className="px-4 py-2 text-[10px] font-medium text-slate-700">
+                    <td className="px-4 py-2 text-[10px] font-medium text-ink-2">
                       {release.materialName}
                     </td>
-                    <td className="px-4 py-2 text-right text-[10px] font-semibold text-slate-700">
+                    <td className="px-4 py-2 text-right text-[10px] font-semibold text-ink-2">
                       {formatQty(release.quantity, release.unitOfMeasure)}
                     </td>
-                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                    <td className="px-4 py-2 text-[10px] text-ink-muted">
                       {release.warehouseName ?? '—'}
                     </td>
-                    <td className="px-4 py-2 text-[10px] text-slate-500">
+                    <td className="px-4 py-2 text-[10px] text-ink-muted">
                       {release.issuedByName ?? '—'}
                     </td>
                   </tr>
@@ -499,10 +486,10 @@ export default function StockIssue() {
       </div>
 
       {showHistory && (
-        <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-[11px] font-bold text-[#171717]">Ingredient preparation history</p>
-            <p className="text-[10px] text-slate-400">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-[11px] font-bold text-ink">Ingredient preparation history</p>
+            <p className="text-[10px] text-ink-faint">
               Completed production orders and the ingredient lots issued to them.
             </p>
           </div>
@@ -515,18 +502,18 @@ export default function StockIssue() {
           ) : historyPlans.length === 0 ? (
             <EmptyState title="No completed production orders yet" hint="Completed plans appear here with their issued ingredients." />
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-line">
               {historyPlans.map((plan) => (
                 <div key={plan.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-mono text-[11px] font-bold text-[#171717]">{plan.planNumber}</p>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="font-mono text-[11px] font-bold text-ink">{plan.planNumber}</p>
+                      <p className="text-[10px] text-ink-faint">
                         {plan.scheduledFor ? new Date(plan.scheduledFor).toLocaleDateString() : '—'} ·{' '}
                         {plan.items.map((item) => item.bom?.finishedSku?.name ?? item.bom?.productName).join(', ')}
                       </p>
                     </div>
-                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8px] font-bold uppercase text-emerald-700">
+                    <span className="rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-emerald-600 text-white">
                       Completed
                     </span>
                   </div>
@@ -535,7 +522,7 @@ export default function StockIssue() {
                     <div className="mt-2 overflow-x-auto">
                       <table className="w-full min-w-[520px] text-left">
                         <thead>
-                          <tr className="border-b border-slate-100 text-[8px] uppercase tracking-wider text-slate-400">
+                          <tr className="border-b border-line text-[8px] uppercase tracking-wider text-ink-faint">
                             <th className="py-1.5 pr-3 font-semibold">Ingredient</th>
                             <th className="px-3 py-1.5 font-semibold">Quantity issued</th>
                             <th className="py-1.5 pl-3 text-right font-semibold">Issued at</th>
@@ -543,14 +530,14 @@ export default function StockIssue() {
                         </thead>
                         <tbody>
                           {plan.ingredientIssues.map((issue) => (
-                            <tr key={issue.id} className="border-b border-slate-50 last:border-0">
-                              <td className="py-1.5 pr-3 text-[10px] text-slate-600">
+                            <tr key={issue.id} className="border-b border-line last:border-0">
+                              <td className="py-1.5 pr-3 text-[10px] text-ink-muted">
                                 {issue.material?.name ?? issue.materialId}
                               </td>
-                              <td className="px-3 py-1.5 text-[10px] font-semibold text-slate-700">
+                              <td className="px-3 py-1.5 text-[10px] font-semibold text-ink-2">
                                 {formatQty(issue.quantity, issue.unitOfMeasure)}
                               </td>
-                              <td className="py-1.5 pl-3 text-right text-[9px] text-slate-400">
+                              <td className="py-1.5 pl-3 text-right text-[9px] text-ink-faint">
                                 {new Date(issue.issuedAt).toLocaleString()}
                               </td>
                             </tr>
@@ -559,7 +546,7 @@ export default function StockIssue() {
                       </table>
                     </div>
                   ) : (
-                    <p className="mt-1 text-[10px] text-slate-400">No issue lines recorded.</p>
+                    <p className="mt-1 text-[10px] text-ink-faint">No issue lines recorded.</p>
                   )}
                 </div>
               ))}

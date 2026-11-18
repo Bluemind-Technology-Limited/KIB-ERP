@@ -183,10 +183,10 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
   };
 
   const statusColors: Record<string, string> = {
-    ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    IDLE: 'bg-slate-50 text-slate-700 border-slate-200',
-    UNDER_MAINTENANCE: 'bg-amber-50 text-amber-700 border-amber-200',
-    OUT_OF_SERVICE: 'bg-rose-50 text-rose-700 border-rose-200',
+    ACTIVE: 'bg-emerald-600 text-white',
+    IDLE: 'bg-slate-600 text-white',
+    UNDER_MAINTENANCE: 'bg-amber-600 text-white',
+    OUT_OF_SERVICE: 'bg-rose-600 text-white',
   };
 
   const statuses = ['ACTIVE', 'IDLE', 'UNDER_MAINTENANCE', 'OUT_OF_SERVICE'];
@@ -202,7 +202,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Machines & Assets</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Machines & Assets</h2>
           <PageDescription>Master register of all machines, equipment, and assets.</PageDescription>
         </div>
         <button
@@ -219,57 +219,57 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
         </button>
       </div>
 
-      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>}
 
       {/* Add/Edit Machine Modal */}
       {showForm && (
         <Modal onClose={() => setShowForm(false)}>
-          <form onSubmit={handleSaveMachine} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <form onSubmit={handleSaveMachine} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <Wrench className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">{editingMachine ? 'Edit Machine' : 'Add Machine'}</h3>
               </div>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={() => setShowForm(false)} className="text-ink-faint hover:text-ink-muted">
                 ✕
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Name *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Name *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g., Bottling Line A"
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Code *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Code *</label>
                   <input
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                     placeholder="e.g., BL-001"
                     disabled={!!editingMachine}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Serial Number *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Serial Number *</label>
                   <input
                     type="text"
                     value={form.serialNumber}
                     onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
                     placeholder="e.g., SN12345"
                     disabled={!!editingMachine}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2"
                     required
                   />
                 </div>
@@ -277,12 +277,12 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Category *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Category *</label>
                   <select
                     value={form.categoryId}
                     onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
                     disabled={!!editingMachine || loadingDropdowns}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2"
                     required
                   >
                     <option value="">Select category</option>
@@ -294,12 +294,12 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Department *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Department *</label>
                   <select
                     value={form.departmentId}
                     onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
                     disabled={!!editingMachine || loadingDropdowns}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2"
                     required
                   >
                     <option value="">Select department</option>
@@ -314,11 +314,11 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Status</label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                    className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                   >
                     {statuses.map((status) => (
                       <option key={status} value={status}>
@@ -328,12 +328,12 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Location</label>
                   <select
                     value={form.locationId}
                     onChange={(e) => setForm({ ...form, locationId: e.target.value })}
                     disabled={loadingDropdowns}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-slate-50"
+                    className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335] disabled:bg-surface-2"
                   >
                     <option value="">Select location</option>
                     {locations.map((loc) => (
@@ -346,8 +346,8 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">
                 Cancel
               </button>
               <button type="submit" disabled={isSaving} className="btn-3d px-4 h-9">
@@ -362,7 +362,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 flex items-center justify-between">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4 flex items-center justify-between">
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-3 w-32" />
                 <Skeleton className="h-2 w-48" />
@@ -372,36 +372,36 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredMachines.length === 0 ? (
             <EmptyState title="No machines yet." />
           ) : (
             filteredMachines.map((machine) => (
-              <div key={machine.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={machine.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-mono text-xs font-bold text-[#171717]">{machine.code}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusColors[machine.status] || 'bg-slate-50'}`}>
+                    <Wrench className="w-3.5 h-3.5 text-ink-faint" />
+                    <span className="font-mono text-xs font-bold text-ink">{machine.code}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${statusColors[machine.status] || 'bg-slate-600 text-white'}`}>
                       {machine.status.replace(/_/g, ' ')}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-ink-faint">
                     {machine.name} · {machine.category?.name || 'N/A'} · {machine.department?.name || 'N/A'}
                   </p>
-                  {machine.location && <p className="text-[10px] text-slate-500">📍 {machine.location.name}</p>}
-                  {machine.serialNumber && <p className="text-[10px] text-slate-500">SN: {machine.serialNumber}</p>}
+                  {machine.location && <p className="text-[10px] text-ink-muted">📍 {machine.location.name}</p>}
+                  {machine.serialNumber && <p className="text-[10px] text-ink-muted">SN: {machine.serialNumber}</p>}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEditMachine(machine)}
-                    className="h-8 px-3 rounded-lg border border-blue-200 text-blue-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-blue-50"
+                    className="h-8 px-3 rounded-lg border border-blue-200 text-blue-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-blue-500/10"
                   >
                     <Edit2 className="w-3 h-3" /> Edit
                   </button>
                   <button
                     onClick={() => setDeleteConfirmation({ id: machine.id, name: machine.name })}
-                    className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50"
+                    className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                   >
                     <Trash2 className="w-3 h-3" /> Delete
                   </button>

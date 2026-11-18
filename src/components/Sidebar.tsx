@@ -187,14 +187,14 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
   if (isCollapsed) {
     return (
       <>
-      <aside className="w-[56px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between items-center font-sans shrink-0 py-3 z-30 relative">
+      <aside className="w-[56px] h-screen bg-surface-2 border-r border-line-strong flex flex-col justify-between items-center font-sans shrink-0 py-3 z-30 relative">
         {/* Absolute Peg Extension Button */}
         <button
           onClick={() => setIsCollapsed(false)}
-          className="absolute top-1/2 -translate-y-1/2 right-[-20px] w-[20px] h-[50px] bg-[#FBFBFB] border border-l-0 border-[#D9D9D9] rounded-r-lg flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors z-50 focus:outline-none"
+          className="absolute top-1/2 -translate-y-1/2 right-[-20px] w-[20px] h-[50px] bg-surface-2 border border-l-0 border-line-strong rounded-r-lg flex items-center justify-center cursor-pointer hover:bg-surface-2 transition-colors z-50 focus:outline-none"
           style={{ boxShadow: '2px 0 4px rgba(0,0,0,0.02)' }}
         >
-          <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+          <ChevronRight className="w-3.5 h-3.5 text-ink-muted" />
         </button>
 
         <div className="flex flex-col items-center gap-4 w-full">
@@ -202,7 +202,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
           <img src="/KIB.png" alt="KIB Group logo" className="h-7 object-contain cursor-pointer" onClick={() => setIsCollapsed(false)} />
 
           {/* Flat scrollable menu icons */}
-          <nav className="flex flex-col items-center gap-1.5 w-full px-2 overflow-y-auto max-h-[50vh]">
+          <nav className="flex flex-col items-center gap-1.5 w-full px-2 overflow-y-auto kib-scroll-thin max-h-[50vh]">
             {filteredCollapsedItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'executive' && activeTab === 'executive');
@@ -218,8 +218,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                     aria-label={item.name}
                     className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
                       isActive 
-                        ? 'bg-[#F3F3F3] text-[#171717] font-semibold border border-slate-200/50' 
-                        : 'text-[#171717]/85 hover:bg-slate-100/60'
+                        ? 'bg-surface-3 text-ink font-semibold border border-line/50' 
+                        : 'text-ink/85 hover:bg-surface-3/60'
                     }`}
                   >
                     <Icon className="w-4 h-4 opacity-70 shrink-0" />
@@ -232,7 +232,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
           {/* External links represented as quick links on collapsed mode */}
           {user?.role === 'SUPER_ADMIN' && (
             <>
-              <div className="w-8 border-b border-slate-200" />
+              <div className="w-8 border-b border-line" />
               <div className="flex flex-col items-center gap-1.5 w-full">
                 <div className="relative group">
                   <a
@@ -243,7 +243,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-white" />
                   </a>
-                  <div className="absolute left-[48px] top-1/2 -translate-y-1/2 bg-[#171717] text-white text-[10px] font-semibold px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50 pointer-events-none">
+                  <div className="absolute left-[48px] top-1/2 -translate-y-1/2 bg-inverted text-inverted-ink text-[10px] font-semibold px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50 pointer-events-none">
                     Amawonda Admin
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-white" />
                   </a>
-                  <div className="absolute left-[48px] top-1/2 -translate-y-1/2 bg-[#171717] text-white text-[10px] font-semibold px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50 pointer-events-none">
+                  <div className="absolute left-[48px] top-1/2 -translate-y-1/2 bg-inverted text-inverted-ink text-[10px] font-semibold px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 whitespace-nowrap z-50 pointer-events-none">
                     KIB Stock Admin
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
         {hoveredNav &&
           createPortal(
             <div
-              className="pointer-events-none fixed z-9998 whitespace-nowrap rounded bg-[#171717] px-2 py-1 text-[10px] font-semibold text-white shadow-lg"
+              className="pointer-events-none fixed z-9998 whitespace-nowrap rounded bg-inverted px-2 py-1 text-[10px] font-semibold text-white shadow-lg"
               style={{ left: 64, top: hoveredNav.top, transform: 'translateY(-50%)' }}
             >
               {hoveredNav.label}
@@ -285,37 +285,37 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
   // --- EXPANDED VIEW SIDEBAR ---
   return (
-    <aside className="w-[260px] h-screen bg-[#FBFBFB] border-r border-[#D9D9D9] flex flex-col justify-between font-sans shrink-0 z-30 relative">
+    <aside className="w-[260px] h-screen bg-surface-2 border-r border-line-strong flex flex-col justify-between font-sans shrink-0 z-30 relative">
       {/* Absolute Peg Extension Button */}
       <button
         onClick={() => setIsCollapsed(true)}
-        className="absolute top-1/2 -translate-y-1/2 right-[-20px] w-[20px] h-[50px] bg-[#FBFBFB] border border-l-0 border-[#D9D9D9] rounded-r-lg flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors z-50 focus:outline-none"
+        className="absolute top-1/2 -translate-y-1/2 right-[-20px] w-[20px] h-[50px] bg-surface-2 border border-l-0 border-line-strong rounded-r-lg flex items-center justify-center cursor-pointer hover:bg-surface-2 transition-colors z-50 focus:outline-none"
         style={{ boxShadow: '2px 0 4px rgba(0,0,0,0.02)' }}
       >
-        <ChevronRight className="w-3.5 h-3.5 text-slate-500 rotate-180" />
+        <ChevronRight className="w-3.5 h-3.5 text-ink-muted rotate-180" />
       </button>
 
       {/* Upper Container */}
       <div className="flex-1 flex flex-col min-h-0">
         
         {/* Header Profile Section (58px height) */}
-        <div className="h-[58px] border-b border-[#D9D9D9]/80 flex items-center px-4 gap-3">
+        <div className="h-[58px] border-b border-line-strong/80 flex items-center px-4 gap-3">
           {/* Brand Logo Container */}
           <img src="/KIB.png" alt="KIB Group logo" className="h-8 object-contain shrink-0" />
 
           {/* User Account Text (13px, weight 500) */}
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-[#171717] leading-tight truncate">
+            <p className="text-[13px] font-semibold text-ink leading-tight truncate">
               {user?.email || 'isaacwayneagabi@gmail.com'}
             </p>
-            <p className="text-[10px] text-slate-450 uppercase tracking-wider font-mono">
+            <p className="text-[10px] text-ink-faint uppercase tracking-wider font-mono">
               {user?.role?.replace('_', ' ') || 'Super Admin'}
             </p>
           </div>
         </div>
 
         {/* Scrollable Nav Items list */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+        <div className="flex-1 overflow-y-auto kib-scroll-thin px-3 py-3 space-y-4">
 
           {/* Nav list */}
           <div className="space-y-2">
@@ -326,12 +326,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                 onClick={() => setActiveTab('executive')}
                 className={`w-full flex items-center px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
                   activeTab === 'executive' 
-                    ? 'bg-[#F3F3F3] text-[#171717] font-semibold border border-slate-200/50' 
-                    : 'text-[#171717] hover:bg-slate-100/60'
+                    ? 'bg-surface-3 text-ink font-semibold border border-line/50' 
+                    : 'text-ink hover:bg-surface-3/60'
                 }`}
               >
                 <div className="flex items-center gap-3 text-xs font-semibold">
-                  <LayoutDashboard className="w-4 h-4 text-[#171717] opacity-60" />
+                  <LayoutDashboard className="w-4 h-4 text-ink opacity-60" />
                   <span className="text-[13px]">Overview</span>
                 </div>
               </button>
@@ -343,12 +343,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                 onClick={() => setActiveTab('admin-users')}
                 className={`w-full flex items-center px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
                   activeTab === 'admin-users' 
-                    ? 'bg-[#F3F3F3] text-[#171717] font-semibold border border-slate-200/50' 
-                    : 'text-[#171717] hover:bg-slate-100/60'
+                    ? 'bg-surface-3 text-ink font-semibold border border-line/50' 
+                    : 'text-ink hover:bg-surface-3/60'
                 }`}
               >
                 <div className="flex items-center gap-3 text-xs font-semibold">
-                  <Users className="w-4 h-4 text-[#171717] opacity-60" />
+                  <Users className="w-4 h-4 text-ink opacity-60" />
                   <span className="text-[13px]">Manage Users</span>
                 </div>
               </button>
@@ -364,7 +364,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
                   {/* Accordion header button */}
                   <button
                     onClick={() => toggleGroup(group.id)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 text-left text-[12px] font-semibold text-[#737373] hover:text-[#171717] transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-1.5 text-left text-[12px] font-semibold text-ink-muted hover:text-ink transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <GroupIcon className="w-3.5 h-3.5 opacity-60" />
@@ -375,25 +375,19 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
                   {/* Sub-items list */}
                   {isExpanded && (
-                    <div className="pl-4 border-l border-slate-200 ml-5 space-y-0.5 animate-in slide-in-from-top-1 duration-100">
+                    <div className="pl-4 border-l border-line ml-5 space-y-0.5 animate-in slide-in-from-top-1 duration-100">
                       {group.items.map((subItem) => {
                         const isSubActive = activeTab === subItem.id;
                         return (
                           <button
                             key={subItem.id}
                             onClick={() => setActiveTab(subItem.id)}
-                            className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left text-xs transition-colors cursor-pointer ${
+                            className={`w-full flex items-center px-3 py-1.5 rounded-lg text-left text-xs transition-colors cursor-pointer ${
                               isSubActive 
-                                ? 'bg-[#F3F3F3] text-[#171717] font-semibold border border-slate-200/50' 
-                                : 'text-[#171717]/85 hover:bg-slate-100/60'
+                                ? 'bg-surface-3 text-ink font-semibold border border-line/50' 
+                                : 'text-ink/85 hover:bg-surface-3/60'
                             }`}
                           >
-                            <span
-                              aria-hidden="true"
-                              className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
-                                isSubActive ? 'bg-[#EA4335]' : 'bg-slate-400/60'
-                              }`}
-                            />
                             <span className="truncate">{subItem.name}</span>
                           </button>
                         );
@@ -406,8 +400,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
 
             {/* Super Admin External Menu Connections */}
             {user?.role === 'SUPER_ADMIN' && (
-              <div className="pt-4 border-t border-[#D9D9D9]/80 space-y-2">
-                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="pt-4 border-t border-line-strong/80 space-y-2">
+                <p className="px-3 text-[10px] font-bold text-ink-faint uppercase tracking-wider">
                   Admin Integrations
                 </p>
                 <div className="space-y-1.5 px-1">
@@ -440,10 +434,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
       </div>
 
       {/* Footer controls: Sign Out */}
-      <div className="p-3 border-t border-[#D9D9D9]/80 bg-[#FBFBFB]">
+      <div className="p-3 border-t border-line-strong/80 bg-surface-2">
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 py-2 border border-slate-200 hover:bg-rose-50/50 hover:border-rose-250 text-slate-650 hover:text-rose-650 text-xs font-semibold rounded-lg transition-all cursor-pointer bg-white"
+          className="w-full flex items-center justify-center gap-2 py-2 border border-line hover:bg-rose-50/50 hover:border-rose-250 text-ink-muted hover:text-rose-650 text-xs font-semibold rounded-lg transition-all cursor-pointer bg-surface"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out Account</span>

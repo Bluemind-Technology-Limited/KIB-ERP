@@ -61,8 +61,8 @@ export default function CostApprovalWorkflow() {
       <span
         className={`px-3 py-1 rounded-full text-xs font-semibold ${
           level === 'EXECUTIVE'
-            ? 'bg-red-100 text-red-800'
-            : 'bg-yellow-100 text-yellow-800'
+            ? 'bg-red-600 text-white'
+            : 'bg-yellow-600 text-white'
         }`}
       >
         {level === 'EXECUTIVE' ? 'Executive Approval Required' : 'Manager Approval Required'}
@@ -71,16 +71,16 @@ export default function CostApprovalWorkflow() {
   };
 
   const getVarianceColor = (percent: number) => {
-    if (percent > 10) return 'text-red-600 bg-red-50';
-    if (percent > 5) return 'text-orange-600 bg-orange-50';
-    return 'text-yellow-600 bg-yellow-50';
+    if (percent > 10) return 'text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-500/10';
+    if (percent > 5) return 'text-orange-600 bg-orange-50 dark:text-orange-300 dark:bg-orange-500/10';
+    return 'text-yellow-600 bg-yellow-50 dark:text-yellow-300 dark:bg-yellow-500/10';
   };
 
   if (isLoading && pendingApprovals.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-8">
+      <div className="bg-surface rounded-lg shadow p-8">
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-500">Loading pending approvals...</p>
+          <p className="text-ink-muted">Loading pending approvals...</p>
         </div>
       </div>
     );
@@ -88,9 +88,9 @@ export default function CostApprovalWorkflow() {
 
   if (pendingApprovals.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center">
-        <p className="text-gray-500 text-lg mb-2">No pending approvals</p>
-        <p className="text-gray-400">All cost changes are up to date</p>
+      <div className="bg-surface rounded-lg shadow p-8 text-center">
+        <p className="text-ink-muted text-lg mb-2">No pending approvals</p>
+        <p className="text-ink-faint">All cost changes are up to date</p>
       </div>
     );
   }
@@ -98,27 +98,27 @@ export default function CostApprovalWorkflow() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800 text-sm">{error}</p>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-500/10 dark:border-red-500/30">
+          <p className="text-red-800 text-sm dark:text-red-300">{error}</p>
         </div>
       )}
 
       {pendingApprovals.map((approval) => (
         <div
           key={approval.id}
-          className="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          className="bg-surface rounded-lg shadow hover:shadow-md transition-shadow"
         >
           <div className="p-6">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-ink dark:text-ink-faint">
                     {approval.entityName || approval.entityId}
                   </h3>
                   {getApprovalLevelBadge(approval.requiredApprovalLevel)}
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-ink-muted dark:text-ink-faint">
                   {approval.entityType} • {approval.fieldName}
                 </p>
               </div>
@@ -132,37 +132,37 @@ export default function CostApprovalWorkflow() {
             </div>
 
             {/* Details Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-gray-200">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-line dark:border-gray-500/30">
               <div>
-                <p className="text-xs text-gray-600 mb-1">Old Value</p>
-                <p className="font-mono text-sm font-semibold text-gray-900">
+                <p className="text-xs text-ink-muted mb-1 dark:text-ink-faint">Old Value</p>
+                <p className="font-mono text-sm font-semibold text-ink dark:text-ink-faint">
                   ₦{approval.oldValue.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">New Value</p>
-                <p className="font-mono text-sm font-semibold text-gray-900">
+                <p className="text-xs text-ink-muted mb-1 dark:text-ink-faint">New Value</p>
+                <p className="font-mono text-sm font-semibold text-ink dark:text-ink-faint">
                   ₦{approval.newValue.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">Variance Amount</p>
+                <p className="text-xs text-ink-muted mb-1 dark:text-ink-faint">Variance Amount</p>
                 <p className={`font-mono text-sm font-semibold ${
-                  approval.variance > 0 ? 'text-red-600' : 'text-green-600'
+                  approval.variance > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'
                 }`}>
                   {approval.variance > 0 ? '+' : ''}₦{Math.abs(approval.variance).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">Requested By</p>
-                <p className="text-sm text-gray-900">{approval.changedBy}</p>
+                <p className="text-xs text-ink-muted mb-1 dark:text-ink-faint">Requested By</p>
+                <p className="text-sm text-ink dark:text-ink-faint">{approval.changedBy}</p>
               </div>
             </div>
 
             {/* Reason */}
             <div className="mb-4">
-              <p className="text-xs font-medium text-gray-600 mb-2">Reason</p>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+              <p className="text-xs font-medium text-ink-muted mb-2 dark:text-ink-faint">Reason</p>
+              <p className="text-sm text-ink-2 bg-surface-2 p-3 rounded dark:text-ink-faint dark:bg-surface-20/10">
                 {approval.reason}
               </p>
             </div>
@@ -179,7 +179,7 @@ export default function CostApprovalWorkflow() {
               <button
                 onClick={() => setSelectedApproval(approval.id)}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 border border-line-strong text-ink-2 rounded-lg font-medium hover:bg-surface-2 transition-colors disabled:opacity-50 dark:border-gray-500/30 dark:text-ink-faint dark:hover:bg-surface-20/10"
               >
                 Reject
               </button>
@@ -191,10 +191,10 @@ export default function CostApprovalWorkflow() {
       {/* Rejection Modal */}
       {selectedApproval && (
         <Modal onClose={() => setSelectedApproval(null)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Reject Cost Change</h3>
+          <div className="bg-surface rounded-lg shadow-xl max-w-md w-full p-8">
+            <h3 className="text-xl font-bold text-ink mb-6 dark:text-ink-faint">Reject Cost Change</h3>
 
-            <p className="text-gray-600 mb-6">
+            <p className="text-ink-muted mb-6 dark:text-ink-faint">
               Please provide a reason for rejecting this cost change. This will be visible to the requester.
             </p>
 
@@ -203,7 +203,7 @@ export default function CostApprovalWorkflow() {
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter rejection reason..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none mb-6"
+              className="w-full px-4 py-3 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none mb-6 dark:border-gray-500/30"
               disabled={isProcessing}
             />
 
@@ -211,7 +211,7 @@ export default function CostApprovalWorkflow() {
               <button
                 onClick={() => setSelectedApproval(null)}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-3 border border-line-strong text-ink-2 rounded-lg font-medium hover:bg-surface-2 transition-colors disabled:opacity-50 dark:border-gray-500/30 dark:text-ink-faint dark:hover:bg-surface-20/10"
               >
                 Cancel
               </button>

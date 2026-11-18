@@ -49,10 +49,10 @@ interface ProductStock {
 interface Warehouse { id: string; name: string; code: string }
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
-  EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 const dayLabel = (iso: string) => {
@@ -171,17 +171,17 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Finished Goods</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Finished Goods</h2>
           <PageDescription>Daily production output, movement and running balance per product.</PageDescription>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. Daily stock ledger */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={7} rows={6} />
         ) : rows.length === 0 ? (
@@ -190,7 +190,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Product</th>
                   <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Produced</th>
@@ -204,7 +204,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                 {rows.map(({ product, day, current }, idx) => (
                   <tr
                     key={`${product.materialId}-${day.date}-${idx}`}
-                    className={`border-b border-slate-50 hover:bg-slate-50/50 ${current ? 'bg-emerald-50/30' : ''}`}
+                    className={`border-b border-line hover:bg-surface-2/50 ${current ? 'bg-emerald-50/30' : ''}`}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
@@ -212,39 +212,39 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                           <PackageCheck className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={product.materialName}>
+                          <p className="text-xs font-bold text-ink leading-none truncate max-w-[180px]" title={product.materialName}>
                             {product.materialName}
                           </p>
-                          <p className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[180px]" title={product.sku}>{product.sku}</p>
+                          <p className="text-[9px] font-mono text-ink-faint mt-0.5 truncate max-w-[180px]" title={product.sku}>{product.sku}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-medium text-slate-600">{dayLabel(day.date)}</span>
+                        <span className="text-[11px] font-medium text-ink-muted">{dayLabel(day.date)}</span>
                         {current && (
-                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600 text-white">
                             Latest
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono font-bold text-emerald-700">
-                      {day.produced ? `+${formatNumber(day.produced)}` : <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                      {day.produced ? `+${formatNumber(day.produced)}` : <span className="text-ink-faint">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono font-bold text-rose-600">
-                      {day.qtyOut ? `-${formatNumber(day.qtyOut)}` : <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 text-xs font-mono font-bold text-rose-600 dark:text-rose-300">
+                      {day.qtyOut ? `-${formatNumber(day.qtyOut)}` : <span className="text-ink-faint">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono font-bold text-slate-700">
+                    <td className="px-4 py-3 text-xs font-mono font-bold text-ink-2">
                       {formatQty(day.closingBalance, product.unitOfMeasure)}
                     </td>
                     <td className="px-4 py-3">
                       {current ? (
-                        <span className="text-xs font-mono font-bold text-[#171717]">
+                        <span className="text-xs font-mono font-bold text-ink">
                           {formatQty(product.currentStock, product.unitOfMeasure)}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-slate-300">—</span>
+                        <span className="text-[11px] text-ink-faint">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -272,7 +272,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
         <DetailsModal
           title={viewing.product.materialName}
           subtitle={`${dayLabel(viewing.day.date)} · ${viewing.product.sku}`}
-          status={{ label: 'Daily stock', className: 'bg-slate-100 text-slate-600 border-slate-200' }}
+          status={{ label: 'Daily stock', className: 'bg-surface-3 text-ink-muted border-line' }}
           onClose={() => setViewing(null)}
           sections={[
             {
@@ -307,22 +307,22 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
       {/* 4. Current stock per batch */}
       {stockProduct && (
         <Modal onClose={() => setStockProduct(null)}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-[#171717] leading-none truncate">{stockProduct.materialName}</h3>
-                <p className="text-[10px] text-slate-400 mt-1.5">
+                <h3 className="text-sm font-bold text-ink leading-none truncate">{stockProduct.materialName}</h3>
+                <p className="text-[10px] text-ink-faint mt-1.5">
                   Current stock {formatQty(stockProduct.currentStock, stockProduct.unitOfMeasure)} · {formatNumber(stockProduct.batches.length)} batch
                   {stockProduct.batches.length === 1 ? '' : 'es'}
                 </p>
               </div>
-              <button onClick={() => setStockProduct(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => setStockProduct(null)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
-            <div className="border border-slate-100 rounded-lg overflow-hidden">
+            <div className="border border-line rounded-lg overflow-hidden">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                     <th className="px-3 py-2 font-semibold">Batch</th>
                     <th className="px-3 py-2 font-semibold">Warehouse</th>
                     <th className="px-3 py-2 font-semibold">On Hand</th>
@@ -333,15 +333,15 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                 </thead>
                 <tbody>
                   {stockProduct.batches.map((line) => (
-                    <tr key={`${line.batchLotId}-${line.warehouseId}`} className="border-b border-slate-50 last:border-0">
-                      <td className="px-3 py-2 text-[10px] font-mono font-bold text-slate-600">{line.batchNumber}</td>
-                      <td className="px-3 py-2 text-[10px] text-slate-500">
-                        {line.warehouseName} <span className="text-[9px] text-slate-400">({line.warehouseCode})</span>
+                    <tr key={`${line.batchLotId}-${line.warehouseId}`} className="border-b border-line last:border-0">
+                      <td className="px-3 py-2 text-[10px] font-mono font-bold text-ink-muted">{line.batchNumber}</td>
+                      <td className="px-3 py-2 text-[10px] text-ink-muted">
+                        {line.warehouseName} <span className="text-[9px] text-ink-faint">({line.warehouseCode})</span>
                       </td>
-                      <td className="px-3 py-2 text-[11px] font-mono font-bold text-slate-700">
+                      <td className="px-3 py-2 text-[11px] font-mono font-bold text-ink-2">
                         {formatQty(line.onHand, stockProduct.unitOfMeasure)}
                       </td>
-                      <td className="px-3 py-2 text-[10px] text-slate-500">{detailDate(line.expiryDate)}</td>
+                      <td className="px-3 py-2 text-[10px] text-ink-muted">{detailDate(line.expiryDate)}</td>
                       <td className="px-3 py-2">
                         <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${batchStatusBadge[line.batchStatus] ?? batchStatusBadge.ACTIVE}`}>
                           {line.batchStatus}
@@ -355,7 +355,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                             </span>
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-300">—</span>
+                          <span className="text-[10px] text-ink-faint">—</span>
                         )}
                       </td>
                     </tr>
@@ -370,24 +370,24 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
       {/* 5. Dispatch modal */}
       {dispatchTarget && (
         <Modal onClose={() => setDispatchTarget(null)}>
-          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+          <div className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Dispatch Finished Goods</h3>
-              <button onClick={() => setDispatchTarget(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="text-sm font-bold text-ink">Dispatch Finished Goods</h3>
+              <button onClick={() => setDispatchTarget(null)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
-            <p className="text-[11px] text-slate-500">
-              <span className="font-mono font-bold text-slate-700">{dispatchTarget.line.batchNumber}</span> — {dispatchTarget.product.materialName} ·{' '}
+            <p className="text-[11px] text-ink-muted">
+              <span className="font-mono font-bold text-ink-2">{dispatchTarget.line.batchNumber}</span> — {dispatchTarget.product.materialName} ·{' '}
               {dispatchTarget.line.warehouseName} ({formatQty(dispatchTarget.line.onHand, dispatchTarget.product.unitOfMeasure)} on hand)
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Destination Warehouse *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Destination Warehouse *</label>
                 <select
                   value={dispatchForm.toWarehouseId}
                   onChange={(e) => setDispatchForm({ ...dispatchForm, toWarehouseId: e.target.value })}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 >
                   <option value="">Select warehouse…</option>
                   {warehouses.filter((w) => w.id !== dispatchTarget.line.warehouseId).map((w) => (
@@ -396,29 +396,29 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                 </select>
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
                 <input
                   value={dispatchForm.quantity}
                   onChange={(e) => setDispatchForm({ ...dispatchForm, quantity: e.target.value })}
                   type="number"
                   step="0.0001"
                   placeholder={`Max ${formatNumber(dispatchTarget.line.onHand)}`}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
                 <textarea
                   value={dispatchForm.notes}
                   onChange={(e) => setDispatchForm({ ...dispatchForm, notes: e.target.value })}
                   rows={2}
-                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setDispatchTarget(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button onClick={() => setDispatchTarget(null)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button onClick={submitDispatch} disabled={saving} className="btn-3d px-4 h-9">
                 <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
                   <Truck className="w-3.5 h-3.5" /> {saving ? 'Dispatching…' : 'Dispatch'}

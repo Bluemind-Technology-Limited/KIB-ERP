@@ -40,10 +40,10 @@ export default function CostHistoryViewer() {
       <span
         className={`px-3 py-1 rounded-full text-xs font-semibold ${
           status === 'APPROVED'
-            ? 'bg-green-100 text-green-800'
+            ? 'bg-green-600 text-white'
             : status === 'PENDING'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
+            ? 'bg-yellow-600 text-white'
+            : 'bg-red-600 text-white'
         }`}
       >
         {status}
@@ -52,29 +52,29 @@ export default function CostHistoryViewer() {
   };
 
   const getVarianceColor = (percent: number) => {
-    if (percent > 10) return 'text-red-600';
-    if (percent > 5) return 'text-orange-600';
-    if (percent > 0) return 'text-yellow-600';
-    return 'text-green-600';
+    if (percent > 10) return 'text-red-600 dark:text-red-300';
+    if (percent > 5) return 'text-orange-600 dark:text-orange-300';
+    if (percent > 0) return 'text-yellow-600 dark:text-yellow-300';
+    return 'text-green-600 dark:text-green-300';
   };
 
   return (
     <div className="space-y-6">
       {/* Search Form */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Search Cost History</h2>
+      <div className="bg-surface rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-ink mb-4 dark:text-ink-faint">Search Cost History</h2>
         
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Entity Type */}
           <div>
-            <label htmlFor="entityType" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="entityType" className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">
               Entity Type *
             </label>
             <select
               id="entityType"
               value={entityType}
               onChange={(e) => setEntityType(e.target.value as EntityType)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none dark:border-gray-500/30"
               disabled={isLoading}
             >
               {entityTypes.map((type) => (
@@ -87,7 +87,7 @@ export default function CostHistoryViewer() {
 
           {/* Entity ID */}
           <div>
-            <label htmlFor="entityId" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="entityId" className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">
               Entity ID *
             </label>
             <input
@@ -96,7 +96,7 @@ export default function CostHistoryViewer() {
               value={entityId}
               onChange={(e) => setEntityId(e.target.value)}
               placeholder="Enter entity ID..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none dark:border-gray-500/30"
               disabled={isLoading}
             />
           </div>
@@ -118,31 +118,31 @@ export default function CostHistoryViewer() {
       {hasSearched && (
         <>
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 text-sm">{error}</p>
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-500/10 dark:border-red-500/30">
+              <p className="text-red-800 text-sm dark:text-red-300">{error}</p>
             </div>
           )}
 
           {costHistory.length > 0 && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-surface rounded-lg shadow overflow-hidden">
               {/* Filter Tabs */}
-              <div className="px-6 py-4 border-b border-gray-200 flex gap-4">
+              <div className="px-6 py-4 border-b border-line flex gap-4 dark:border-gray-500/30">
                 {(['ALL', 'APPROVED', 'PENDING', 'REJECTED'] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => setFilterStatus(status)}
                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                       filterStatus === status
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-ink-muted hover:bg-surface-3 dark:text-ink-faint dark:hover:bg-surface-20/15'
                     }`}
                   >
                     {status}
                     {status === 'ALL' && (
-                      <span className="ml-2 text-xs text-gray-500">({costHistory.length})</span>
+                      <span className="ml-2 text-xs text-ink-muted">({costHistory.length})</span>
                     )}
                     {status !== 'ALL' && (
-                      <span className="ml-2 text-xs text-gray-500">
+                      <span className="ml-2 text-xs text-ink-muted">
                         ({costHistory.filter((h) => h.status === status).length})
                       </span>
                     )}
@@ -154,33 +154,33 @@ export default function CostHistoryViewer() {
               {filteredHistory.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-surface-2 dark:bg-surface-20/10">
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Field</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Old Value</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">New Value</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Variance</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Reason</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Changed By</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                        <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Actions</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Field</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Old Value</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">New Value</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Variance</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Reason</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Changed By</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Status</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-ink-2 dark:text-ink-faint">Date</th>
+                        <th className="px-6 py-3 text-right text-sm font-semibold text-ink-2 dark:text-ink-faint">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-500/30">
                       {filteredHistory.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.fieldName}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                        <tr key={item.id} className="hover:bg-surface-2 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-ink dark:text-ink-faint">{item.fieldName}</td>
+                          <td className="px-6 py-4 text-sm text-ink-muted font-mono dark:text-ink-faint">
                             ₦{item.oldValue.toLocaleString()}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                          <td className="px-6 py-4 text-sm text-ink-muted font-mono dark:text-ink-faint">
                             ₦{item.newValue.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 text-sm">
                             <div className="space-y-1">
                               <p className={`font-semibold ${
-                                item.variance > 0 ? 'text-red-600' : 'text-green-600'
+                                item.variance > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'
                               }`}>
                                 {item.variance > 0 ? '+' : ''}₦{Math.abs(item.variance).toLocaleString()}
                               </p>
@@ -189,17 +189,17 @@ export default function CostHistoryViewer() {
                               </p>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
+                          <td className="px-6 py-4 text-sm text-ink-2 dark:text-ink-faint">
                             <div className="max-w-xs truncate" title={item.reason}>
                               {item.reason}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{item.changedBy}</td>
+                          <td className="px-6 py-4 text-sm text-ink-muted dark:text-ink-faint">{item.changedBy}</td>
                           <td className="px-6 py-4 text-sm">{getStatusBadge(item.status)}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
+                          <td className="px-6 py-4 text-sm text-ink-muted dark:text-ink-faint">
                             <div className="space-y-1">
                               <p>{new Date(item.changedAt).toLocaleDateString()}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-ink-muted">
                                 {new Date(item.changedAt).toLocaleTimeString()}
                               </p>
                             </div>
@@ -214,16 +214,16 @@ export default function CostHistoryViewer() {
                 </div>
               ) : (
                 <div className="p-8 text-center">
-                  <p className="text-gray-500">No cost history found with the selected filter</p>
+                  <p className="text-ink-muted">No cost history found with the selected filter</p>
                 </div>
               )}
             </div>
           )}
 
           {costHistory.length === 0 && !isLoading && (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-500 text-lg mb-2">No cost history found</p>
-              <p className="text-gray-400">
+            <div className="bg-surface rounded-lg shadow p-8 text-center">
+              <p className="text-ink-muted text-lg mb-2">No cost history found</p>
+              <p className="text-ink-faint">
                 {entityType} with ID "{entityId}" has no cost change history
               </p>
             </div>
@@ -233,9 +233,9 @@ export default function CostHistoryViewer() {
 
       {/* Empty State */}
       {!hasSearched && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-surface rounded-lg shadow p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            className="mx-auto h-12 w-12 text-ink-faint mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -247,8 +247,8 @@ export default function CostHistoryViewer() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <p className="text-gray-500 text-lg">Search for cost history</p>
-          <p className="text-gray-400 mt-2">
+          <p className="text-ink-muted text-lg">Search for cost history</p>
+          <p className="text-ink-faint mt-2">
             Select an entity type and enter an ID to view cost modification history
           </p>
         </div>
@@ -262,10 +262,10 @@ export default function CostHistoryViewer() {
             label: viewing.status,
             className:
               viewing.status === 'APPROVED'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
                 : viewing.status === 'PENDING'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-rose-50 text-rose-600 border-rose-200',
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30'
+                  : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
           }}
           onClose={() => setViewing(null)}
           sections={[

@@ -10,10 +10,10 @@ import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview'
 import { formatQty } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 interface SupplierDetail {
@@ -251,20 +251,20 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Requisition Approvals</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Requisition Approvals</h2>
           <PageDescription>Review, adjust and approve pending requisitions.</PageDescription>
         </div>
       </div>
 
       {error && !selected && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. Requisitions List */}
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-3 w-28" />
@@ -280,27 +280,27 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredRequisitions.length === 0 ? (
             <EmptyState title="No pending requisitions." />
           ) : (
             filteredRequisitions.map((r) => (
-              <div key={r.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={r.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#171717]">{r.number}</span>
+                    <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[r.status]}`}>{r.status}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">Requested by: {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
-                  <p className="text-[10px] text-slate-500 mb-2">
+                  <p className="text-[10px] text-ink-faint">Requested by: {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
+                  <p className="text-[10px] text-ink-muted mb-2">
                     {r.items?.map((i: any) => `${i.material?.name} (${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
                   </p>
-                  {r.notes && <p className="text-[9px] text-slate-500 italic">Notes: {r.notes}</p>}
+                  {r.notes && <p className="text-[9px] text-ink-muted italic">Notes: {r.notes}</p>}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => openReview(r.id)}
-                    className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-50"
+                    className="h-8 px-3 rounded-lg border border-line text-ink-muted text-[11px] font-semibold flex items-center gap-1 hover:bg-surface-2"
                   >
                     <Eye className="w-3 h-3" /> Review
                   </button>
@@ -314,9 +314,9 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
       {/* 3. Review / Edit modal */}
       {(detailLoading || selected) && (
         <Modal onClose={closeDetail}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             {detailLoading || !selected ? (
-              <div className="flex items-center justify-center py-12 text-slate-400">
+              <div className="flex items-center justify-center py-12 text-ink-faint">
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
             ) : (
@@ -324,21 +324,21 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-[#171717]">{selected.number}</h3>
+                      <h3 className="text-sm font-bold text-ink">{selected.number}</h3>
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[selected.status] ?? reqStatusBadge.DRAFT}`}>
                         {selected.status}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-[10px] text-ink-faint mt-1">
                       Requested by {selected.requestedBy?.fullName ?? '—'}
                       {selected.createdAt ? ` · ${new Date(selected.createdAt).toLocaleString()}` : ''}
                     </p>
                   </div>
-                  <button type="button" onClick={closeDetail} className="text-slate-400 hover:text-slate-600">✕</button>
+                  <button type="button" onClick={closeDetail} className="text-ink-faint hover:text-ink-muted">✕</button>
                 </div>
 
                 {error && (
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
                 )}
 
                 <div className="space-y-2">
@@ -351,14 +351,14 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                     );
 
                     return (
-                      <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                      <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-slate-500">Item {idx + 1}</span>
+                          <span className="text-[10px] font-bold text-ink-muted">Item {idx + 1}</span>
                           {canEdit && editItems.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeItem(idx)}
-                              className="text-slate-300 hover:text-rose-500 p-0.5"
+                              className="text-ink-faint hover:text-rose-500 p-0.5"
                               title="Remove item"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -367,12 +367,12 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                           {canEdit ? (
                             <select
                               value={item.materialId}
                               onChange={(e) => selectMaterial(idx, e.target.value)}
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                              className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                             >
                               <option value="">Select material…</option>
                               {options.map((m) => (
@@ -380,25 +380,25 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                               ))}
                             </select>
                           ) : (
-                            <p className="text-xs text-[#171717]">{materialFor(item.materialId)?.name ?? item.materialId}</p>
+                            <p className="text-xs text-ink">{materialFor(item.materialId)?.name ?? item.materialId}</p>
                           )}
                         </div>
 
                         {item.materialId && (
-                          <div className="rounded-md border border-slate-200 bg-white px-2.5 py-2">
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Supplier</p>
+                          <div className="rounded-md border border-line bg-surface px-2.5 py-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint mb-1">Supplier</p>
                             {materialSuppliers.length === 0 ? (
-                              <p className="text-[10px] text-amber-600">No supplier linked to this material yet.</p>
+                              <p className="text-[10px] text-amber-600 dark:text-amber-300">No supplier linked to this material yet.</p>
                             ) : (
                               <div className="space-y-1.5">
                                 {materialSuppliers.map((s) => (
                                   <div key={s.id} className="text-[10px] leading-tight">
-                                    <p className="font-semibold text-[#171717]">
+                                    <p className="font-semibold text-ink">
                                       {s.name}
-                                      {s.contactPerson && <span className="font-normal text-slate-500"> · {s.contactPerson}</span>}
+                                      {s.contactPerson && <span className="font-normal text-ink-muted"> · {s.contactPerson}</span>}
                                     </p>
                                     {(s.email || s.phone) && (
-                                      <p className="text-[9px] text-slate-400">
+                                      <p className="text-[9px] text-ink-faint">
                                         {[s.email, s.phone].filter(Boolean).join(' · ')}
                                       </p>
                                     )}
@@ -411,7 +411,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
                             <input
                               value={item.quantity}
                               readOnly={!canEdit}
@@ -420,13 +420,13 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                               type="number"
                               min="0.0001"
                               step="any"
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335] read-only:bg-slate-50"
+                              className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335] read-only:bg-surface-2"
                             />
                             <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit</label>
+                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-line px-2 text-xs bg-surface-2" />
                           </div>
                         </div>
                       </div>
@@ -437,7 +437,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                     <button
                       type="button"
                       onClick={addItem}
-                      className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Item
                     </button>
@@ -445,7 +445,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
                   <textarea
                     value={editNotes}
                     readOnly={!canEdit}
@@ -455,12 +455,12 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                     }}
                     rows={3}
                     placeholder="Reason, urgency, etc."
-                    className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none read-only:bg-slate-50"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none read-only:bg-surface-2"
                   />
                 </div>
 
                 {selected.purchaseOrders && selected.purchaseOrders.length > 0 && (
-                  <p className="text-[10px] text-amber-600">
+                  <p className="text-[10px] text-amber-600 dark:text-amber-300">
                     A purchase order already exists for this requisition; editing is locked.
                   </p>
                 )}
@@ -469,7 +469,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                   <button
                     type="button"
                     onClick={closeDetail}
-                    className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted hover:bg-surface-2"
                   >
                     Close
                   </button>
@@ -479,7 +479,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                         type="button"
                         onClick={saveItems}
                         disabled={!dirty || saving}
-                        className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         {saving && <Loader2 className="w-3 h-3 animate-spin" />}
                         Save changes
@@ -488,7 +488,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                         type="button"
                         onClick={() => handleAction('reject')}
                         disabled={saving || isProcessing}
-                        className="h-9 px-4 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-40 flex items-center gap-1"
+                        className="h-9 px-4 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-40 flex items-center gap-1 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                       >
                         <X className="w-3 h-3" /> Reject
                       </button>
@@ -496,7 +496,7 @@ export default function RequisitionActions({ searchQuery = '' }: { searchQuery?:
                         type="button"
                         onClick={() => handleAction('approve')}
                         disabled={saving || isProcessing}
-                        className="h-9 px-4 rounded-lg border border-emerald-200 text-emerald-600 text-xs font-semibold hover:bg-emerald-50 disabled:opacity-40 flex items-center gap-1"
+                        className="h-9 px-4 rounded-lg border border-emerald-200 text-emerald-600 text-xs font-semibold hover:bg-emerald-50 disabled:opacity-40 flex items-center gap-1 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                       >
                         <Check className="w-3 h-3" /> Approve
                       </button>

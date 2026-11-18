@@ -12,10 +12,10 @@ interface Notification {
 }
 
 const typeIcon: Record<string, { icon: React.ComponentType<{ className?: string }>; cls: string }> = {
-  EXPIRY: { icon: AlertTriangle, cls: 'text-amber-600 bg-amber-50 border-amber-200' },
-  LOW_STOCK: { icon: Boxes, cls: 'text-rose-600 bg-rose-50 border-rose-200' },
-  APPROVAL: { icon: ShieldCheck, cls: 'text-sky-600 bg-sky-50 border-sky-200' },
-  SYSTEM: { icon: Bell, cls: 'text-slate-600 bg-slate-50 border-slate-200' },
+  EXPIRY: { icon: AlertTriangle, cls: 'text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30' },
+  LOW_STOCK: { icon: Boxes, cls: 'text-rose-600 bg-rose-50 border-rose-200 dark:text-rose-300 dark:bg-rose-500/10 dark:border-rose-500/30' },
+  APPROVAL: { icon: ShieldCheck, cls: 'text-sky-600 bg-sky-50 border-sky-200 dark:text-sky-300 dark:bg-sky-500/10 dark:border-sky-500/30' },
+  SYSTEM: { icon: Bell, cls: 'text-ink-muted bg-surface-2 border-line' },
 };
 
 export default function NotificationBell() {
@@ -74,7 +74,7 @@ export default function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-lg text-[#737373] hover:text-[#171717] hover:bg-slate-100 transition-colors"
+        className="relative flex items-center justify-center w-9 h-9 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-3 transition-colors"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -84,16 +84,16 @@ export default function NotificationBell() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-[#E5E5E5] shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-surface rounded-xl border border-line shadow-lg z-50">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-line">
             <div>
-              <h3 className="text-sm font-bold text-[#171717]">Notifications</h3>
-              {unreadCount > 0 && <p className="text-xs text-[#737373]">{unreadCount} unread</p>}
+              <h3 className="text-sm font-bold text-ink">Notifications</h3>
+              {unreadCount > 0 && <p className="text-xs text-ink-muted">{unreadCount} unread</p>}
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-[#A1A1A1] hover:text-[#171717] transition-colors"
+              className="text-ink-faint hover:text-ink transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -101,9 +101,9 @@ export default function NotificationBell() {
 
           {/* Notifications List */}
           {loading ? (
-            <div className="px-4 py-6 text-center text-xs text-[#737373]">Loading...</div>
+            <div className="px-4 py-6 text-center text-xs text-ink-muted">Loading...</div>
           ) : notifications.length === 0 ? (
-            <div className="px-4 py-6 text-center text-xs text-[#737373]">No notifications yet</div>
+            <div className="px-4 py-6 text-center text-xs text-ink-muted">No notifications yet</div>
           ) : (
             <div className="max-h-96 overflow-y-auto">
               {notifications.map((n) => {
@@ -115,7 +115,7 @@ export default function NotificationBell() {
                     onClick={() => {
                       if (!n.isRead) markRead(n.id);
                     }}
-                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0 ${
+                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-2 transition-colors border-b border-line last:border-b-0 ${
                       n.isRead ? '' : 'bg-rose-50/30'
                     }`}
                   >
@@ -124,12 +124,12 @@ export default function NotificationBell() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-xs ${n.isRead ? 'font-semibold text-slate-500' : 'font-bold text-[#171717]'}`}>
+                        <p className={`text-xs ${n.isRead ? 'font-semibold text-ink-muted' : 'font-bold text-ink'}`}>
                           {n.title}
                         </p>
                         {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-[#EA4335]" />}
                       </div>
-                      {n.body && <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{n.body}</p>}
+                      {n.body && <p className="text-[10px] text-ink-faint mt-0.5 line-clamp-1">{n.body}</p>}
                     </div>
                   </button>
                 );
@@ -138,7 +138,7 @@ export default function NotificationBell() {
           )}
 
           {/* Footer */}
-          <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 rounded-b-xl">
+          <div className="px-4 py-3 border-t border-line bg-surface-2 rounded-b-xl">
             <button
               onClick={() => {
                 setIsOpen(false);

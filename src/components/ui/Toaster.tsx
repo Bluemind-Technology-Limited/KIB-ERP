@@ -5,18 +5,18 @@ import { useToastStore, type Toast, type ToastVariant } from '../../stores/useTo
 
 const VARIANT_STYLES: Record<ToastVariant, { wrap: string; icon: string; Icon: typeof Info }> = {
   success: {
-    wrap: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    icon: 'text-emerald-600',
+    wrap: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
+    icon: 'text-emerald-600 dark:text-emerald-300',
     Icon: CheckCircle2,
   },
   error: {
-    wrap: 'border-rose-200 bg-rose-50 text-rose-700',
-    icon: 'text-rose-600',
+    wrap: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
+    icon: 'text-rose-600 dark:text-rose-300',
     Icon: AlertCircle,
   },
   info: {
-    wrap: 'border-slate-200 bg-white text-slate-700',
-    icon: 'text-slate-500',
+    wrap: 'border-line bg-surface text-ink-2',
+    icon: 'text-ink-muted',
     Icon: Info,
   },
 };
@@ -43,7 +43,7 @@ function ToastItem({ toast }: { toast: Toast }) {
         type="button"
         onClick={() => dismiss(toast.id)}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded p-0.5 text-slate-400 transition-colors hover:text-slate-600"
+        className="shrink-0 rounded p-0.5 text-ink-faint transition-colors hover:text-ink-muted"
       >
         <X className="h-3.5 w-3.5" />
       </button>

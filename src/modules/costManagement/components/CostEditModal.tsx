@@ -64,20 +64,20 @@ export default function CostEditModal({
 
   return (
     <Modal onClose={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Request Cost Change</h2>
+      <div className="bg-surface rounded-lg shadow-xl max-w-md w-full p-8">
+        <h2 className="text-2xl font-bold text-ink mb-6 dark:text-ink-faint">Request Cost Change</h2>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-500/10 dark:border-red-500/30">
+            <p className="text-red-800 text-sm dark:text-red-300">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Entity Type Display */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Entity Type</label>
-            <div className="px-4 py-3 bg-gray-100 rounded-lg text-gray-700 font-medium">
+            <label className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">Entity Type</label>
+            <div className="px-4 py-3 bg-surface-3 rounded-lg text-ink-2 font-medium dark:bg-surface-20/15 dark:text-ink-faint">
               {entityType}
             </div>
           </div>
@@ -85,8 +85,8 @@ export default function CostEditModal({
           {/* Entity ID Display */}
           {entityId && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Entity ID</label>
-              <div className="px-4 py-3 bg-gray-100 rounded-lg text-gray-700 text-sm font-mono">
+              <label className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">Entity ID</label>
+              <div className="px-4 py-3 bg-surface-3 rounded-lg text-ink-2 text-sm font-mono dark:bg-surface-20/15 dark:text-ink-faint">
                 {entityId}
               </div>
             </div>
@@ -94,11 +94,11 @@ export default function CostEditModal({
 
           {/* New Value */}
           <div>
-            <label htmlFor="newValue" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="newValue" className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">
               New Cost Value *
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-3 text-gray-500 font-medium">₦</span>
+              <span className="absolute left-4 top-3 text-ink-muted font-medium">₦</span>
               <input
                 id="newValue"
                 type="number"
@@ -106,29 +106,29 @@ export default function CostEditModal({
                 value={formData.newValue}
                 onChange={(e) => handleNewValueChange(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-8 pr-4 py-3 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none dark:border-gray-500/30"
                 disabled={isLoading}
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-muted">
               Enter the new cost value. If this represents a change greater than 5% or ₦10,000, it will require approval.
             </p>
           </div>
 
           {/* Estimated Variance */}
           {false && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-gray-700 mb-2">Estimated Variance</p>
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-500/10 dark:border-blue-500/30">
+              <p className="text-sm text-ink-2 mb-2 dark:text-ink-faint">Estimated Variance</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-gray-600">Amount</p>
-                  <p className={`text-lg font-bold text-green-600`}>
+                  <p className="text-xs text-ink-muted dark:text-ink-faint">Amount</p>
+                  <p className={`text-lg font-bold text-green-600 dark:text-green-300`}>
                     ₦0
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">Percentage</p>
-                  <p className={`text-lg font-bold text-green-600`}>
+                  <p className="text-xs text-ink-muted dark:text-ink-faint">Percentage</p>
+                  <p className={`text-lg font-bold text-green-600 dark:text-green-300`}>
                     0.00%
                   </p>
                 </div>
@@ -138,7 +138,7 @@ export default function CostEditModal({
 
           {/* Change Type */}
           <div>
-            <label htmlFor="changeType" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="changeType" className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">
               Change Type *
             </label>
             <select
@@ -150,7 +150,7 @@ export default function CostEditModal({
                   changeType: e.target.value as any,
                 }))
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-3 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none dark:border-gray-500/30"
               disabled={isLoading}
             >
               {changeTypeOptions.map((option) => (
@@ -163,7 +163,7 @@ export default function CostEditModal({
 
           {/* Reason */}
           <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="reason" className="block text-sm font-medium text-ink-2 mb-2 dark:text-ink-faint">
               Reason for Change *
             </label>
             <textarea
@@ -174,17 +174,17 @@ export default function CostEditModal({
               }
               placeholder="Explain the reason for this cost change..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+              className="w-full px-4 py-3 border border-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none dark:border-gray-500/30"
               disabled={isLoading}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-muted">
               {formData.reason.length}/500 characters
             </p>
           </div>
 
           {/* Approval Info */}
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-900">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-500/10 dark:border-amber-500/30">
+            <p className="text-sm text-amber-900 dark:text-amber-300">
               <strong>Note:</strong> Changes exceeding 5% variance or ₦10,000 will require manager approval. Changes over ₦50,000 require executive approval.
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function CostEditModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 border border-line-strong text-ink-2 rounded-lg font-medium hover:bg-surface-2 transition-colors disabled:opacity-50 dark:border-gray-500/30 dark:text-ink-faint dark:hover:bg-surface-20/10"
               disabled={isLoading}
             >
               Cancel

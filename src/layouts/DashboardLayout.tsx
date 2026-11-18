@@ -4,9 +4,11 @@ import NetworkMeter from '../components/NetworkMeter';
 import NotificationBell from '../components/ui/NotificationBell';
 import { useAuthStore } from '../stores/useAuthStore';
 
-import { 
-  ChevronRight, User as UserIcon, Menu, X, LogOut, Settings, Search 
+import {
+  User as UserIcon, Menu, X, LogOut, Settings, Search
 } from 'lucide-react';
+import { HistoryNav } from '../components/ui/HistoryNav';
+import { useThemeStore } from '../stores/useThemeStore';
 
 interface DashboardLayoutProps {
   activeTab: string;
@@ -58,74 +60,8 @@ export default function DashboardLayout({
     onLogout();
   };
 
-  // Helper to map tab id to breadcrumb strings
-  const getBreadcrumbs = () => {
-    switch (activeTab) {
-      case 'executive':
-        return { parent: 'Dashboards', current: 'Overview' };
-      case 'admin-users':
-        return { parent: 'Dashboards', current: 'Manage Users' };
-      case 'md-warehouses':
-        return { parent: 'Master Data', current: 'Warehouses' };
-      case 'md-materials':
-        return { parent: 'Master Data', current: 'Materials' };
-      case 'md-products':
-        return { parent: 'Master Data', current: 'Products' };
-      case 'md-suppliers':
-        return { parent: 'Master Data', current: 'Suppliers' };
-      case 'proc-requisitions':
-        return { parent: 'Requisitions & PO', current: 'Requisitions' };
-      case 'proc-actions':
-        return { parent: 'Requisitions & PO', current: 'Requisition Actions' };
-      case 'proc-procurements':
-        return { parent: 'Requisitions & PO', current: 'Procurements' };
-      case 'inv-stock':
-        return { parent: 'Inventory', current: 'Stock Ledger' };
-      case 'inv-grn':
-        return { parent: 'Inventory', current: 'Goods Receipt' };
-      case 'inv-finished':
-        return { parent: 'Inventory', current: 'Finished Goods' };
-      case 'prod-boms':
-        return { parent: 'Production', current: 'Batch Formulation' };
-      case 'prod-orders':
-        return { parent: 'Production', current: 'Production Orders' };
-      case 'prod-daily-records':
-        return { parent: 'Production', current: 'Daily Records' };
-      case 'prod-wip':
-        return { parent: 'Production', current: 'Carryover / WIP' };
-      case 'prod-trace':
-        return { parent: 'Production', current: 'Traceability' };
-      case 'prod-issue':
-        return { parent: 'Production', current: 'Ingredients Station' };
-      case 'prod-grinding':
-        return { parent: 'Production', current: 'Grinding Station' };
-      case 'prod-finishing':
-        return { parent: 'Production', current: 'Production Station' };
-      case 'machines':
-        return { parent: 'Assets', current: 'Machines & Assets' };
-      case 'account-settings':
-        return { parent: 'Account', current: 'Account Settings' };
-      case 'qa-inspections':
-        return { parent: 'Quality Assurance', current: 'Inspections' };
-      case 'qa-quantity-approvals':
-        return { parent: 'Quality Assurance', current: 'Quantity Approvals' };
-      case 'alerts-notifications':
-        return { parent: 'Alerts & Reports', current: 'Notifications' };
-      case 'reports':
-        return { parent: 'Alerts & Reports', current: 'Reports' };
-      case 'reports-inspections':
-        return { parent: 'Alerts & Reports', current: 'Inspection Report' };
-      case 'reports-audit':
-        return { parent: 'Alerts & Reports', current: 'Audit & Report' };
-      default:
-        return { parent: 'Dashboards', current: 'Traffic overview' };
-    }
-  };
-
-  const breadcrumbs = getBreadcrumbs();
-
   return (
-    <div className="h-screen overflow-hidden bg-[#FAFAFA] text-[#171717] flex flex-col font-sans">
+    <div className="h-screen overflow-hidden bg-app text-ink flex flex-col font-sans">
 
       {/* Network meter — full-width, hidden until the connection needs attention */}
       <NetworkMeter />
@@ -146,20 +82,16 @@ export default function DashboardLayout({
         <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
 
           {/* Sticky Dashboard Header (58px height, does not scroll with page) */}
-        <header className="h-[58px] bg-[#FBFBFB] border-b border-[#D9D9D9]/80 px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
+        <header className="h-[58px] bg-surface-2 border-b border-line-strong/80 px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
           
-          {/* Breadcrumb section */}
-          <div className="flex items-center gap-1.5 text-sm h-12">
-            <span className="text-[#737373] tracking-tight">{breadcrumbs.parent}</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#D4D4D4]" />
-            <span className="text-[#313131] font-medium tracking-tight">{breadcrumbs.current}</span>
-          </div>
+          {/* Back / Forward navigation replacing the breadcrumb */}
+          <HistoryNav />
 
           {/* Centered Header Search Input for List/Detail pages */}
           {activeTab !== 'executive' && (
-            <div className="hidden md:flex items-center relative w-96 h-10 bg-white border border-[#E5E5E5] rounded-xl focus-within:border-[#EA4335]/70 transition-colors">
+            <div className="hidden md:flex items-center relative w-96 h-10 bg-surface border border-line rounded-xl focus-within:border-[#EA4335]/70 transition-colors">
               <div className="pl-3 flex items-center justify-center pointer-events-none">
-                <Search className="w-4 h-4 text-[#737373]" />
+                <Search className="w-4 h-4 text-ink-muted" />
               </div>
               <input
                 ref={searchInputRef}
@@ -167,13 +99,13 @@ export default function DashboardLayout({
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-full bg-transparent pl-2.5 pr-14 text-sm text-[#171717] focus:outline-none placeholder-[#A1A1A1] cursor-text"
+                className="w-full h-full bg-transparent pl-2.5 pr-14 text-sm text-ink focus:outline-none placeholder-ink-faint cursor-text"
               />
               <div className="absolute right-2.5 flex items-center gap-1 pointer-events-none">
-                <kbd className="w-[22px] h-5 bg-[#FAFAFA] border border-[#E5E5E5] rounded flex items-center justify-center text-[12px] font-semibold text-[#525252] font-sans">
+                <kbd className="w-[22px] h-5 bg-app border border-line rounded flex items-center justify-center text-[12px] font-semibold text-ink-3 font-sans">
                   ⌘
                 </kbd>
-                <kbd className="w-5 h-5 bg-[#FAFAFA] border border-[#E5E5E5] rounded flex items-center justify-center text-[12px] font-semibold text-[#525252] font-sans">
+                <kbd className="w-5 h-5 bg-app border border-line rounded flex items-center justify-center text-[12px] font-semibold text-ink-3 font-sans">
                   K
                 </kbd>
               </div>
@@ -182,6 +114,8 @@ export default function DashboardLayout({
 
           {/* Right Header Menu Controls */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
+
             {/* Notification Bell */}
             <NotificationBell />
 
@@ -193,8 +127,8 @@ export default function DashboardLayout({
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="relative focus:outline-none cursor-pointer group flex items-center"
               >
-                <div className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-xs font-bold text-[#171717] uppercase transition-colors">
-                  {user?.fullName?.slice(0, 2) || <UserIcon className="w-4 h-4 text-slate-400" />}
+                <div className="w-8 h-8 rounded-full border border-line bg-surface-2 hover:bg-surface-3 flex items-center justify-center text-xs font-bold text-ink uppercase transition-colors">
+                  {user?.fullName?.slice(0, 2) || <UserIcon className="w-4 h-4 text-ink-faint" />}
                 </div>
                 <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
               </button>
@@ -203,25 +137,25 @@ export default function DashboardLayout({
               {isProfileOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-[220px] bg-white border border-[#E9E9E9] rounded-lg shadow-lg z-50 p-4 flex flex-col gap-3 animate-in fade-in duration-100">
-                    <div className="border-b border-slate-100 pb-2.5">
-                      <p className="text-xs font-bold text-[#171717] leading-none mb-1">
+                  <div className="absolute right-0 mt-2 w-[220px] bg-surface border border-line rounded-lg shadow-lg z-50 p-4 flex flex-col gap-3 animate-in fade-in duration-100">
+                    <div className="border-b border-line pb-2.5">
+                      <p className="text-xs font-bold text-ink leading-none mb-1">
                         {user?.fullName?.split(' ')[0] || 'Isaac'}
                       </p>
-                      <p className="text-[10px] text-slate-400 truncate mb-2">{user?.email}</p>
+                      <p className="text-[10px] text-ink-faint truncate mb-2">{user?.email}</p>
                       <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-[#EA4335]/10 text-[#EA4335] px-2 py-0.5 rounded border border-[#EA4335]/20">
                         {user?.role?.replace('_', ' ') || 'SUPER ADMIN'}
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-1.5 text-xs text-slate-650">
+                    <div className="flex flex-col gap-1.5 text-xs text-ink-muted">
 
 
                       <button 
                         onClick={() => { setIsProfileOpen(false); setActiveTab('account-settings'); }}
-                        className="w-full flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-md transition-colors text-left font-medium cursor-pointer"
+                        className="w-full flex items-center gap-2 py-1.5 px-2 hover:bg-surface-2 rounded-md transition-colors text-left font-medium cursor-pointer"
                       >
-                        <Settings className="w-3.5 h-3.5 text-slate-500" />
+                        <Settings className="w-3.5 h-3.5 text-ink-muted" />
                         <span>Account Settings</span>
                       </button>
                     </div>
@@ -233,7 +167,7 @@ export default function DashboardLayout({
             {/* Mobile Menu trigger */}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-1 text-slate-500 hover:text-slate-900 ml-1"
+              className="md:hidden p-1 text-ink-muted hover:text-ink ml-1"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -243,32 +177,32 @@ export default function DashboardLayout({
 
         {/* Mobile Dropdown navigation menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-[#FBFBFB] border-b border-[#D9D9D9]/80 px-4 py-3 space-y-1 z-30">
+          <div className="md:hidden bg-surface-2 border-b border-line-strong/80 px-4 py-3 space-y-1 z-30">
             <div className="space-y-1">
               <button
                 onClick={() => { setActiveTab('executive'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'executive' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'executive' ? 'bg-surface-3 text-ink' : 'text-ink-muted'}`}
               >
                 Overview
               </button>
               <button
                 onClick={() => { setActiveTab('md-warehouses'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-warehouses' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-warehouses' ? 'bg-surface-3 text-ink' : 'text-ink-muted'}`}
               >
                 Warehouses
               </button>
               <button
                 onClick={() => { setActiveTab('md-materials'); setIsMobileMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-materials' ? 'bg-slate-100 text-[#171717]' : 'text-slate-600'}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold ${activeTab === 'md-materials' ? 'bg-surface-3 text-ink' : 'text-ink-muted'}`}
               >
                 Materials
               </button>
             </div>
             
-            <div className="pt-2 border-t border-slate-200 mt-2">
+            <div className="pt-2 border-t border-line mt-2">
               <button
                 onClick={handleLogoutAction}
-                className="w-full flex items-center justify-center gap-2 py-2 text-rose-600 bg-rose-50 rounded-xl text-xs font-semibold"
+                className="w-full flex items-center justify-center gap-2 py-2 text-rose-600 bg-rose-50 rounded-xl text-xs font-semibold dark:text-rose-300 dark:bg-rose-500/10"
               >
                 <LogOut className="w-4 h-4" />
                 Sign Out
@@ -278,7 +212,7 @@ export default function DashboardLayout({
         )}
 
         {/* Scrollable Page Container */}
-        <main className="flex-1 min-h-0 overflow-y-auto kib-scroll p-6 md:p-8 bg-[#FAFAFA]">
+        <main className="flex-1 min-h-0 overflow-y-auto kib-scroll p-6 md:p-8 bg-app">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
@@ -287,5 +221,34 @@ export default function DashboardLayout({
       </div>
 
     </div>
+  );
+}
+
+/** Light/dark switch for the header chrome. */
+function ThemeToggle() {
+  const theme = useThemeStore((s) => s.theme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const isDark = theme === 'dark';
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isDark}
+      aria-label="Dark mode"
+      onClick={toggleTheme}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={`kib-switch-track relative inline-flex h-[26px] w-[50px] shrink-0 items-center rounded-full border p-[3px] outline-none focus-visible:ring-2 focus-visible:ring-[#EA4335]/40 active:scale-[0.97] ${
+        isDark
+          ? 'border-[#c7392c] bg-[#EA4335]'
+          : 'border-line bg-surface-4'
+      }`}
+    >
+      <span
+        className={`kib-switch-knob h-5 w-5 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.25)] ${
+          isDark ? 'translate-x-[24px]' : 'translate-x-0'
+        }`}
+      />
+    </button>
   );
 }

@@ -205,12 +205,12 @@ export function RoleGuard({ userRole, viewId, children }: RoleGuardProps) {
   if (!hasAccess) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto space-y-4">
-        <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400">
+        <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 dark:bg-rose-500/10">
           <ShieldAlert className="w-6 h-6" />
         </div>
         <h3 className="text-lg font-bold text-white">Access Denied (403)</h3>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Your assigned workspace role (<span className="font-mono text-slate-300 font-semibold">{userRole}</span>) does not possess permission privileges required to access the <span className="font-semibold text-slate-200">{viewId.replace('-', ' ')}</span> interface.
+        <p className="text-xs text-ink-faint leading-relaxed">
+          Your assigned workspace role (<span className="font-mono text-ink-faint font-semibold">{userRole}</span>) does not possess permission privileges required to access the <span className="font-semibold text-slate-200">{viewId.replace('-', ' ')}</span> interface.
         </p>
       </div>
     );

@@ -13,17 +13,17 @@ interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure:
 interface SupplierOption { id: string; name: string; vendorCode?: string }
 
 const reqStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 const poStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  SENT: 'bg-sky-50 text-sky-700 border-sky-200',
-  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CLOSED: 'bg-slate-100 text-slate-500 border-slate-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  SENT: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
+  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  CLOSED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 export default function Procurement({ searchQuery = '' }: { searchQuery?: string }) {
@@ -225,7 +225,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Procurement</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Procurement</h2>
           <PageDescription>Requisition → Approval → Purchase Order workflow.</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -241,47 +241,47 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       </div>
 
       {/* 2. Sub-tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-surface-3 rounded-lg p-1 w-fit">
         {(['requisitions', 'purchase-orders'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 h-8 rounded-md text-xs font-semibold transition-colors ${tab === t ? 'bg-white shadow-sm text-[#171717]' : 'text-slate-500'}`}
+            className={`px-4 h-8 rounded-md text-xs font-semibold transition-colors ${tab === t ? 'bg-surface shadow-sm text-ink' : 'text-ink-muted'}`}
           >
             {t === 'requisitions' ? 'Requisitions' : 'Purchase Orders'}
           </button>
         ))}
       </div>
 
-      {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
+      {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>}
 
       {/* 3a. New Requisition modal */}
       {showReqForm && (
         <Modal onClose={() => setShowReqForm(false)}>
-          <form onSubmit={createRequisition} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createRequisition} className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <FilePlus2 className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">New Requisition</h3>
               </div>
-              <button type="button" onClick={() => setShowReqForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowReqForm(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             <div className="space-y-2">
               {reqItems.map((item, idx) => (
-                <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500">Item {idx + 1}</span>
+                    <span className="text-[10px] font-bold text-ink-muted">Item {idx + 1}</span>
                     {reqItems.length > 1 && (
-                      <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
+                      <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="text-ink-faint hover:text-rose-500 p-0.5">✕</button>
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                     <select
                       value={item.materialId}
                       onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
-                      className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                      className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                     >
                       <option value="">Select material…</option>
                       {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
@@ -289,29 +289,29 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
+                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                      <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit</label>
+                      <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-line px-2 text-xs bg-surface-2" />
                     </div>
                   </div>
                 </div>
               ))}
 
-              <button type="button" onClick={() => setReqItems([...reqItems, { materialId: '', quantity: '', unitOfMeasure: '' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+              <button type="button" onClick={() => setReqItems([...reqItems, { materialId: '', quantity: '', unitOfMeasure: '' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Add Item
               </button>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} rows={3} placeholder="Reason, urgency, etc." className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
+                <textarea value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} rows={3} placeholder="Reason, urgency, etc." className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowReqForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowReqForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold whitespace-nowrap">Create (Draft)</span>
               </button>
@@ -322,56 +322,56 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
 
       {showPoForm && (
         <Modal onClose={() => setShowPoForm(false)}>
-          <form onSubmit={createPo} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createPo} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <Truck className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">New Purchase Order</h3>
               </div>
-              <button type="button" onClick={() => setShowPoForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowPoForm(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier *</label>
-                <select value={poSupplierId} onChange={(e) => setPoSupplierId(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Supplier *</label>
+                <select value={poSupplierId} onChange={(e) => setPoSupplierId(e.target.value)} className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">Select supplier…</option>
                   {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From approved requisition (optional)</label>
-                <select value={poRequisitionId} onChange={(e) => handleRequisitionChange(e.target.value)} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">From approved requisition (optional)</label>
+                <select value={poRequisitionId} onChange={(e) => handleRequisitionChange(e.target.value)} className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">None — create standalone</option>
                   {requisitions.filter((r) => r.status === 'APPROVED').map((r) => <option key={r.id} value={r.id}>{r.number}</option>)}
                 </select>
               </div>
 
               {/* Items List */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">PO Items *</label>
+              <div className="space-y-2 pt-2 border-t border-line">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint block">PO Items *</label>
                 {poItems.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Select a requisition or add items manually below.</p>
+                  <p className="text-xs text-ink-faint italic">Select a requisition or add items manually below.</p>
                 ) : (
                   <div className="space-y-2">
                     {poItems.map((item, idx) => (
-                      <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                      <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-slate-500">
+                          <span className="text-[10px] font-bold text-ink-muted">
                             {item.materialName ? `${item.materialName} (${item.sku})` : `Item ${idx + 1}`}
                           </span>
                           {!poRequisitionId && (
-                            <button type="button" onClick={() => setPoItems(poItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
+                            <button type="button" onClick={() => setPoItems(poItems.filter((_, i) => i !== idx))} className="text-ink-faint hover:text-rose-500 p-0.5">✕</button>
                           )}
                         </div>
                         
                         {!poRequisitionId && (
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                             <select
                               value={item.materialId}
                               onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, materialName: materials.find((m) => m.id === e.target.value)?.name || '', sku: materials.find((m) => m.id === e.target.value)?.sku || '', unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                              className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                             >
                               <option value="">Select material…</option>
                               {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
@@ -381,7 +381,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
 
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">
                               Qty {item.originalQuantity !== undefined && `(Req: ${item.originalQuantity})`} *
                             </label>
                             <input 
@@ -391,25 +391,25 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                               type="number" 
                               min="0.0001"
                               step="any"
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
+                              className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
                               required
                             />
                             <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cost per {item.unitOfMeasure || 'unit'} *</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Cost per {item.unitOfMeasure || 'unit'} *</label>
                             <input 
                               value={item.unitCost} 
                               onChange={(e) => setPoItems(poItems.map((r, i) => i === idx ? { ...r, unitCost: e.target.value } : r))} 
                               placeholder="Cost" 
                               type="number" 
-                              className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
+                              className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]" 
                               required
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit</label>
+                            <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-line px-2 text-xs bg-surface-2" />
                           </div>
                         </div>
                       </div>
@@ -418,24 +418,24 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                 )}
 
                 {!poRequisitionId && (
-                  <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+                  <button type="button" onClick={() => setPoItems([...poItems, { materialId: '', materialName: '', sku: '', quantity: '', unitOfMeasure: '', unitCost: '0' }])} className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                     <Plus className="w-3.5 h-3.5" /> Add Item
                   </button>
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected delivery</label>
-                <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Expected delivery</label>
+                <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
+                <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold whitespace-nowrap">Create PO</span>
               </button>
@@ -448,7 +448,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-3 w-28" />
@@ -465,45 +465,45 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
           ))}
         </div>
       ) : tab === 'requisitions' ? (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredRequisitions.length === 0 ? (
             <EmptyState title="No requisitions yet." />
           ) : (
             filteredRequisitions.map((r) => (
-              <div key={r.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={r.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#171717]">{r.number}</span>
+                    <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[r.status]}`}>{r.status}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">by {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-ink-faint">by {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
+                  <p className="text-[10px] text-ink-muted">
                     {r.items?.map((i: any) => `${i.material?.name} (${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   {r.status === 'DRAFT' && (
                     <>
-                      <button onClick={() => updateRequisition(r.id, 'submit')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
+                      <button onClick={() => updateRequisition(r.id, 'submit')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">
                         <Send className="w-3 h-3" /> Submit
                       </button>
-                      <button onClick={() => deleteRequisition(r.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <button onClick={() => deleteRequisition(r.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     </>
                   )}
                   {r.status === 'PENDING_APPROVAL' && (
                     <>
-                      <button onClick={() => updateRequisition(r.id, 'approve')} className="h-8 px-3 rounded-lg border border-emerald-200 text-emerald-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-emerald-50">
+                      <button onClick={() => updateRequisition(r.id, 'approve')} className="h-8 px-3 rounded-lg border border-emerald-200 text-emerald-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
                         <Check className="w-3 h-3" /> Approve
                       </button>
-                      <button onClick={() => updateRequisition(r.id, 'reject')} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <button onClick={() => updateRequisition(r.id, 'reject')} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                         <X className="w-3 h-3" /> Reject
                       </button>
                     </>
                   )}
                   {r.purchaseOrders?.length > 0 && (
-                    <span className="text-[10px] text-slate-400 self-center">→ {r.purchaseOrders.map((p: any) => p.number).join(', ')}</span>
+                    <span className="text-[10px] text-ink-faint self-center">→ {r.purchaseOrders.map((p: any) => p.number).join(', ')}</span>
                   )}
                 </div>
               </div>
@@ -511,36 +511,36 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
           )}
         </div>
       ) : (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredPos.length === 0 ? (
             <EmptyState title="No purchase orders yet." />
           ) : (
             filteredPos.map((p) => (
-              <div key={p.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={p.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-mono text-xs font-bold text-[#171717]">{p.number}</span>
+                    <Truck className="w-3.5 h-3.5 text-ink-faint" />
+                    <span className="font-mono text-xs font-bold text-ink">{p.number}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{p.status}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-ink-faint">
                     {p.supplier?.name} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
                   </p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-ink-muted">
                     {p.items?.map((i: any) => `${i.material?.name} × ${i.quantity}${i.receivedQty ? ` (recv ${i.receivedQty})` : ''}`).join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   {p.status === 'DRAFT' && (
                     <>
-                      <button onClick={() => updatePoStatus(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
-                      <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <button onClick={() => updatePoStatus(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">Mark Sent</button>
+                      <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     </>
                   )}
                   {['PARTIALLY_RECEIVED', 'RECEIVED'].includes(p.status) && (
-                    <button onClick={() => updatePoStatus(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
+                    <button onClick={() => updatePoStatus(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-line text-ink-muted text-[11px] font-semibold hover:bg-surface-2">Close PO</button>
                   )}
                 </div>
               </div>

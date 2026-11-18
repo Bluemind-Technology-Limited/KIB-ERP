@@ -29,10 +29,10 @@ interface ValuationRow {
 }
 
 const statusBadge: Record<string, string> = {
-  SCHEDULED: 'bg-slate-100 text-slate-600 border-slate-200',
-  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  WASTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  SCHEDULED: 'bg-surface-3 text-ink-muted border-line',
+  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  WASTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 function downloadCSV(filename: string, headers: string[], rows: (string | number)[][]) {
@@ -118,12 +118,12 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Reports</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Reports</h2>
           <PageDescription>Production efficiency, yield analysis and inventory valuation with CSV export.</PageDescription>
         </div>
         <button
           onClick={tab === 'efficiency' ? exportEfficiency : exportValuation}
-          className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50"
+          className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted bg-surface hover:bg-surface-2"
         >
           <span className="flex items-center gap-1.5">
             <Download className="w-3.5 h-3.5" /> Export CSV
@@ -132,30 +132,30 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
       </div>
 
       {/* 2. Tabs */}
-      <div className="flex gap-1 bg-white border border-[#E9E9E9] rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-surface border border-line rounded-xl p-1 w-fit">
         <button
           onClick={() => setTab('efficiency')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === 'efficiency' ? 'bg-[#171717] text-white' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === 'efficiency' ? 'bg-inverted text-inverted-ink' : 'text-ink-muted hover:text-ink-2'}`}
         >
           <BarChart3 className="w-3.5 h-3.5" /> Production Efficiency
         </button>
         <button
           onClick={() => setTab('valuation')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === 'valuation' ? 'bg-[#171717] text-white' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === 'valuation' ? 'bg-inverted text-inverted-ink' : 'text-ink-muted hover:text-ink-2'}`}
         >
           <Wallet2 className="w-3.5 h-3.5" /> Inventory Valuation
         </button>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {loading && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3 space-y-2">
+              <div key={i} className="bg-surface border border-line rounded-xl px-4 py-3 space-y-2">
                 <Skeleton className="h-2 w-20" />
                 <Skeleton className="h-5 w-16" />
               </div>
@@ -168,21 +168,21 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
       {/* 3. Summary chips */}
       {!loading && tab === 'efficiency' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Orders</p>
-            <p className="text-xl font-bold text-[#171717]">{formatNumber(efficiency.summary.totalOrders ?? 0)}</p>
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Orders</p>
+            <p className="text-xl font-bold text-ink">{formatNumber(efficiency.summary.totalOrders ?? 0)}</p>
           </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Completed</p>
-            <p className="text-xl font-bold text-[#171717]">{formatNumber(efficiency.summary.completedOrders ?? 0)}</p>
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Completed</p>
+            <p className="text-xl font-bold text-ink">{formatNumber(efficiency.summary.completedOrders ?? 0)}</p>
           </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">In Progress</p>
-            <p className="text-xl font-bold text-amber-600">{formatNumber(efficiency.summary.inProgress ?? 0)}</p>
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">In Progress</p>
+            <p className="text-xl font-bold text-amber-600 dark:text-amber-300">{formatNumber(efficiency.summary.inProgress ?? 0)}</p>
           </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Yield</p>
-            <p className="text-xl font-bold text-emerald-600">
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Avg Yield</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300">
               {efficiency.summary.avgYieldPct == null ? '—' : formatPercent(efficiency.summary.avgYieldPct)}
             </p>
           </div>
@@ -190,13 +190,13 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
       )}
       {!loading && tab === 'valuation' && (
         <div className="grid grid-cols-2 gap-3 max-w-md">
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Materials</p>
-            <p className="text-xl font-bold text-[#171717]">{formatNumber(valuation.summary.materials ?? 0)}</p>
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Materials</p>
+            <p className="text-xl font-bold text-ink">{formatNumber(valuation.summary.materials ?? 0)}</p>
           </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Value</p>
-            <p className="text-xl font-bold text-emerald-600">
+          <div className="bg-surface border border-line rounded-xl px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Value</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300">
               {formatMoney(valuation.summary.totalValue)}
             </p>
           </div>
@@ -205,14 +205,14 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
 
       {/* 4. Tables */}
       {!loading && tab === 'efficiency' && (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {effFiltered.length === 0 ? (
             <EmptyState title="No production orders yet." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                     <th className="px-4 py-3 font-semibold">Order</th>
                     <th className="px-4 py-3 font-semibold">Product</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
@@ -224,26 +224,26 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                 </thead>
                 <tbody>
                   {effFiltered.map((r) => (
-                    <tr key={r.orderNumber} className="border-b border-slate-50 hover:bg-slate-50/50">
-                      <td className="px-4 py-3 text-[11px] font-mono font-bold text-slate-600">{r.orderNumber}</td>
+                    <tr key={r.orderNumber} className="border-b border-line hover:bg-surface-2/50">
+                      <td className="px-4 py-3 text-[11px] font-mono font-bold text-ink-muted">{r.orderNumber}</td>
                       <td className="px-4 py-3">
-                        <p className="text-xs font-semibold text-slate-700 max-w-[180px] truncate" title={r.productName}>{r.productName}</p>
-                        <p className="text-[9px] font-mono text-slate-400">{r.sku}</p>
+                        <p className="text-xs font-semibold text-ink-2 max-w-[180px] truncate" title={r.productName}>{r.productName}</p>
+                        <p className="text-[9px] font-mono text-ink-faint">{r.sku}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[r.status]}`}>{r.status}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">{formatNumber(r.targetQuantity)}</td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
+                      <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">{formatNumber(r.targetQuantity)}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">
                         {r.actualYield == null ? '—' : formatNumber(r.actualYield)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {r.yieldPct !== null ? (
-                          <span className={`text-xs font-bold font-mono ${r.yieldPct >= 95 ? 'text-emerald-600' : r.yieldPct >= 80 ? 'text-amber-600' : 'text-rose-600'}`}>
+                          <span className={`text-xs font-bold font-mono ${r.yieldPct >= 95 ? 'text-emerald-600 dark:text-emerald-300' : r.yieldPct >= 80 ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-300'}`}>
                             {formatPercent(r.yieldPct)}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-300">—</span>
+                          <span className="text-[10px] text-ink-faint">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -259,14 +259,14 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
       )}
 
       {!loading && tab === 'valuation' && (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {valFiltered.length === 0 ? (
             <EmptyState title="No stock data yet." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                     <th className="px-4 py-3 font-semibold">Material</th>
                     <th className="px-4 py-3 font-semibold">SKU</th>
                     <th className="px-4 py-3 font-semibold text-right">On Hand</th>
@@ -277,23 +277,23 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                 </thead>
                 <tbody>
                   {valFiltered.map((r) => (
-                    <tr key={r.materialId} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <tr key={r.materialId} className="border-b border-line hover:bg-surface-2/50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                             <LineChart className="w-3.5 h-3.5 text-[#EA4335]" />
                           </div>
-                          <p className="text-xs font-bold text-slate-700 max-w-[180px] truncate" title={r.materialName}>{r.materialName}</p>
+                          <p className="text-xs font-bold text-ink-2 max-w-[180px] truncate" title={r.materialName}>{r.materialName}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[10px] font-mono text-slate-500">{r.sku}</td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-600">
+                      <td className="px-4 py-3 text-[10px] font-mono text-ink-muted">{r.sku}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">
                         {formatQty(r.quantity, r.unitOfMeasure)}
                       </td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-500">
+                      <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">
                         {r.unitCost ? formatMoney(r.unitCost) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right text-xs font-mono font-bold text-emerald-600">
+                      <td className="px-4 py-3 text-right text-xs font-mono font-bold text-emerald-600 dark:text-emerald-300">
                         {formatMoney(r.value)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -314,7 +314,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
           subtitle={viewing.orderNumber}
           status={{
             label: viewing.status,
-            className: statusBadge[viewing.status] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+            className: statusBadge[viewing.status] ?? 'bg-surface-3 text-ink-muted border-line',
           }}
           onClose={() => setViewing(null)}
           sections={[

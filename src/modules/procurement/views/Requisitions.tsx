@@ -10,10 +10,10 @@ import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview'
 import { formatQty } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 interface SupplierDetail {
@@ -62,18 +62,18 @@ const emptyItem = (): EditItem => ({ materialId: '', quantity: '', unitOfMeasure
 
 function SupplierList({ suppliers }: { suppliers: SupplierDetail[] }) {
   if (suppliers.length === 0) {
-    return <p className="text-[10px] text-amber-600">No supplier linked to this material yet.</p>;
+    return <p className="text-[10px] text-amber-600 dark:text-amber-300">No supplier linked to this material yet.</p>;
   }
   return (
     <div className="space-y-1.5">
       {suppliers.map((s) => (
         <div key={s.id} className="text-[10px] leading-tight">
-          <p className="font-semibold text-[#171717]">
+          <p className="font-semibold text-ink">
             {s.name}
-            {s.contactPerson && <span className="font-normal text-slate-500"> · {s.contactPerson}</span>}
+            {s.contactPerson && <span className="font-normal text-ink-muted"> · {s.contactPerson}</span>}
           </p>
           {(s.email || s.phone) && (
-            <p className="text-[9px] text-slate-400">
+            <p className="text-[9px] text-ink-faint">
               {[s.email, s.phone].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -380,7 +380,7 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Requisitions</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Requisitions</h2>
           <PageDescription>Create, review and edit draft purchase requisitions.</PageDescription>
         </div>
         <button onClick={() => setShowReqForm(true)} className="btn-3d px-4 h-9 self-start md:self-auto">
@@ -391,77 +391,77 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
       </div>
 
       {error && !selected && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. New Requisition modal */}
       {showReqForm && (
         <Modal onClose={() => setShowReqForm(false)}>
-          <form onSubmit={createRequisition} className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createRequisition} className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <FilePlus2 className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">New Requisition</h3>
               </div>
-              <button type="button" onClick={() => setShowReqForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowReqForm(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {error && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
             )}
 
             <div className="space-y-2">
               {reqItems.map((item, idx) => (
-                <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500">Item {idx + 1}</span>
+                    <span className="text-[10px] font-bold text-ink-muted">Item {idx + 1}</span>
                     {reqItems.length > 1 && (
-                      <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-rose-500 p-0.5">✕</button>
+                      <button type="button" onClick={() => setReqItems(reqItems.filter((_, i) => i !== idx))} className="text-ink-faint hover:text-rose-500 p-0.5">✕</button>
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                     <select
                       value={item.materialId}
                       onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, materialId: e.target.value, unitOfMeasure: materials.find((m) => m.id === e.target.value)?.unitOfMeasure || '' } : r))}
-                      className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                      className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                     >
                       <option value="">Select material…</option>
                       {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
                     </select>
                   </div>
                   {item.materialId && (
-                    <div className="rounded-md border border-slate-200 bg-white px-2.5 py-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Supplier</p>
+                    <div className="rounded-md border border-line bg-surface px-2.5 py-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint mb-1">Supplier</p>
                       <SupplierList suppliers={suppliersFor(item.materialId)} />
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" min="0.0001" step="any" className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
+                      <input value={item.quantity} onChange={(e) => setReqItems(reqItems.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} placeholder="e.g. 10" type="number" min="0.0001" step="any" className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                       <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                      <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit</label>
+                      <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-line px-2 text-xs bg-surface-2" />
                     </div>
                   </div>
                 </div>
               ))}
 
-              <button type="button" onClick={() => setReqItems([...reqItems, emptyItem()])} className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
+              <button type="button" onClick={() => setReqItems([...reqItems, emptyItem()])} className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Add Item
               </button>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} rows={3} placeholder="Reason, urgency, etc." className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
+                <textarea value={reqNotes} onChange={(e) => setReqNotes(e.target.value)} rows={3} placeholder="Reason, urgency, etc." className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowReqForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowReqForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold whitespace-nowrap">Create (Draft)</span>
               </button>
@@ -474,7 +474,7 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-3 w-28" />
@@ -490,41 +490,41 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredRequisitions.length === 0 ? (
             <EmptyState title="No requisitions yet." />
           ) : (
             filteredRequisitions.map((r) => (
-              <div key={r.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={r.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#171717]">{r.number}</span>
+                    <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[r.status] ?? reqStatusBadge.DRAFT}`}>{r.status}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-ink-faint">
                     by {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
                     {r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString()}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => openDetail(r.id, 'view')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-50">
+                  <button onClick={() => openDetail(r.id, 'view')} className="h-8 px-3 rounded-lg border border-line text-ink-muted text-[11px] font-semibold flex items-center gap-1 hover:bg-surface-2">
                     <Eye className="w-3 h-3" /> View
                   </button>
                   {r.status === 'DRAFT' && (
                     <>
-                      <button onClick={() => openDetail(r.id, 'edit')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-50">
+                      <button onClick={() => openDetail(r.id, 'edit')} className="h-8 px-3 rounded-lg border border-line text-ink-muted text-[11px] font-semibold flex items-center gap-1 hover:bg-surface-2">
                         <Pencil className="w-3 h-3" /> Edit
                       </button>
-                      <button onClick={() => submitRequisition(r.id)} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
+                      <button onClick={() => submitRequisition(r.id)} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">
                         <Send className="w-3 h-3" /> Submit
                       </button>
-                      <button onClick={() => setDeleteConfirmation({ id: r.id })} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <button onClick={() => setDeleteConfirmation({ id: r.id })} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     </>
                   )}
                   {r.purchaseOrders && r.purchaseOrders.length > 0 && (
-                    <span className="text-[10px] text-slate-400">→ {r.purchaseOrders.map((p) => p.number).join(', ')}</span>
+                    <span className="text-[10px] text-ink-faint">→ {r.purchaseOrders.map((p) => p.number).join(', ')}</span>
                   )}
                 </div>
               </div>
@@ -536,9 +536,9 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
       {/* 4. Detail / edit modal */}
       {(detailLoading || selected) && (
         <Modal onClose={closeDetail}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             {detailLoading || !selected ? (
-              <div className="flex items-center justify-center py-12 text-slate-400">
+              <div className="flex items-center justify-center py-12 text-ink-faint">
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
             ) : (
@@ -546,21 +546,21 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-[#171717]">{selected.number}</h3>
+                      <h3 className="text-sm font-bold text-ink">{selected.number}</h3>
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[selected.status] ?? reqStatusBadge.DRAFT}`}>
                         {selected.status}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-[10px] text-ink-faint mt-1">
                       Requested by {selected.requestedBy?.fullName ?? '—'}
                       {selected.createdAt ? ` · ${new Date(selected.createdAt).toLocaleString()}` : ''}
                     </p>
                   </div>
-                  <button type="button" onClick={closeDetail} className="text-slate-400 hover:text-slate-600">✕</button>
+                  <button type="button" onClick={closeDetail} className="text-ink-faint hover:text-ink-muted">✕</button>
                 </div>
 
                 {error && (
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
                 )}
 
                 {mode === 'view' ? (
@@ -569,18 +569,18 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                       {selected.items.map((item) => {
                         const material = item.material ?? materialFor(item.materialId);
                         return (
-                          <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                          <div key={item.id} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="text-xs font-bold text-[#171717]">{material?.name ?? item.materialId}</p>
-                                <p className="text-[9px] font-mono text-slate-400">{material?.sku ?? ''}</p>
+                                <p className="text-xs font-bold text-ink">{material?.name ?? item.materialId}</p>
+                                <p className="text-[9px] font-mono text-ink-faint">{material?.sku ?? ''}</p>
                               </div>
-                              <p className="text-xs font-semibold text-[#171717] whitespace-nowrap">
+                              <p className="text-xs font-semibold text-ink whitespace-nowrap">
                                 {formatQty(item.quantity, item.unitOfMeasure)}
                               </p>
                             </div>
-                            <div className="rounded-md border border-slate-200 bg-white px-2.5 py-2">
-                              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Supplier</p>
+                            <div className="rounded-md border border-line bg-surface px-2.5 py-2">
+                              <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint mb-1">Supplier</p>
                               <SupplierList suppliers={material?.suppliers?.map((s) => s.supplier) ?? []} />
                             </div>
                           </div>
@@ -589,28 +589,28 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                     </div>
 
                     {selected.notes && (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/40 p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Notes</p>
-                        <p className="text-[11px] text-slate-600 whitespace-pre-wrap">{selected.notes}</p>
+                      <div className="rounded-lg border border-line bg-surface-2/40 p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint mb-1">Notes</p>
+                        <p className="text-[11px] text-ink-muted whitespace-pre-wrap">{selected.notes}</p>
                       </div>
                     )}
 
                     {selected.purchaseOrders && selected.purchaseOrders.length > 0 && (
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-ink-faint">
                         Purchase orders: {selected.purchaseOrders.map((p) => p.number).join(', ')}
                       </p>
                     )}
 
                     <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={closeDetail} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                      <button type="button" onClick={closeDetail} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted hover:bg-surface-2">
                         Close
                       </button>
                       {selected.status === 'DRAFT' && (
                         <>
-                          <button type="button" onClick={startEdit} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-1">
+                          <button type="button" onClick={startEdit} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted hover:bg-surface-2 flex items-center gap-1">
                             <Pencil className="w-3 h-3" /> Edit
                           </button>
-                          <button type="button" onClick={submitSelected} className="h-9 px-4 rounded-lg border border-sky-200 text-sky-600 text-xs font-semibold hover:bg-sky-50 flex items-center gap-1">
+                          <button type="button" onClick={submitSelected} className="h-9 px-4 rounded-lg border border-sky-200 text-sky-600 text-xs font-semibold hover:bg-sky-50 flex items-center gap-1 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">
                             <Send className="w-3 h-3" /> Submit
                           </button>
                         </>
@@ -627,21 +627,21 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                             !editItems.some((other, i) => i !== idx && other.materialId === m.id)
                         );
                         return (
-                          <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                          <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold text-slate-500">Item {idx + 1}</span>
+                              <span className="text-[10px] font-bold text-ink-muted">Item {idx + 1}</span>
                               {editItems.length > 1 && (
-                                <button type="button" onClick={() => removeEditItem(idx)} className="text-slate-300 hover:text-rose-500 p-0.5" title="Remove item">
+                                <button type="button" onClick={() => removeEditItem(idx)} className="text-ink-faint hover:text-rose-500 p-0.5" title="Remove item">
                                   <Trash2 className="w-3 h-3" />
                                 </button>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                              <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                               <select
                                 value={item.materialId}
                                 onChange={(e) => selectEditMaterial(idx, e.target.value)}
-                                className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                                className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                               >
                                 <option value="">Select material…</option>
                                 {item.materialId && !options.some((m) => m.id === item.materialId) && (
@@ -655,14 +655,14 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                               </select>
                             </div>
                             {item.materialId && (
-                              <div className="rounded-md border border-slate-200 bg-white px-2.5 py-2">
-                                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Supplier</p>
+                              <div className="rounded-md border border-line bg-surface px-2.5 py-2">
+                                <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint mb-1">Supplier</p>
                                 <SupplierList suppliers={suppliersFor(item.materialId)} />
                               </div>
                             )}
                             <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
-                                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
+                                <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
                                 <input
                                   value={item.quantity}
                                   onChange={(e) => updateEditItem(idx, { quantity: e.target.value })}
@@ -670,13 +670,13 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                                   type="number"
                                   min="0.0001"
                                   step="any"
-                                  className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                                  className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                                 />
                                 <PackQuantityPreview quantity={item.quantity} unit={item.unitOfMeasure} />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit</label>
-                                <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs bg-slate-50" />
+                                <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit</label>
+                                <input value={item.unitOfMeasure} readOnly placeholder="UoM" className="h-9 w-full rounded-lg border border-line px-2 text-xs bg-surface-2" />
                               </div>
                             </div>
                           </div>
@@ -686,14 +686,14 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                       <button
                         type="button"
                         onClick={addEditItem}
-                        className="w-full h-10 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
+                        className="w-full h-10 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-xs font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Item
                       </button>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
                       <textarea
                         value={editNotes}
                         onChange={(e) => {
@@ -702,12 +702,12 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                         }}
                         rows={3}
                         placeholder="Reason, urgency, etc."
-                        className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+                        className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
                       />
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={cancelEdit} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                      <button type="button" onClick={cancelEdit} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted hover:bg-surface-2">
                         Cancel
                       </button>
                       <button

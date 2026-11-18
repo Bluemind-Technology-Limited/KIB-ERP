@@ -382,10 +382,10 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
+      <div className="min-h-screen flex items-center justify-center bg-app">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#E9E9E9] border-t-[#EA4335] animate-spin" />
-          <p className="text-xs text-slate-400">Loading workspace…</p>
+          <div className="w-8 h-8 rounded-full border-2 border-line border-t-[#EA4335] animate-spin" />
+          <p className="text-xs text-ink-faint">Loading workspace…</p>
         </div>
       </div>
     );

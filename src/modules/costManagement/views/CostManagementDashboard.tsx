@@ -63,34 +63,34 @@ export default function CostManagementDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-surface-2 p-6 dark:bg-surface-20/10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Cost Management</h1>
+        <h1 className="text-4xl font-bold text-ink mb-2 dark:text-ink-faint">Cost Management</h1>
         <PageDescription>Manage, approve, and track cost modifications across all resources</PageDescription>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800">{error}</p>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-500/10 dark:border-red-500/30">
+          <p className="text-red-800 dark:text-red-300">{error}</p>
         </div>
       )}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-800">{successMessage}</p>
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-500/10 dark:border-green-500/30">
+          <p className="text-green-800 dark:text-green-300">{successMessage}</p>
         </div>
       )}
 
       {/* Tab Navigation */}
-      <div className="mb-8 border-b border-gray-200">
+      <div className="mb-8 border-b border-line dark:border-gray-500/30">
         <div className="flex gap-8">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`pb-4 px-1 font-medium border-b-2 transition-colors ${
               activeTab === 'dashboard'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-300'
+                : 'border-transparent text-ink-muted hover:text-ink dark:text-ink-faint dark:hover:text-ink-faint'
             }`}
           >
             Dashboard
@@ -100,8 +100,8 @@ export default function CostManagementDashboard() {
               onClick={() => setActiveTab('approvals')}
               className={`pb-4 px-1 font-medium border-b-2 transition-colors relative ${
                 activeTab === 'approvals'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-300'
+                  : 'border-transparent text-ink-muted hover:text-ink dark:text-ink-faint dark:hover:text-ink-faint'
               }`}
             >
               Approvals
@@ -116,8 +116,8 @@ export default function CostManagementDashboard() {
             onClick={() => setActiveTab('history')}
             className={`pb-4 px-1 font-medium border-b-2 transition-colors ${
               activeTab === 'history'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-300'
+                : 'border-transparent text-ink-muted hover:text-ink dark:text-ink-faint dark:hover:text-ink-faint'
             }`}
           >
             History
@@ -131,25 +131,25 @@ export default function CostManagementDashboard() {
           {/* Summary Cards */}
           {auditSummary && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600 text-sm font-medium">Total Changes</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{formatNumber(auditSummary.totalChanges)}</p>
+              <div className="bg-surface rounded-lg shadow p-6">
+                <p className="text-ink-muted text-sm font-medium dark:text-ink-faint">Total Changes</p>
+                <p className="text-3xl font-bold text-ink mt-2 dark:text-ink-faint">{formatNumber(auditSummary.totalChanges)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600 text-sm font-medium">Pending Approval</p>
-                <p className="text-3xl font-bold text-yellow-600 mt-2">{formatNumber(auditSummary.pendingApprovals)}</p>
+              <div className="bg-surface rounded-lg shadow p-6">
+                <p className="text-ink-muted text-sm font-medium dark:text-ink-faint">Pending Approval</p>
+                <p className="text-3xl font-bold text-yellow-600 mt-2 dark:text-yellow-300">{formatNumber(auditSummary.pendingApprovals)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600 text-sm font-medium">Approved</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">{formatNumber(auditSummary.approvedChanges)}</p>
+              <div className="bg-surface rounded-lg shadow p-6">
+                <p className="text-ink-muted text-sm font-medium dark:text-ink-faint">Approved</p>
+                <p className="text-3xl font-bold text-green-600 mt-2 dark:text-green-300">{formatNumber(auditSummary.approvedChanges)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600 text-sm font-medium">Rejected</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">{formatNumber(auditSummary.rejectedChanges)}</p>
+              <div className="bg-surface rounded-lg shadow p-6">
+                <p className="text-ink-muted text-sm font-medium dark:text-ink-faint">Rejected</p>
+                <p className="text-3xl font-bold text-red-600 mt-2 dark:text-red-300">{formatNumber(auditSummary.rejectedChanges)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600 text-sm font-medium">Avg Variance %</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
+              <div className="bg-surface rounded-lg shadow p-6">
+                <p className="text-ink-muted text-sm font-medium dark:text-ink-faint">Avg Variance %</p>
+                <p className="text-3xl font-bold text-ink mt-2 dark:text-ink-faint">
                   {formatPercent(auditSummary.averageVariancePercent, 2)}
                 </p>
               </div>
@@ -158,8 +158,8 @@ export default function CostManagementDashboard() {
 
           {/* Quick Actions */}
           {canModify && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="bg-surface rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-ink mb-4 dark:text-ink-faint">Quick Actions</h2>
               <button
                 onClick={() => handleOpenCostEdit('Material', '')}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
@@ -171,31 +171,31 @@ export default function CostManagementDashboard() {
 
           {/* Recent Changes */}
           {auditSummary && auditSummary.recentChanges.length > 0 && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Changes</h2>
+            <div className="bg-surface rounded-lg shadow overflow-hidden">
+              <div className="p-6 border-b border-line dark:border-gray-500/30">
+                <h2 className="text-lg font-semibold text-ink dark:text-ink-faint">Recent Changes</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-surface-2 dark:bg-surface-20/10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Field</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Old Value</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">New Value</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Variance %</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
-                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Changed By</th>
-                      <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">Field</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">Old Value</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">New Value</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">Variance %</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">Status</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-ink-2 dark:text-ink-faint">Changed By</th>
+                      <th className="px-6 py-3 text-right text-sm font-medium text-ink-2 dark:text-ink-faint">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-500/30">
                     {auditSummary.recentChanges.slice(0, 5).map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900">{item.fieldName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{formatMoney(item.oldValue)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{formatMoney(item.newValue)}</td>
+                      <tr key={item.id} className="hover:bg-surface-2">
+                        <td className="px-6 py-4 text-sm text-ink dark:text-ink-faint">{item.fieldName}</td>
+                        <td className="px-6 py-4 text-sm text-ink-muted dark:text-ink-faint">{formatMoney(item.oldValue)}</td>
+                        <td className="px-6 py-4 text-sm text-ink-muted dark:text-ink-faint">{formatMoney(item.newValue)}</td>
                         <td className="px-6 py-4 text-sm font-medium">
-                          <span className={item.variancePercent > 0 ? 'text-red-600' : 'text-green-600'}>
+                          <span className={item.variancePercent > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}>
                             {item.variancePercent > 0 ? '+' : ''}{formatPercent(item.variancePercent, 2)}
                           </span>
                         </td>
@@ -203,16 +203,16 @@ export default function CostManagementDashboard() {
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
                               item.status === 'APPROVED'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-green-600 text-white'
                                 : item.status === 'PENDING'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
+                                ? 'bg-yellow-600 text-white'
+                                : 'bg-red-600 text-white'
                             }`}
                           >
                             {item.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{item.changedBy}</td>
+                        <td className="px-6 py-4 text-sm text-ink-muted dark:text-ink-faint">{item.changedBy}</td>
                         <td className="px-6 py-4 text-sm text-right">
                           <ViewButton onClick={() => setViewing(item)} />
                         </td>
@@ -253,10 +253,10 @@ export default function CostManagementDashboard() {
             label: viewing.status,
             className:
               viewing.status === 'APPROVED'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
                 : viewing.status === 'PENDING'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-rose-50 text-rose-600 border-rose-200',
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30'
+                  : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
           }}
           onClose={() => setViewing(null)}
           sections={[

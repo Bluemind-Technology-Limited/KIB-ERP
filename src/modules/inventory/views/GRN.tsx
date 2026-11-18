@@ -25,9 +25,9 @@ interface GrnData {
 }
 
 const sourceBadge: Record<string, string> = {
-  PURCHASE_ORDER: 'bg-sky-50 text-sky-700 border-sky-200',
-  CONSIGNMENT: 'bg-violet-50 text-violet-700 border-violet-200',
-  DIRECT: 'bg-amber-50 text-amber-700 border-amber-200',
+  PURCHASE_ORDER: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
+  CONSIGNMENT: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/30',
+  DIRECT: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
 };
 const sourceLabel: Record<string, string> = {
   PURCHASE_ORDER: 'PO',
@@ -36,16 +36,16 @@ const sourceLabel: Record<string, string> = {
 };
 
 const grnStatusBadge: Record<string, string> = {
-  PENDING_QA: 'bg-amber-50 text-amber-700 border-amber-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  PENDING_QA: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
-  EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 /** SOP KIB/QCA/010 — what still has to be filled in before a lot code can be built. */
@@ -93,10 +93,10 @@ const emptyLine = (): GrnLine => ({
 function FieldLabel({ children, hint }: { children: string; hint?: string }) {
   return (
     <div className="space-y-0.5">
-      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+      <label className="block text-[9px] font-bold uppercase tracking-wider text-ink-faint">
         {children}
       </label>
-      {hint && <p className="text-[9px] leading-snug text-slate-400">{hint}</p>}
+      {hint && <p className="text-[9px] leading-snug text-ink-faint">{hint}</p>}
     </div>
   );
 }
@@ -387,7 +387,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Goods Receipt (GRN)</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Goods Receipt (GRN)</h2>
           <PageDescription>Receive goods against a PO, or record a direct contingency receipt.</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -397,10 +397,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>}
 
       {/* 3. GRN table */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={6} rows={6} hasAvatar={false} />
         ) : filtered.length === 0 ? (
@@ -409,7 +409,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">GRN</th>
                   <th className="px-4 py-3 font-semibold">Supplier / Reference</th>
                   <th className="px-4 py-3 font-semibold">Items</th>
@@ -423,7 +423,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   const collapsed = !!collapsedDates[group.key];
                   return (
                     <Fragment key={group.key}>
-                      <tr className="bg-slate-50/80 border-y border-slate-100">
+                      <tr className="bg-surface-2/80 border-y border-line">
                         <td colSpan={6} className="px-4 py-2">
                           <button
                             type="button"
@@ -432,15 +432,15 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                             }
                             className="w-full flex items-center justify-between text-left"
                           >
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-muted">
                               {collapsed ? (
-                                <ChevronRight className="w-3 h-3 text-slate-400" />
+                                <ChevronRight className="w-3 h-3 text-ink-faint" />
                               ) : (
-                                <ChevronDown className="w-3 h-3 text-slate-400" />
+                                <ChevronDown className="w-3 h-3 text-ink-faint" />
                               )}
                               {group.label}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-ink-faint">
                               {group.rows.length} receipt(s) · {group.lines} line(s)
                             </span>
                           </button>
@@ -460,9 +460,9 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     .join('\n');
 
                   return (
-                    <tr key={g.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                    <tr key={g.id} className="border-b border-line last:border-0 hover:bg-surface-2/50">
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-mono text-xs font-bold text-[#171717]">{g.number}</span>
+                        <span className="font-mono text-xs font-bold text-ink">{g.number}</span>
                         <span
                           className={`ml-2 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${sourceBadge[g.source ?? 'PURCHASE_ORDER']}`}
                         >
@@ -470,22 +470,22 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-xs text-slate-600 truncate max-w-[170px]" title={supplierName}>
+                        <p className="text-xs text-ink-muted truncate max-w-[170px]" title={supplierName}>
                           {supplierName}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-mono truncate max-w-[170px]" title={reference}>
+                        <p className="text-[10px] text-ink-faint font-mono truncate max-w-[170px]" title={reference}>
                           {reference}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-[11px] text-slate-600 truncate max-w-[200px]" title={itemTitle}>
+                        <p className="text-[11px] text-ink-muted truncate max-w-[200px]" title={itemTitle}>
                           {firstLabel}
-                          {items.length > 1 && <span className="text-slate-400"> +{items.length - 1} more</span>}
+                          {items.length > 1 && <span className="text-ink-faint"> +{items.length - 1} more</span>}
                         </p>
-                        <p className="text-[10px] text-slate-400">{items.length} line(s)</p>
+                        <p className="text-[10px] text-ink-faint">{items.length} line(s)</p>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <p className="text-[11px] text-slate-500 truncate max-w-[130px]" title={g.receivedBy?.fullName ?? undefined}>
+                        <p className="text-[11px] text-ink-muted truncate max-w-[130px]" title={g.receivedBy?.fullName ?? undefined}>
                           {g.receivedBy?.fullName ?? '—'}
                         </p>
                       </td>
@@ -504,7 +504,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                               setDeleteError('');
                               setDeleteConfirmation({ grnId: g.id, grnNumber: g.number });
                             }}
-                            className="text-slate-300 hover:text-rose-600 transition-colors p-1.5"
+                            className="text-ink-faint hover:text-rose-600 transition-colors p-1.5 dark:hover:text-rose-300"
                             title="Delete GRN"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -526,17 +526,17 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
       {/* 4. Receive Goods modal */}
       {showForm && (
         <Modal onClose={() => setShowForm(false)}>
-          <form onSubmit={receive} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={receive} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <PackageCheck className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">Receive Goods</h3>
               </div>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowForm(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {formError && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
                 {formError}
               </div>
             )}
@@ -549,7 +549,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   className={`h-9 rounded-lg border text-xs font-semibold ${
                     mode === 'PO'
                       ? 'border-[#EA4335] bg-[#EA4335]/10 text-[#EA4335]'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      : 'border-line text-ink-muted hover:bg-surface-2'
                   }`}
                 >
                   Against PO
@@ -560,7 +560,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   className={`h-9 rounded-lg border text-xs font-semibold ${
                     mode === 'DIRECT'
                       ? 'border-[#EA4335] bg-[#EA4335]/10 text-[#EA4335]'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      : 'border-line text-ink-muted hover:bg-surface-2'
                   }`}
                 >
                   Direct Receipt
@@ -568,14 +568,14 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Received On *</label>
+                <label className="block text-[9px] font-bold uppercase tracking-wider text-ink-faint">Received On *</label>
                 <input
                   type="date"
                   value={receivedOn}
                   onChange={(e) => setReceivedOn(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
-                <p className="text-[9px] text-slate-400">Date the goods physically arrived at the warehouse.</p>
+                <p className="text-[9px] text-ink-faint">Date the goods physically arrived at the warehouse.</p>
               </div>
 
               {mode === 'PO' && (
@@ -586,7 +586,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                 <select
                   value={poId}
                   onChange={(e) => selectPo(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 >
                   <option value="">Select purchase order…</option>
                   {pos
@@ -613,7 +613,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   onChange={(e) => setGrnNotes(e.target.value)}
                   placeholder={mode === 'DIRECT' ? 'Reason for direct receipt (required)' : 'Notes'}
                   rows={4}
-                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
+                  className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none"
                 />
               </div>
             </div>
@@ -621,10 +621,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
             {lines.map((line, idx) => {
               const preview = lotPreviews[line.materialId];
               return (
-                <div key={idx} className={`space-y-2 rounded-lg border p-2 ${mode === 'PO' && line.delivered === false ? 'border-slate-200 bg-slate-50/60 opacity-60' : 'border-slate-100'}`}>
+                <div key={idx} className={`space-y-2 rounded-lg border p-2 ${mode === 'PO' && line.delivered === false ? 'border-line bg-surface-2/60 opacity-60' : 'border-line'}`}>
                   {mode === 'PO' && (
                     <div className="flex items-center justify-between gap-2">
-                      <label className="flex items-center gap-2 text-[10px] font-bold text-slate-600">
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-ink-muted">
                         <input
                           type="checkbox"
                           checked={line.delivered !== false}
@@ -637,10 +637,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         />
                         Delivered
                       </label>
-                      <span className="text-[9px] text-slate-400">
+                      <span className="text-[9px] text-ink-faint">
                         {formatNumber(line.alreadyReceived ?? 0)} of {formatNumber(line.orderedQty ?? 0)} already received
                         {Number(line.orderedQty ?? 0) - Number(line.alreadyReceived ?? 0) > 0 && (
-                          <span className="text-amber-600 font-semibold">
+                          <span className="text-amber-600 font-semibold dark:text-amber-300">
                             {' '}· {formatNumber(Number(line.orderedQty ?? 0) - Number(line.alreadyReceived ?? 0))} outstanding
                           </span>
                         )}
@@ -655,7 +655,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       <select
                         value={line.materialId}
                         onChange={(e) => onDirectMaterialChange(idx, e.target.value)}
-                        className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                        className="h-8 w-full rounded-lg border border-line bg-surface px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                       >
                         <option value="">Select material…</option>
                         {materials.map((m) => (
@@ -666,11 +666,11 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                   )}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="block truncate text-[11px] font-semibold text-slate-600">
+                      <span className="block truncate text-[11px] font-semibold text-ink-muted">
                         {preview?.materialName || line.materialName || 'Material'}
                       </span>
                       {preview?.materialSku && (
-                        <span className="block text-[9px] font-mono text-slate-400">{preview.materialSku}</span>
+                        <span className="block text-[9px] font-mono text-ink-faint">{preview.materialSku}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -678,28 +678,28 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         <button
                           type="button"
                           onClick={() => removeLine(idx)}
-                          className="text-slate-300 hover:text-rose-500 p-0.5"
+                          className="text-ink-faint hover:text-rose-500 p-0.5"
                           title="Not received — remove this line"
                         >
                           ✕
                         </button>
                       )}
                       {mode === 'DIRECT' && preview?.supplierName && (
-                        <span className="text-right text-[9px] text-slate-400">{preview.supplierName}</span>
+                        <span className="text-right text-[9px] text-ink-faint">{preview.supplierName}</span>
                       )}
                       {mode === 'PO' && activeSupplierName && (
-                        <span className="text-right text-[9px] text-slate-400">{activeSupplierName}</span>
+                        <span className="text-right text-[9px] text-ink-faint">{activeSupplierName}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Lot code — always shown beside the ingredient and supplier names it belongs to. */}
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
-                    <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Lot Code</span>
+                  <div className="rounded-md border border-line bg-surface-2 px-2 py-1.5">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-ink-faint">Lot Code</span>
                     {preview?.lotCode ? (
-                      <span className="block font-mono text-xs font-bold text-[#171717]">{preview.lotCode}</span>
+                      <span className="block font-mono text-xs font-bold text-ink">{preview.lotCode}</span>
                     ) : (
-                      <span className="block text-[10px] text-amber-600">
+                      <span className="block text-[10px] text-amber-600 dark:text-amber-300">
                         {preview?.missing?.length
                           ? `No lot code yet (${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')}). QA can edit the set number during inspection.`
                           : mode === 'DIRECT'
@@ -709,15 +709,15 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     )}
                   </div>
 
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
-                    <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="rounded-md border border-line bg-surface-2 px-2 py-1.5">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-ink-faint">
                       Set number
                     </span>
-                    <p className="text-[10px] leading-snug text-slate-500">
+                    <p className="text-[10px] leading-snug text-ink-muted">
                       Assigned by the system and approved by QA during inspection.
                     </p>
                     {preview?.setNumber != null && (
-                      <p className="mt-0.5 font-mono text-[10px] text-slate-400">
+                      <p className="mt-0.5 font-mono text-[10px] text-ink-faint">
                         Suggested: {preview.setNumber}
                       </p>
                     )}
@@ -743,8 +743,8 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       readOnly={mode === 'PO'}
                       aria-readonly={mode === 'PO'}
                       disabled={mode === 'PO' && line.delivered === false}
-                      className={`h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none ${
-                        mode === 'PO' ? 'bg-slate-100 text-slate-500' : 'focus:border-[#EA4335]'
+                      className={`h-8 w-full rounded-lg border border-line px-2 text-[11px] focus:outline-none ${
+                        mode === 'PO' ? 'bg-surface-3 text-ink-muted' : 'focus:border-[#EA4335]'
                       } disabled:bg-slate-100`}
                     />
                     <PackQuantityPreview quantity={line.quantity} unit={line.unitOfMeasure} />
@@ -761,7 +761,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                         type="number"
                         min="0"
                         step="any"
-                        className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                        className="h-8 w-full rounded-lg border border-line px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                       />
                     </div>
                   )}
@@ -775,7 +775,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       type="date"
                       min={new Date().toISOString().split('T')[0]}
                       disabled={mode === 'PO' && line.delivered === false}
-                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
+                      className="h-8 w-full rounded-lg border border-line px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-surface-3"
                       required
                     />
                   </div>
@@ -787,7 +787,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       value={line.warehouseId}
                       onChange={(e) => setLines(lines.map((l, i) => i === idx ? { ...l, warehouseId: e.target.value } : l))}
                       disabled={mode === 'PO' && line.delivered === false}
-                      className="h-8 w-full rounded-lg border border-[#E9E9E9] px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-slate-100"
+                      className="h-8 w-full rounded-lg border border-line px-2 text-[11px] focus:outline-none focus:border-[#EA4335] disabled:bg-surface-3"
                     >
                     <option value="">Warehouse…</option>
                     {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -801,14 +801,14 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
               <button
                 type="button"
                 onClick={addLine}
-                className="w-full h-9 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-[11px] font-bold text-slate-400 hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
+                className="w-full h-9 rounded-lg border-2 border-dashed border-line hover:border-[#EA4335]/50 hover:bg-rose-50/30 text-[11px] font-bold text-ink-faint hover:text-[#EA4335] transition-colors flex items-center justify-center gap-1.5"
               >
                 <Plus className="w-3.5 h-3.5" /> Add Item
               </button>
             )}
 
             <div className="flex justify-between items-center">
-              <button type="button" onClick={() => setShowForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9">
                 <span className="flex items-center gap-1.5 text-white text-xs font-semibold whitespace-nowrap"><PackageCheck className="w-3.5 h-3.5" /> {mode === 'DIRECT' ? 'Post Direct Receipt' : 'Post Receipt + Ledger'}</span>
               </button>
@@ -863,7 +863,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
             <button
               type="button"
               onClick={() => setViewing(null)}
-              className="h-8 px-4 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+              className="h-8 px-4 rounded-lg border border-line text-[11px] font-semibold text-ink-muted hover:bg-surface-2"
             >
               Close
             </button>
@@ -892,10 +892,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     (viewing.items ?? []).length === 0 ? (
                       '—'
                     ) : (
-                      <div className="overflow-hidden rounded-lg border border-slate-100">
+                      <div className="overflow-hidden rounded-lg border border-line">
                         <table className="w-full text-left">
-                          <thead className="bg-slate-50">
-                            <tr className="text-[9px] uppercase tracking-wider text-slate-400">
+                          <thead className="bg-surface-2">
+                            <tr className="text-[9px] uppercase tracking-wider text-ink-faint">
                               <th className="px-2.5 py-1.5 font-semibold">Material</th>
                               <th className="px-2.5 py-1.5 font-semibold">Batch</th>
                               <th className="px-2.5 py-1.5 font-semibold">Expiry</th>
@@ -904,15 +904,15 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                           </thead>
                           <tbody>
                             {(viewing.items ?? []).map((it: any) => (
-                              <tr key={it.id} className="border-t border-slate-50">
+                              <tr key={it.id} className="border-t border-line">
                                 <td className="px-2.5 py-2">
-                                  <p className="text-[11px] font-semibold text-[#171717] truncate max-w-[180px]" title={it.material?.name ?? undefined}>
+                                  <p className="text-[11px] font-semibold text-ink truncate max-w-[180px]" title={it.material?.name ?? undefined}>
                                     {it.material?.name ?? 'Material'}
                                   </p>
-                                  <p className="text-[9px] font-mono text-slate-400">{it.material?.sku ?? ''}</p>
+                                  <p className="text-[9px] font-mono text-ink-faint">{it.material?.sku ?? ''}</p>
                                 </td>
                                 <td className="px-2.5 py-2">
-                                  <p className="text-[10px] font-mono text-slate-600">
+                                  <p className="text-[10px] font-mono text-ink-muted">
                                     {it.batchLot?.batchNumber ?? '—'}
                                   </p>
                                   {it.batchLot?.status && (
@@ -923,11 +923,11 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-2.5 py-2 text-[10px] text-slate-500 whitespace-nowrap">
+                                <td className="px-2.5 py-2 text-[10px] text-ink-muted whitespace-nowrap">
                                   {it.batchLot?.expiryDate ? detailDate(it.batchLot.expiryDate) : '—'}
                                 </td>
                                 <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                                  <span className="text-[11px] font-bold text-[#171717]">{formatQty(it.quantity, it.unitOfMeasure)}</span>
+                                  <span className="text-[11px] font-bold text-ink">{formatQty(it.quantity, it.unitOfMeasure)}</span>
                                 </td>
                               </tr>
                             ))}

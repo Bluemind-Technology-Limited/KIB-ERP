@@ -24,30 +24,30 @@ export default function ApprovalStatus({
   const getStatusIcon = () => {
     switch (status) {
       case 'APPROVED':
-        return <CheckCircle2 className="w-6 h-6 text-green-600" />;
+        return <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-300" />;
       case 'REJECTED':
-        return <XCircle className="w-6 h-6 text-rose-600" />;
+        return <XCircle className="w-6 h-6 text-rose-600 dark:text-rose-300" />;
       case 'FAILED':
-        return <AlertCircle className="w-6 h-6 text-rose-600" />;
+        return <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-300" />;
       case 'IN_PROGRESS':
-        return <Clock className="w-6 h-6 text-blue-600" />;
+        return <Clock className="w-6 h-6 text-blue-600 dark:text-blue-300" />;
       default:
-        return <Clock className="w-6 h-6 text-slate-600" />;
+        return <Clock className="w-6 h-6 text-ink-muted" />;
     }
   };
 
   const getStatusColor = () => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-50 border-green-200 text-green-700';
+        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300';
       case 'REJECTED':
-        return 'bg-rose-50 border-rose-200 text-rose-700';
+        return 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300';
       case 'FAILED':
-        return 'bg-rose-50 border-rose-200 text-rose-700';
+        return 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300';
       case 'IN_PROGRESS':
-        return 'bg-blue-50 border-blue-200 text-blue-700';
+        return 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300';
       default:
-        return 'bg-slate-50 border-slate-200 text-slate-700';
+        return 'bg-surface-2 border-line text-ink-2';
     }
   };
 
@@ -108,11 +108,11 @@ export default function ApprovalStatus({
         </div>
         <div className="opacity-75">
           <p className="text-[9px] font-semibold mb-0.5">Passed</p>
-          <p className="text-sm font-bold text-green-600">{passedItems}</p>
+          <p className="text-sm font-bold text-green-600 dark:text-green-300">{passedItems}</p>
         </div>
         <div className="opacity-75">
           <p className="text-[9px] font-semibold mb-0.5">Failed</p>
-          <p className="text-sm font-bold text-rose-600">{failedItems}</p>
+          <p className="text-sm font-bold text-rose-600 dark:text-rose-300">{failedItems}</p>
         </div>
       </div>
 

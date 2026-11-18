@@ -64,15 +64,15 @@ export default function BatchAllocationTable({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ALLOCATED':
-        return 'bg-slate-100 text-slate-700';
+        return 'bg-surface-3 text-ink-2';
       case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300';
       case 'IN_PROGRESS':
-        return 'bg-amber-100 text-amber-700';
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
       case 'COMPLETED':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'bg-surface-3 text-ink-2';
     }
   };
 
@@ -80,51 +80,51 @@ export default function BatchAllocationTable({
     alloc.planItem?.bom?.finishedSku?.name ?? alloc.planItem?.bom?.productName ?? 'Unknown';
 
   return (
-    <div className="bg-white border border-[#E9E9E9] rounded-xl p-4 overflow-x-auto">
-      <h3 className="text-sm font-bold text-slate-700 mb-4">Batch-to-Machine Allocations</h3>
+    <div className="bg-surface border border-line rounded-xl p-4 overflow-x-auto">
+      <h3 className="text-sm font-bold text-ink-2 mb-4">Batch-to-Machine Allocations</h3>
 
       {allocations.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-xs text-slate-500">No allocations yet for this plan.</p>
+          <p className="text-xs text-ink-muted">No allocations yet for this plan.</p>
         </div>
       ) : (
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Batch#</th>
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Product</th>
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Machine</th>
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Scheduled</th>
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Status</th>
-              <th className="text-left py-2 px-3 font-semibold text-slate-600">Actions</th>
+            <tr className="border-b border-line">
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Batch#</th>
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Product</th>
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Machine</th>
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Scheduled</th>
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Status</th>
+              <th className="text-left py-2 px-3 font-semibold text-ink-muted">Actions</th>
             </tr>
           </thead>
           <tbody>
             {allocations.map((alloc) => (
-              <tr key={alloc.id} className="border-b border-slate-50 hover:bg-slate-50">
+              <tr key={alloc.id} className="border-b border-line hover:bg-surface-2">
                 <td className="py-3 px-3">
                   <span className="font-mono text-[9px] font-semibold">
                     {alloc.batchNumber || 'TBD'}
                   </span>
                 </td>
                 <td className="py-3 px-3">
-                  <span className="text-slate-700">{productName(alloc)}</span>
+                  <span className="text-ink-2">{productName(alloc)}</span>
                 </td>
                 <td className="py-3 px-3">
-                  <span className="font-semibold text-slate-700">
+                  <span className="font-semibold text-ink-2">
                     {alloc.machineId ? machineNames[alloc.machineId] ?? '—' : '—'}
                   </span>
                 </td>
                 <td className="py-3 px-3">
                   {alloc.scheduledStartTime ? (
-                    <div className="text-[9px] text-slate-600">
+                    <div className="text-[9px] text-ink-muted">
                       {new Date(alloc.scheduledStartTime).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </div>
                   ) : (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-ink-faint">—</span>
                   )}
                 </td>
                 <td className="py-3 px-3">
@@ -138,7 +138,7 @@ export default function BatchAllocationTable({
                       <button
                         onClick={() => run(alloc.id, `/supervisor/batch-allocations/${alloc.id}/start`)}
                         disabled={busyIds.has(alloc.id)}
-                        className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                        className="flex items-center gap-1 px-2 py-1 rounded disabled:opacity-50 bg-blue-600 text-white"
                         title="Start production"
                       >
                         {busyIds.has(alloc.id) ? (
@@ -156,7 +156,7 @@ export default function BatchAllocationTable({
                           })
                         }
                         disabled={busyIds.has(alloc.id)}
-                        className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
+                        className="flex items-center gap-1 px-2 py-1 rounded disabled:opacity-50 bg-green-600 text-white"
                         title="Complete production"
                       >
                         {busyIds.has(alloc.id) ? (
@@ -167,7 +167,7 @@ export default function BatchAllocationTable({
                       </button>
                     )}
                     {alloc.status === 'COMPLETED' && (
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-300" />
                     )}
                   </div>
                 </td>

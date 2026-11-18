@@ -26,7 +26,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 /** Skeleton row inside a table body. */
 export function TableRowSkeleton({ cols, hasAvatar = true }: { cols: number; hasAvatar?: boolean }) {
   return (
-    <tr className="border-b border-slate-50">
+    <tr className="border-b border-line">
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3.5">
           {i === 0 && hasAvatar ? (
@@ -49,11 +49,11 @@ export function TableRowSkeleton({ cols, hasAvatar = true }: { cols: number; has
 /** Full table skeleton: header + N body rows. */
 export function TableSkeleton({ cols, rows = 6, hasAvatar = true }: { cols: number; rows?: number; hasAvatar?: boolean }) {
   return (
-    <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+    <div className="bg-surface border border-line rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-line">
               {Array.from({ length: cols }).map((_, i) => (
                 <th key={i} className="px-4 py-3">
                   <Skeleton className="h-2 w-14" />

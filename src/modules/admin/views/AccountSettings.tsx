@@ -139,70 +139,70 @@ export default function AccountSettings() {
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Account Settings</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Account Settings</h2>
           <PageDescription>Update your profile and change your sign-in password.</PageDescription>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* 2. Profile */}
-        <form onSubmit={saveProfile} className="lg:col-span-2 bg-white border border-[#E9E9E9] rounded-xl p-5 space-y-4">
+        <form onSubmit={saveProfile} className="lg:col-span-2 bg-surface border border-line rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2">
             <UserRound className="w-4 h-4 text-[#EA4335]" />
-            <h3 className="text-xs font-bold text-[#171717]">Profile</h3>
+            <h3 className="text-xs font-bold text-ink">Profile</h3>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-slate-400">
+            <div className="flex items-center justify-center py-10 text-ink-faint">
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-sm font-bold text-[#171717]">
-                  {initials || <UserRound className="w-5 h-5 text-slate-400" />}
+                <div className="w-12 h-12 rounded-full border border-line bg-surface-2 flex items-center justify-center text-sm font-bold text-ink">
+                  {initials || <UserRound className="w-5 h-5 text-ink-faint" />}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#171717] truncate">{fullName || '—'}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{email}</p>
+                  <p className="text-sm font-bold text-ink truncate">{fullName || '—'}</p>
+                  <p className="text-[10px] text-ink-faint truncate">{email}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Full Name *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Full Name *</label>
                   <input
                     value={profileForm.fullName}
                     onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                    className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phone Number</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Phone Number</label>
                   <input
                     value={profileForm.phoneNumber}
                     onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
                     placeholder="+234 800 000 0000"
-                    className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                    className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email</label>
-                  <div className="h-9 flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 text-xs text-slate-500">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Email</label>
+                  <div className="h-9 flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-xs text-ink-muted">
+                    <Mail className="w-3.5 h-3.5 text-ink-faint" />
                     <span className="truncate">{email || '—'}</span>
                   </div>
-                  <p className="text-[9px] text-slate-400">Email changes are handled by an administrator.</p>
+                  <p className="text-[9px] text-ink-faint">Email changes are handled by an administrator.</p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Role</label>
-                  <div className="h-9 flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 text-xs">
-                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="uppercase tracking-wider text-[10px] font-bold text-slate-600">{role || '—'}</span>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Role</label>
+                  <div className="h-9 flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-ink-faint" />
+                    <span className="uppercase tracking-wider text-[10px] font-bold text-ink-muted">{role || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -220,50 +220,50 @@ export default function AccountSettings() {
         </form>
 
         {/* 3. Password */}
-        <form onSubmit={changePassword} className="bg-white border border-[#E9E9E9] rounded-xl p-5 space-y-3">
+        <form onSubmit={changePassword} className="bg-surface border border-line rounded-xl p-5 space-y-3">
           <div className="flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-[#EA4335]" />
-            <h3 className="text-xs font-bold text-[#171717]">Change Password</h3>
+            <h3 className="text-xs font-bold text-ink">Change Password</h3>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Password *</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Current Password *</label>
             <input
               type="password"
               autoComplete="current-password"
               value={passwordForm.currentPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-              className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">New Password *</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">New Password *</label>
             <input
               type="password"
               autoComplete="new-password"
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Confirm New Password *</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Confirm New Password *</label>
             <input
               type="password"
               autoComplete="new-password"
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-              className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
-            <p className="text-[9px] text-slate-400">At least 8 characters.</p>
+            <p className="text-[9px] text-ink-faint">At least 8 characters.</p>
           </div>
 
           {passwordFeedback && (
             <div
               className={`rounded-lg border px-3 py-2 text-[11px] ${
                 passwordFeedback.type === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-rose-200 bg-rose-50 text-rose-600'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-rose-600 text-white'
               }`}
             >
               {passwordFeedback.message}

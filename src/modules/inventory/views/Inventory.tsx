@@ -333,7 +333,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Inventory Ledger</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Inventory Ledger</h2>
           <PageDescription>Derived stock for raw and packaging materials. Finished goods are tracked separately under Inventory → Finished Goods.</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -350,11 +350,11 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
-      {success && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-600">{success}</div>}
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>}
+      {success && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">{success}</div>}
 
       {/* 2. Stock table */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={5} rows={6} />
         ) : groups.length === 0 ? (
@@ -363,7 +363,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Material</th>
                   <th className="px-4 py-3 font-semibold">Sets</th>
                   <th className="px-4 py-3 font-semibold">Warehouses</th>
@@ -396,48 +396,48 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <tr
                       key={g.materialId}
                       onClick={() => setViewingGroup(g)}
-                      className="cursor-pointer border-b border-slate-50 hover:bg-slate-50/50"
+                      className="cursor-pointer border-b border-line hover:bg-surface-2/50"
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0"><Boxes className="w-3.5 h-3.5 text-[#EA4335]" /></div>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-[#171717] leading-none truncate max-w-[180px]" title={g.materialName}>{g.materialName}</p>
-                            <p className="text-[9px] text-slate-400 mt-0.5 font-mono truncate max-w-[180px]" title={g.sku}>{g.sku}</p>
+                            <p className="text-xs font-bold text-ink leading-none truncate max-w-[180px]" title={g.materialName}>{g.materialName}</p>
+                            <p className="text-[9px] text-ink-faint mt-0.5 font-mono truncate max-w-[180px]" title={g.sku}>{g.sku}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-[11px] font-semibold text-slate-700">
+                        <p className="text-[11px] font-semibold text-ink-2">
                           {formatNumber(g.sets.length)} set{g.sets.length === 1 ? '' : 's'}
                         </p>
                         {g.earliestExpiry && (
-                          <p className="text-[9px] text-amber-600">
+                          <p className="text-[9px] text-amber-600 dark:text-amber-300">
                             Earliest expiry {new Date(g.earliestExpiry).toLocaleDateString()}
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600">
+                      <td className="px-4 py-3 text-xs text-ink-muted">
                         {formatNumber(g.warehouseCount)}
                       </td>
-                      <td className="px-4 py-3 text-right text-xs text-slate-500 font-mono">{formatNumber(g.minQuantity)}</td>
-                      <td className={`px-4 py-3 text-right text-sm font-bold ${low ? 'text-rose-600' : g.totalQuantity < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      <td className="px-4 py-3 text-right text-xs text-ink-muted font-mono">{formatNumber(g.minQuantity)}</td>
+                      <td className={`px-4 py-3 text-right text-sm font-bold ${low ? 'text-rose-600 dark:text-rose-300' : g.totalQuantity < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         {formatNumber(g.totalQuantity)}
                         {low && (
-                          <span className="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1 py-0.2 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
+                          <span className="ml-1 text-[9px] bg-rose-600 text-white px-1 py-0.5 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
+                      <td className="px-4 py-3 text-xs text-ink-faint">
                         {g.unitOfMeasure}
                         {quantityWeightLabel(g.totalQuantity, g.unitOfMeasure) && (
-                          <p className="text-[9px] text-slate-400">= {quantityWeightLabel(g.totalQuantity, g.unitOfMeasure)}</p>
+                          <p className="text-[9px] text-ink-faint">= {quantityWeightLabel(g.totalQuantity, g.unitOfMeasure)}</p>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setViewingGroup(g)}
-                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                            className="h-6 px-2 rounded border border-line text-[10px] font-semibold text-ink-muted bg-surface hover:bg-surface-2 transition-colors"
                             title="View the sets for this material"
                           >
                             Sets
@@ -455,7 +455,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                             }}
                             disabled={g.totalQuantity <= 0}
                             title={g.totalQuantity <= 0 ? 'No stock to transfer' : 'Transfer stock'}
-                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="h-6 px-2 rounded border border-line text-[10px] font-semibold text-ink-muted bg-surface hover:bg-surface-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Transfer
                           </button>
@@ -471,7 +471,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                               });
                               setShowAdjust(true);
                             }}
-                            className="h-6 px-2 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                            className="h-6 px-2 rounded border border-line text-[10px] font-semibold text-ink-muted bg-surface hover:bg-surface-2 transition-colors"
                           >
                             Adjust
                           </button>
@@ -482,12 +482,12 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                               setIsEditStockOpen(true);
                             }}
                             disabled={isEditingSaving}
-                            className="h-6 w-6 rounded border border-slate-200 text-[10px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-6 w-6 rounded border border-line text-[10px] font-semibold text-ink-muted bg-surface hover:bg-surface-2 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Edit minimum quantity"
                           >
                             {isEditingSaving ? (
                               <div className="animate-spin">
-                                <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full"></div>
+                                <div className="w-3 h-3 border-2 border-line-strong border-t-slate-600 rounded-full"></div>
                               </div>
                             ) : (
                               <Edit2 className="w-3 h-3" />
@@ -505,44 +505,44 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       </div>
 
       {/* 3. Ledger log list */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-line flex items-center gap-2">
           <HistoryIcon className="w-4 h-4 text-[#EA4335]" />
-          <h3 className="text-xs font-bold text-[#171717]">Ledger Activity</h3>
-          <span className="text-[9px] font-semibold text-slate-400 ml-auto">{history.length} entries</span>
+          <h3 className="text-xs font-bold text-ink">Ledger Activity</h3>
+          <span className="text-[9px] font-semibold text-ink-faint ml-auto">{history.length} entries</span>
         </div>
         {loading ? (
           <TableSkeleton cols={4} rows={6} hasAvatar={false} />
         ) : history.length === 0 ? (
           <EmptyState title="No ledger activity yet." hint="Receipts, transfers and adjustments will show up here." />
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-line">
             {history.map((h) => {
               const qty = Number(h.quantity);
               const label = EVENT_LABEL[h.eventType] ?? h.eventType.replace(/_/g, ' ');
               return (
-                <div key={h.id} className="flex items-start gap-3 px-4 py-3 group hover:bg-slate-50/50 transition-colors">
-                  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${qty < 0 ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                <div key={h.id} className="flex items-start gap-3 px-4 py-3 group hover:bg-surface-2/50 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${qty < 0 ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>
                     <HistoryIcon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-[#171717]">{label}</p>
-                      <span className={`text-[10px] font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      <p className="text-xs font-semibold text-ink">{label}</p>
+                      <span className={`text-[10px] font-bold ${qty < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         {qty > 0 ? '+' : ''}{formatQty(qty, h.unitOfMeasure)}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                    <p className="text-[10px] text-ink-faint mt-0.5 truncate">
                       {h.material.name} {h.batchLot ? `· Batch ${h.batchLot.batchNumber}` : ''} · {h.warehouse.name}
                     </p>
-                    {h.notes && <p className="text-[10px] text-slate-400 mt-0.5">{h.notes}</p>}
+                    {h.notes && <p className="text-[10px] text-ink-faint mt-0.5">{h.notes}</p>}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[9px] text-slate-400">{new Date(h.createdAt).toLocaleString()}</span>
-                    <span className="text-[9px] text-slate-300">{h.createdBy.fullName || h.createdBy.email}</span>
+                    <span className="text-[9px] text-ink-faint">{new Date(h.createdAt).toLocaleString()}</span>
+                    <span className="text-[9px] text-ink-faint">{h.createdBy.fullName || h.createdBy.email}</span>
                     <button
                       onClick={() => setDeletingEntryId(h.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded border border-rose-200 hover:bg-rose-50 text-rose-600 flex items-center justify-center mt-1"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded border border-rose-200 hover:bg-rose-50 text-rose-600 flex items-center justify-center mt-1 dark:border-rose-500/30 dark:hover:bg-rose-500/10 dark:text-rose-300"
                       title="Delete this ledger entry"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -558,21 +558,21 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* 3b. Material sets modal — one row per material, sets on click */}
       {viewingGroup && (
         <Modal onClose={() => setViewingGroup(null)}>
-          <div className="w-full max-w-2xl rounded-xl bg-white p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-xl bg-surface p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">
                   Material stock
                 </p>
-                <h3 className="truncate text-sm font-bold text-[#171717]">
+                <h3 className="truncate text-sm font-bold text-ink">
                   {viewingGroup.materialName}
                 </h3>
-                <p className="font-mono text-[10px] text-slate-400">{viewingGroup.sku}</p>
+                <p className="font-mono text-[10px] text-ink-faint">{viewingGroup.sku}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setViewingGroup(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-muted"
                 title="Close"
               >
                 ✕
@@ -580,36 +580,36 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Total qty</p>
-                <p className="mt-0.5 text-sm font-bold tabular-nums text-[#171717]">
+              <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-ink-faint">Total qty</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-ink">
                   {formatNumber(viewingGroup.totalQuantity)} {viewingGroup.unitOfMeasure}
                 </p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Sets</p>
-                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.sets.length)}</p>
+              <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-ink-faint">Sets</p>
+                <p className="mt-0.5 text-sm font-bold text-ink">{formatNumber(viewingGroup.sets.length)}</p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Warehouses</p>
-                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.warehouseCount)}</p>
+              <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-ink-faint">Warehouses</p>
+                <p className="mt-0.5 text-sm font-bold text-ink">{formatNumber(viewingGroup.warehouseCount)}</p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Min qty</p>
-                <p className="mt-0.5 text-sm font-bold text-[#171717]">{formatNumber(viewingGroup.minQuantity)}</p>
+              <div className="rounded-lg border border-line bg-surface-2/70 px-3 py-2">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-ink-faint">Min qty</p>
+                <p className="mt-0.5 text-sm font-bold text-ink">{formatNumber(viewingGroup.minQuantity)}</p>
               </div>
             </div>
 
             {viewingGroup.sets.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-200 px-3 py-6 text-center text-[11px] text-slate-400">
+              <p className="rounded-lg border border-dashed border-line px-3 py-6 text-center text-[11px] text-ink-faint">
                 No stock sets recorded for this material yet.
               </p>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-slate-200">
+              <div className="overflow-hidden rounded-lg border border-line">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[620px] text-left">
-                    <thead className="bg-slate-50">
-                      <tr className="text-[8px] uppercase tracking-wider text-slate-400">
+                    <thead className="bg-surface-2">
+                      <tr className="text-[8px] uppercase tracking-wider text-ink-faint">
                         <th className="px-3 py-2 font-semibold">Set / batch</th>
                         <th className="px-3 py-2 font-semibold">Warehouse</th>
                         <th className="px-3 py-2 text-right font-semibold">Quantity</th>
@@ -620,24 +620,24 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     </thead>
                     <tbody>
                       {viewingGroup.sets.map((set) => (
-                        <tr key={`${set.batchLotId ?? 'none'}-${set.warehouseId}-${set.binId ?? 'bin'}`} className="border-t border-slate-50">
+                        <tr key={`${set.batchLotId ?? 'none'}-${set.warehouseId}-${set.binId ?? 'bin'}`} className="border-t border-line">
                           <td className="px-3 py-2">
-                            <p className="font-mono text-[10px] font-semibold text-slate-700">
+                            <p className="font-mono text-[10px] font-semibold text-ink-2">
                               {set.lotCode ?? set.batchNumber ?? 'No lot'}
                             </p>
                             {set.lotCode && set.batchNumber && set.lotCode !== set.batchNumber && (
-                              <p className="font-mono text-[9px] text-slate-400">{set.batchNumber}</p>
+                              <p className="font-mono text-[9px] text-ink-faint">{set.batchNumber}</p>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-[10px] text-slate-600">{set.warehouseName}</td>
-                          <td className="px-3 py-2 text-right text-[11px] font-bold text-[#171717]">
+                          <td className="px-3 py-2 text-[10px] text-ink-muted">{set.warehouseName}</td>
+                          <td className="px-3 py-2 text-right text-[11px] font-bold text-ink">
                             {formatNumber(set.quantity)}
                           </td>
-                          <td className="px-3 py-2 text-[10px] text-slate-500">
+                          <td className="px-3 py-2 text-[10px] text-ink-muted">
                             {set.expiryDate ? new Date(set.expiryDate).toLocaleDateString() : '—'}
                           </td>
                           <td className="px-3 py-2">
-                            <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">
+                            <span className="rounded bg-slate-600 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
                               {set.batchStatus ?? '—'}
                             </span>
                           </td>
@@ -648,7 +648,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                                 setViewingGroup(null);
                                 openView(set);
                               }}
-                              className="h-6 px-2 rounded border border-slate-200 text-[9px] font-semibold text-slate-600 hover:bg-slate-50"
+                              className="h-6 px-2 rounded border border-line text-[9px] font-semibold text-ink-muted hover:bg-surface-2"
                             >
                               View
                             </button>
@@ -667,29 +667,29 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* 4. Transfer modal */}
       {showTransfer && (
         <Modal onClose={() => setShowTransfer(false)}>
-          <form onSubmit={doTransfer} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4">
+          <form onSubmit={doTransfer} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <ArrowRightLeft className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">Internal Transfer</h3>
               </div>
-              <button type="button" onClick={() => setShowTransfer(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowTransfer(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <select value={tr.materialId} onChange={(e) => setTr({ ...tr, materialId: e.target.value })} className="h-9 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335] md:col-span-2">
+              <select value={tr.materialId} onChange={(e) => setTr({ ...tr, materialId: e.target.value })} className="h-9 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335] md:col-span-2">
                 <option value="">Material…</option>
                 {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
               </select>
-              <select value={tr.fromWarehouseId} onChange={(e) => setTr({ ...tr, fromWarehouseId: e.target.value })} className="h-9 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+              <select value={tr.fromWarehouseId} onChange={(e) => setTr({ ...tr, fromWarehouseId: e.target.value })} className="h-9 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                 <option value="">From warehouse…</option>
                 {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
-              <select value={tr.toWarehouseId} onChange={(e) => setTr({ ...tr, toWarehouseId: e.target.value })} className="h-9 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+              <select value={tr.toWarehouseId} onChange={(e) => setTr({ ...tr, toWarehouseId: e.target.value })} className="h-9 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                 <option value="">To warehouse…</option>
                 {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
               <div className="space-y-1">
-                <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <input value={tr.quantity} onChange={(e) => setTr({ ...tr, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                 <PackQuantityPreview
                   quantity={tr.quantity}
                   unit={materials.find((m) => m.id === tr.materialId)?.unitOfMeasure}
@@ -697,14 +697,14 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
               </div>
             </div>
             {transferAvailable !== null && (
-              <p className={`text-[10px] ${transferAvailable <= 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+              <p className={`text-[10px] ${transferAvailable <= 0 ? 'text-rose-600 dark:text-rose-300' : 'text-ink-muted'}`}>
                 Available in source warehouse: <span className="font-semibold">{formatNumber(transferAvailable)}</span>{' '}
                 {materials.find((m) => m.id === tr.materialId)?.unitOfMeasure ?? ''}
                 {transferAvailable <= 0 ? ' — nothing can be transferred from here.' : ''}
               </p>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => setShowTransfer(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button type="button" onClick={() => setShowTransfer(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9"><span className="text-white text-xs font-semibold whitespace-nowrap">Transfer (2 entries)</span></button>
             </div>
           </form>
@@ -714,27 +714,27 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
       {/* 5. Adjustment modal */}
       {showAdjust && (
         <Modal onClose={() => setShowAdjust(false)}>
-          <form onSubmit={doAdjust} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4">
+          <form onSubmit={doAdjust} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-[#171717]">
+                <div className="flex items-center gap-2 text-ink">
                   <SlidersHorizontal className="w-4 h-4 text-[#EA4335]" />
                   <h3 className="text-sm font-bold">Inventory Adjustment</h3>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Add or remove stock from your inventory. All adjustments are recorded with your user ID.</p>
+                <p className="text-[11px] text-ink-muted mt-1">Add or remove stock from your inventory. All adjustments are recorded with your user ID.</p>
               </div>
-              <button type="button" onClick={() => setShowAdjust(false)} className="text-slate-400 hover:text-slate-600 shrink-0">✕</button>
+              <button type="button" onClick={() => setShowAdjust(false)} className="text-ink-faint hover:text-ink-muted shrink-0">✕</button>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <select value={adj.materialId} onChange={(e) => setAdj({ ...adj, materialId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] pr-10">
+                  <select value={adj.materialId} onChange={(e) => setAdj({ ...adj, materialId: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] pr-10">
                     <option value="">Material…</option>
                     {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
                   </select>
                 </div>
                 <div className="relative">
-                  <select value={adj.warehouseId} onChange={(e) => setAdj({ ...adj, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] pr-10">
+                  <select value={adj.warehouseId} onChange={(e) => setAdj({ ...adj, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] pr-10">
                     <option value="">Warehouse…</option>
                     {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
@@ -742,23 +742,23 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <select value={adj.operation} onChange={(e) => setAdj({ ...adj, operation: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] font-semibold pr-10">
+                  <select value={adj.operation} onChange={(e) => setAdj({ ...adj, operation: e.target.value })} className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] font-semibold pr-10">
                     <option value="add">➕ Add Stock</option>
                     <option value="subtract">➖ Remove Stock</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <input value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                  <input value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} type="number" min="0.0001" step="any" placeholder="Quantity" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                   <PackQuantityPreview
                     quantity={adj.quantity}
                     unit={materials.find((m) => m.id === adj.materialId)?.unitOfMeasure}
                   />
                 </div>
               </div>
-              <input value={adj.reason} onChange={(e) => setAdj({ ...adj, reason: e.target.value })} placeholder="Reason (optional)" className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+              <input value={adj.reason} onChange={(e) => setAdj({ ...adj, reason: e.target.value })} placeholder="Reason (optional)" className="h-9 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => setShowAdjust(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button type="button" onClick={() => setShowAdjust(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9"><span className="text-white text-xs font-semibold whitespace-nowrap">Post Adjustment</span></button>
             </div>
           </form>
@@ -796,10 +796,10 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
         <Modal onClose={() => !isEditingSaving && setIsEditStockOpen(false)}>
           <form 
             onSubmit={handleEditStockSubmit}
-            className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4"
+            className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <Edit2 className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">Edit Stock Item</h3>
               </div>
@@ -807,40 +807,40 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 type="button" 
                 onClick={() => !isEditingSaving && setIsEditStockOpen(false)} 
                 disabled={isEditingSaving}
-                className="text-slate-400 hover:text-slate-600 disabled:opacity-50"
+                className="text-ink-faint hover:text-ink-muted disabled:opacity-50"
               >
                 ✕
               </button>
             </div>
             <div className="space-y-3">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Material</p>
-                <p className="text-xs font-semibold text-[#171717] mt-1">{editingStockItem.materialName}</p>
-                <p className="text-[9px] text-slate-400 font-mono">{editingStockItem.sku}</p>
+              <div className="p-3 bg-surface-2 rounded-lg border border-line">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Material</p>
+                <p className="text-xs font-semibold text-ink mt-1">{editingStockItem.materialName}</p>
+                <p className="text-[9px] text-ink-faint font-mono">{editingStockItem.sku}</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Quantity</p>
-                <p className="text-sm font-bold text-emerald-600 mt-1">{formatQty(editingStockItem.quantity, editingStockItem.unitOfMeasure)}</p>
+              <div className="p-3 bg-surface-2 rounded-lg border border-line">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Current Quantity</p>
+                <p className="text-sm font-bold text-emerald-600 mt-1 dark:text-emerald-300">{formatQty(editingStockItem.quantity, editingStockItem.unitOfMeasure)}</p>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Min Quantity (Alert Threshold)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Min Quantity (Alert Threshold)</label>
                 <input 
                   type="number" 
                   value={editStockForm.minQuantity}
                   onChange={(e) => setEditStockForm({ minQuantity: e.target.value })}
                   placeholder="Minimum quantity" 
                   disabled={isEditingSaving}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:opacity-50 disabled:cursor-not-allowed" 
+                  className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335] disabled:opacity-50 disabled:cursor-not-allowed" 
                 />
               </div>
-              <p className="text-[10px] text-slate-500">Warehouse: <span className="font-semibold text-[#171717]">{editingStockItem.warehouseName}</span></p>
+              <p className="text-[10px] text-ink-muted">Warehouse: <span className="font-semibold text-ink">{editingStockItem.warehouseName}</span></p>
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button 
                 type="button" 
                 onClick={() => setIsEditStockOpen(false)}
                 disabled={isEditingSaving}
-                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -888,8 +888,8 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           subtitle={viewing.sku}
           status={
             viewing.quantity <= (viewing.minQuantity || 0)
-              ? { label: viewing.quantity < 0 ? 'Negative' : 'Low Stock', className: 'bg-rose-50 text-rose-600 border-rose-200' }
-              : { label: 'In Stock', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+              ? { label: viewing.quantity < 0 ? 'Negative' : 'Low Stock', className: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30' }
+              : { label: 'In Stock', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' }
           }
           onClose={() => setViewing(null)}
           sections={[
@@ -920,34 +920,34 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                   label: viewing.batchLotId ? 'Movements for this batch' : 'Movements for this material',
                   wide: true,
                   value: viewingHistoryLoading ? (
-                    <div className="flex items-center gap-2 py-3 text-slate-400">
+                    <div className="flex items-center gap-2 py-3 text-ink-faint">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span className="text-[11px]">Loading movements…</span>
                     </div>
                   ) : viewingHistoryError ? (
-                    <p className="text-[11px] text-rose-600">{viewingHistoryError}</p>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-300">{viewingHistoryError}</p>
                   ) : viewingHistory.length === 0 ? (
-                    <p className="text-[11px] text-slate-400">No movements recorded yet.</p>
+                    <p className="text-[11px] text-ink-faint">No movements recorded yet.</p>
                   ) : (
-                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-slate-100 divide-y divide-slate-100">
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-line divide-y divide-line">
                       {viewingHistory.map((h) => {
                         const qty = Number(h.quantity);
                         const label = EVENT_LABEL[h.eventType] ?? h.eventType.replace(/_/g, ' ');
                         return (
                           <div key={h.id} className="flex items-start justify-between gap-3 px-3 py-2">
                             <div className="min-w-0">
-                              <p className="text-[11px] font-semibold text-[#171717]">{label}</p>
-                              <p className="text-[9px] text-slate-400 truncate">
+                              <p className="text-[11px] font-semibold text-ink">{label}</p>
+                              <p className="text-[9px] text-ink-faint truncate">
                                 {new Date(h.createdAt).toLocaleString()} · {h.warehouse.name}
                                 {h.batchLot ? ` · ${h.batchLot.batchNumber}` : ''}
                                 {h.referenceType ? ` · ${h.referenceType}` : ''}
                               </p>
-                              <p className="text-[9px] text-slate-400 truncate">
+                              <p className="text-[9px] text-ink-faint truncate">
                                 by {h.createdBy.fullName || h.createdBy.email || '—'}
                                 {h.notes ? ` — ${h.notes}` : ''}
                               </p>
                             </div>
-                            <span className={`shrink-0 text-[11px] font-mono font-bold ${qty < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            <span className={`shrink-0 text-[11px] font-mono font-bold ${qty < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                               {qty > 0 ? '+' : ''}{formatQty(qty, h.unitOfMeasure)}
                             </span>
                           </div>

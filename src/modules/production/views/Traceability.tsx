@@ -13,7 +13,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
-import { formatQty } from '../../../lib/format';
+import { formatNumber, formatQty } from '../../../lib/format';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
@@ -37,6 +37,59 @@ interface BatchMatch {
   yearCode?: string | null;
   supplierBatchNumber?: string | null;
   supplier?: { id: string; name: string; vendorCode?: string | null } | null;
+}
+
+interface GrindingMatch {
+  id: string;
+  productionDate: string;
+  productName: string;
+  planNumber: string | null;
+  batches: number;
+  unitOfMeasure: string;
+  inputQuantity: number;
+  achievedQuantity: number;
+  blockFrom: number;
+  blockTo: number;
+  matchedNumber: number | null;
+  positionInBlock: number | null;
+}
+
+interface GrindingDetail {
+  id: string;
+  productionDate: string;
+  productName: string;
+  planNumber: string | null;
+  planStatus: string | null;
+  batches: number;
+  unitOfMeasure: string;
+  blockFrom: number;
+  blockTo: number;
+  inputQuantity: number;
+  achievedQuantity: number;
+  receivedQuantity: number;
+  remainderQuantity: number;
+  status: string;
+  remarks: string | null;
+  ingredients: Array<{
+    materialId: string;
+    materialName: string | null;
+    sku: string | null;
+    quantity: number;
+    unitOfMeasure: string;
+    batchNumber: string | null;
+    lotCode: string | null;
+    supplierBatchNumber: string | null;
+    supplier: string | null;
+  }>;
+  remainders: Array<{ materialId: string; materialName: string | null; quantity: number; unitOfMeasure: string }>;
+  finishing: Array<{
+    id: string;
+    productionDate: string;
+    achievedQuantity: number;
+    rejectedQuantity: number;
+    unitOfMeasure: string;
+    status: string;
+  }>;
 }
 
 interface Inbound {
@@ -145,10 +198,10 @@ interface TraceTree {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
-  EXPIRED: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 const originLabel: Record<BatchMatch['origin'], string> = {
@@ -173,6 +226,8 @@ type TraceRow =
 export default function Traceability({ searchQuery: _searchQuery = '' }: { searchQuery?: string }) {
   const [term, setTerm] = useState('');
   const [matches, setMatches] = useState<BatchMatch[]>([]);
+  const [grindingMatches, setGrindingMatches] = useState<GrindingMatch[]>([]);
+  const [grindingDetail, setGrindingDetail] = useState<GrindingDetail | null>(null);
   const [tree, setTree] = useState<TraceTree | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -200,20 +255,40 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
     setError('');
     setTree(null);
     setMatches([]);
+    setGrindingMatches([]);
     setSearched(q);
     try {
-      const res = await axiosClient.get<{ matches: BatchMatch[] }>('/traceability/search', {
-        params: { q },
-      });
+      const res = await axiosClient.get<{ matches: BatchMatch[]; grinding?: GrindingMatch[] }>(
+        '/traceability/search',
+        { params: { q } }
+      );
       const found = res.data.matches || [];
+      const grindingFound = res.data.grinding || [];
       setMatches(found);
-      if (found.length === 0) {
+      setGrindingMatches(grindingFound);
+      if (found.length === 0 && grindingFound.length === 0) {
         setError(`No batches match "${q}".`);
-      } else if (found.length === 1) {
-        await loadTree(found[0].id);
+      } else if (found.length + grindingFound.length === 1) {
+        if (found.length === 1) await loadTree(found[0].id);
+        else await openGrinding(grindingFound[0].id);
       }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Search failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openGrinding = async (id: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axiosClient.get<{ grinding: GrindingDetail }>(
+        `/traceability/grinding-batch/${id}`
+      );
+      setGrindingDetail(res.data.grinding);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to load the grinding batch');
     } finally {
       setLoading(false);
     }
@@ -228,7 +303,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Traceability</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Traceability</h2>
           <PageDescription>
             Trace any raw material, ingredient or finished good — upstream to the supplier and downstream to
             finished goods.
@@ -236,12 +311,12 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
         </div>
         <form onSubmit={submit} className="flex gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               placeholder="Lot code (A-1-1-26), batch number, ingredient or supplier…"
-              className="h-9 w-64 rounded-lg border border-[#E9E9E9] bg-white pl-9 pr-3 text-xs text-[#171717] focus:outline-none focus:border-[#EA4335]"
+              className="h-9 w-64 rounded-lg border border-line bg-surface pl-9 pr-3 text-xs text-ink focus:outline-none focus:border-[#EA4335]"
             />
           </div>
           <button type="submit" className="btn-3d px-4 h-9">
@@ -253,7 +328,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
@@ -261,11 +336,11 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
       {loading && (
         <div className="space-y-4">
-          <div className="space-y-3 rounded-xl border border-[#E9E9E9] bg-white p-4">
+          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-64" />
           </div>
-          <div className="space-y-3 rounded-xl border border-[#E9E9E9] bg-white p-4">
+          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
             <Skeleton className="h-3 w-56" />
             <Skeleton className="h-3 w-72" />
           </div>
@@ -274,35 +349,35 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
       {/* Match list (batch numbers are only unique per material) */}
       {!loading && matches.length > 1 && (
-        <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
               {matches.length} matches for “{searched}” — pick one
             </p>
           </div>
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-line">
             {matches.map((m) => (
               <button
                 key={m.id}
                 onClick={() => loadTree(m.id)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/60"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-2/60"
               >
                 <div className="min-w-0">
                   {/* The code leads, with the ingredient and supplier named beside it. */}
-                  <p className="font-mono text-xs font-bold text-[#171717]">
+                  <p className="font-mono text-xs font-bold text-ink">
                     {m.lotCode ?? m.batchNumber}
                   </p>
-                  <p className="truncate text-[10px] text-slate-500">
+                  <p className="truncate text-[10px] text-ink-muted">
                     {m.material?.name} · <span className="font-mono">{m.material?.sku}</span>
                   </p>
-                  <p className="truncate text-[10px] text-slate-400">
+                  <p className="truncate text-[10px] text-ink-faint">
                     {m.supplier?.name ? `from ${m.supplier.name}` : originLabel[m.origin]}
                     {m.lotCode && ` · ${originLabel[m.origin]}`}
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 rounded border px-2 py-0.5 text-[9px] font-bold ${
-                    statusBadge[m.status] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                  className={`shrink-0 rounded px-2 py-0.5 text-[9px] font-bold ${
+                    statusBadge[m.status] ?? 'bg-slate-600 text-white'
                   }`}
                 >
                   {m.status}
@@ -313,10 +388,51 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
         </div>
       )}
 
+      {/* Grinding batches — one serial per batch ground */}
+      {!loading && grindingMatches.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+              Grinding batches for “{searched}”
+            </p>
+          </div>
+          <div className="divide-y divide-line">
+            {grindingMatches.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => openGrinding(g.id)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-2/60"
+              >
+                <div className="min-w-0">
+                  <p className="font-mono text-xs font-bold text-ink">
+                    {g.blockFrom === g.blockTo ? g.blockFrom : `${g.blockFrom} – ${g.blockTo}`}
+                  </p>
+                  <p className="truncate text-[10px] text-ink-muted">
+                    {g.productName} ·{' '}
+                    <span className="font-semibold">
+                      {formatNumber(g.batches, 0)} × {g.unitOfMeasure}
+                    </span>
+                  </p>
+                  <p className="truncate text-[10px] text-ink-faint">
+                    {new Date(g.productionDate).toLocaleDateString()}
+                    {g.planNumber ? ` · ${g.planNumber}` : ''}
+                  </p>
+                </div>
+                {g.positionInBlock ? (
+                  <span className="shrink-0 rounded bg-slate-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                    Batch {g.positionInBlock} of {g.batches}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tree && !loading && (
         <div className="space-y-4">
           {/* Root */}
-          <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+          <div className="rounded-xl border border-line bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EA4335]/10">
@@ -324,25 +440,25 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-[#171717]">{tree.batch.batchNumber}</p>
+                    <p className="text-sm font-bold text-ink">{tree.batch.batchNumber}</p>
                     <span
-                      className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                         statusBadge[tree.batch.status] ?? statusBadge.ACTIVE
                       }`}
                     >
                       {tree.batch.status}
                     </span>
-                    <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="rounded bg-slate-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
                       {originLabel[tree.origin]}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-ink-faint">
                     {tree.batch.material.name} ·{' '}
                     <span className="font-mono">{tree.batch.material.sku}</span> · {tree.batch.material.type}
                   </p>
                 </div>
               </div>
-              <div className="text-right text-[10px] text-slate-400">
+              <div className="text-right text-[10px] text-ink-faint">
                 {tree.batch.manufacturingDate && (
                   <p>Manufactured: {new Date(tree.batch.manufacturingDate).toLocaleDateString()}</p>
                 )}
@@ -357,12 +473,12 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
           <SectionTitle icon={<ArrowDownRight className="h-3 w-3 rotate-180" />} label="Upstream — where it came from" />
 
           {tree.inbound && (
-            <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
-              <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="rounded-xl border border-line bg-surface p-4">
+              <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-ink-faint">
                 <Truck className="h-3 w-3" /> Inbound receipt ·{' '}
                 {tree.inbound.via === 'CONSIGNMENT' ? 'via Consignment' : tree.inbound.via === 'PO' ? 'via Purchase Order' : ''}
               </p>
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-slate-600">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-ink-muted">
                 <span>GRN <b className="font-mono">{tree.inbound.grnNumber}</b></span>
                 {tree.inbound.poNumber && (
                   <span>PO <b className="font-mono">{tree.inbound.poNumber}</b></span>
@@ -378,23 +494,23 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
           )}
 
           {tree.producedBy && (
-            <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+            <div className="rounded-xl border border-line bg-surface p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50">
-                  <Factory className="h-4 w-4 text-amber-600" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
+                  <Factory className="h-4 w-4 text-amber-600 dark:text-amber-300" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#171717]">
+                  <p className="text-xs font-bold text-ink">
                     {tree.producedBy.source === 'PRODUCTION_PLAN'
                       ? `Produced by plan ${tree.producedBy.planNumber}`
                       : `Produced by order ${tree.producedBy.orderNumber}`}
                     {tree.producedBy.productName && (
-                      <span className="ml-2 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className="ml-2 text-[9px] font-semibold uppercase tracking-wider text-ink-faint">
                         {tree.producedBy.productName}
                       </span>
                     )}
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-ink-faint">
                     Required {tree.producedBy.targetQuantity} · Achieved {tree.producedBy.actualYield ?? '—'}
                     {tree.producedBy.completedAt && (
                       <> · Completed {new Date(tree.producedBy.completedAt).toLocaleDateString()}</>
@@ -415,79 +531,79 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
           {/* Ingredients */}
           {tree.ingredients.length > 0 && (
-            <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="border-b border-line px-4 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                   <Boxes className="h-3 w-3" /> Ingredients &amp; raw batches
                 </p>
               </div>
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-line">
                 {tree.ingredients.map((ing) => (
                   <div key={ing.materialId} className="px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-700 max-w-[220px] truncate" title={ing.materialName ?? ing.materialId}>{ing.materialName ?? ing.materialId}</p>
-                        <p className="text-[9px] font-mono text-slate-400 max-w-[220px] truncate" title={ing.sku ?? ''}>{ing.sku ?? ''}</p>
+                        <p className="text-xs font-bold text-ink-2 max-w-[220px] truncate" title={ing.materialName ?? ing.materialId}>{ing.materialName ?? ing.materialId}</p>
+                        <p className="text-[9px] font-mono text-ink-faint max-w-[220px] truncate" title={ing.sku ?? ''}>{ing.sku ?? ''}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
-                          <span className="text-[11px] font-mono text-slate-500">
+                          <span className="text-[11px] font-mono text-ink-muted">
                             {ing.isPercentage ? `${ing.quantity}%` : formatQty(ing.quantity, ing.unitOfMeasure)}
                           </span>
                           {ing.source && (
-                            <p className="text-[9px] text-slate-400">{sourceLabel[ing.source]}</p>
+                            <p className="text-[9px] text-ink-faint">{sourceLabel[ing.source]}</p>
                           )}
                         </div>
                         <ViewButton onClick={() => setViewing({ kind: 'ingredient', ingredient: ing })} />
                       </div>
                     </div>
-                    <div className="mt-2 space-y-1.5 border-l-2 border-slate-100 pl-3">
+                    <div className="mt-2 space-y-1.5 border-l-2 border-line pl-3">
                       {ing.rawBatches.length === 0 && (
-                        <p className="text-[10px] text-slate-400">No batch-lot consumption traced.</p>
+                        <p className="text-[10px] text-ink-faint">No batch-lot consumption traced.</p>
                       )}
                       {ing.rawBatches.map((rb) => (
-                        <div key={rb.batch.id} className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <div key={rb.batch.id} className="rounded-lg border border-line bg-surface-2/70 px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono font-bold text-slate-600">
+                            <span className="text-[10px] font-mono font-bold text-ink-muted">
                               {rb.batch.lotCode ?? rb.batch.batchNumber}
                             </span>
                             {rb.batch.setNumber != null && (
-                              <span className="text-[9px] text-slate-400">
+                              <span className="text-[9px] text-ink-faint">
                                 set <b className="font-mono">{rb.batch.setNumber}</b>
                               </span>
                             )}
                             {rb.batch.supplierBatchNumber && (
-                              <span className="text-[9px] text-slate-400">
+                              <span className="text-[9px] text-ink-faint">
                                 sup. batch <b className="font-mono">{rb.batch.supplierBatchNumber}</b>
                               </span>
                             )}
                             <span
-                              className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                              className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                                 statusBadge[rb.batch.status] ?? statusBadge.ACTIVE
                               }`}
                             >
                               {rb.batch.status}
                             </span>
                             {rb.batch.expiryDate && (
-                              <span className="text-[9px] text-slate-400">
+                              <span className="text-[9px] text-ink-faint">
                                 exp {new Date(rb.batch.expiryDate).toLocaleDateString()}
                               </span>
                             )}
                           </div>
                           {rb.inbound ? (
-                            <p className="mt-0.5 text-[10px] text-slate-400">
+                            <p className="mt-0.5 text-[10px] text-ink-faint">
                               ← {rb.inbound.via === 'CONSIGNMENT' ? 'Consignment' : 'GRN'}{' '}
                               <b className="font-mono">{rb.inbound.consignmentNumber ?? rb.inbound.grnNumber}</b>
                               {rb.inbound.poNumber && <> · PO <b className="font-mono">{rb.inbound.poNumber}</b></>} ·{' '}
                               {rb.inbound.supplier?.name ?? '—'}
                             </p>
                           ) : rb.batch.supplier ? (
-                            <p className="mt-0.5 text-[10px] text-slate-400">
+                            <p className="mt-0.5 text-[10px] text-ink-faint">
                               ← {rb.batch.supplier.name}
                               {rb.batch.vendorCode && <> · vendor <b className="font-mono">{rb.batch.vendorCode}</b></>}
                             </p>
                           ) : (
-                            <p className="mt-0.5 text-[10px] text-slate-400">← no inbound GRN traced</p>
+                            <p className="mt-0.5 text-[10px] text-ink-faint">← no inbound GRN traced</p>
                           )}
                         </div>
                       ))}
@@ -501,23 +617,23 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
           {/* ---- DOWNSTREAM ---- */}
           <SectionTitle icon={<ArrowDownRight className="h-3 w-3" />} label="Downstream — where it went" />
 
-          <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="border-b border-line px-4 py-3">
+              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                 <Factory className="h-3 w-3" /> Used in finished batches
               </p>
             </div>
             {tree.downstream.usedInFinishedBatches.length === 0 ? (
-              <p className="px-4 py-3 text-[11px] text-slate-400">
+              <p className="px-4 py-3 text-[11px] text-ink-faint">
                 Not consumed by any finished batch yet.
               </p>
             ) : (
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-line">
                 {tree.downstream.usedInFinishedBatches.map((d, idx) => (
                   <div key={`${d.batchLotId}-${idx}`} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-700 max-w-[220px] truncate" title={d.batchNumber ?? '—'}>{d.batchNumber ?? '—'}</p>
-                      <p className="text-[10px] text-slate-400 max-w-[280px] truncate">
+                      <p className="text-xs font-bold text-ink-2 max-w-[220px] truncate" title={d.batchNumber ?? '—'}>{d.batchNumber ?? '—'}</p>
+                      <p className="text-[10px] text-ink-faint max-w-[280px] truncate">
                         {d.materialName ?? '—'}
                         {d.productName ? ` · ${d.productName}` : ''}
                         {d.planNumber ? ` · plan ${d.planNumber}` : ''}
@@ -526,8 +642,8 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <p className="text-[11px] font-mono text-slate-500">{d.quantity}</p>
-                        <p className="text-[9px] uppercase tracking-wider text-slate-400">
+                        <p className="text-[11px] font-mono text-ink-muted">{d.quantity}</p>
+                        <p className="text-[9px] uppercase tracking-wider text-ink-faint">
                           {d.via === 'GRINDING' ? 'grinding input' : 'order release'}
                         </p>
                       </div>
@@ -541,16 +657,16 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
           {/* Movements */}
           {tree.downstream.movements.length > 0 && (
-            <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="border-b border-line px-4 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                   <RotateCcw className="h-3 w-3" /> Stock movements
                 </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-line text-[9px] uppercase tracking-wider text-ink-faint">
                       <th className="px-4 py-2 font-semibold">Date</th>
                       <th className="px-4 py-2 font-semibold">Event</th>
                       <th className="px-4 py-2 font-semibold">Qty</th>
@@ -562,19 +678,19 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                   </thead>
                   <tbody>
                     {tree.downstream.movements.map((m) => (
-                      <tr key={m.id} className="border-b border-slate-50">
-                        <td className="px-4 py-2 text-[10px] text-slate-500">
+                      <tr key={m.id} className="border-b border-line">
+                        <td className="px-4 py-2 text-[10px] text-ink-muted">
                           {new Date(m.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-4 py-2 text-[10px] font-semibold text-slate-600">{m.eventType}</td>
-                        <td className="px-4 py-2 text-[10px] font-mono text-slate-600">
+                        <td className="px-4 py-2 text-[10px] font-semibold text-ink-muted">{m.eventType}</td>
+                        <td className="px-4 py-2 text-[10px] font-mono text-ink-muted">
                           {formatQty(m.quantity, m.unitOfMeasure)}
                         </td>
-                        <td className="px-4 py-2 text-[10px] text-slate-500">{m.warehouseName ?? '—'}</td>
-                        <td className="px-4 py-2 text-[10px] text-slate-500 max-w-[160px] truncate" title={m.referenceType ?? '—'}>
+                        <td className="px-4 py-2 text-[10px] text-ink-muted">{m.warehouseName ?? '—'}</td>
+                        <td className="px-4 py-2 text-[10px] text-ink-muted max-w-[160px] truncate" title={m.referenceType ?? '—'}>
                           {m.referenceType ?? '—'}
                         </td>
-                        <td className="px-4 py-2 text-[10px] text-slate-500 max-w-[160px] truncate" title={m.createdBy ?? '—'}>{m.createdBy ?? '—'}</td>
+                        <td className="px-4 py-2 text-[10px] text-ink-muted max-w-[160px] truncate" title={m.createdBy ?? '—'}>{m.createdBy ?? '—'}</td>
                         <td className="px-4 py-2 text-right">
                           <ViewButton onClick={() => setViewing({ kind: 'movement', movement: m })} />
                         </td>
@@ -589,7 +705,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
       )}
 
       {!searched && !tree && !loading && !error && (
-        <div className="rounded-xl border border-[#E9E9E9] bg-white">
+        <div className="rounded-xl border border-line bg-surface">
           <EmptyState
             title="No batch selected."
             hint="Search any batch number, material name or SKU to trace it end to end."
@@ -598,6 +714,155 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
       )}
 
       {/* Details Modal */}
+      {grindingDetail && (
+        <DetailsModal
+          title={`Grinding batch ${
+            grindingDetail.blockFrom === grindingDetail.blockTo
+              ? grindingDetail.blockFrom
+              : `${grindingDetail.blockFrom} – ${grindingDetail.blockTo}`
+          }`}
+          subtitle={`${grindingDetail.productName} · ${formatNumber(grindingDetail.batches, 0)} × ${grindingDetail.unitOfMeasure}`}
+          status={{
+            label: grindingDetail.status,
+            className: statusBadge[grindingDetail.status] ?? 'bg-slate-600 text-white',
+          }}
+          onClose={() => setGrindingDetail(null)}
+          sections={[
+            {
+              title: 'Batch',
+              fields: [
+                { label: 'Product', value: grindingDetail.productName },
+                { label: 'Production date', value: detailDate(grindingDetail.productionDate) },
+                { label: 'Production plan', value: detailValue(grindingDetail.planNumber) },
+                { label: 'Plan status', value: detailValue(grindingDetail.planStatus) },
+                {
+                  label: 'Batches ground',
+                  value: `${formatNumber(grindingDetail.batches, 0)} × ${grindingDetail.unitOfMeasure}`,
+                },
+                {
+                  label: 'Serial range',
+                  value: `${grindingDetail.blockFrom} – ${grindingDetail.blockTo}`,
+                },
+              ],
+            },
+            {
+              title: 'Quantities',
+              fields: [
+                {
+                  label: 'Input',
+                  value: formatQty(grindingDetail.inputQuantity, grindingDetail.unitOfMeasure),
+                },
+                {
+                  label: 'Received',
+                  value: formatQty(grindingDetail.receivedQuantity, grindingDetail.unitOfMeasure),
+                },
+                {
+                  label: 'Achieved',
+                  value: formatQty(grindingDetail.achievedQuantity, grindingDetail.unitOfMeasure),
+                },
+                {
+                  label: 'Returned to stock',
+                  value: formatQty(grindingDetail.remainderQuantity, grindingDetail.unitOfMeasure),
+                },
+                { label: 'Remarks', value: detailValue(grindingDetail.remarks), wide: true },
+              ],
+            },
+            {
+              title: `Ingredients consumed (${grindingDetail.ingredients.length})`,
+              fields: [
+                {
+                  label: 'Raw lots',
+                  wide: true,
+                  value:
+                    grindingDetail.ingredients.length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="space-y-1">
+                        {grindingDetail.ingredients.map((line, i) => (
+                          <div
+                            key={`${line.materialId}-${i}`}
+                            className="flex items-center justify-between gap-3 rounded bg-surface-2 px-2 py-1"
+                          >
+                            <span className="min-w-0 truncate">
+                              {line.materialName ?? line.materialId}
+                              {line.lotCode && (
+                                <span className="ml-1.5 font-mono text-[10px] text-ink-muted">
+                                  {line.lotCode}
+                                </span>
+                              )}
+                              {line.supplier && (
+                                <span className="ml-1.5 text-[10px] text-ink-faint">{line.supplier}</span>
+                              )}
+                            </span>
+                            <span className="shrink-0 font-mono">
+                              {formatQty(line.quantity, line.unitOfMeasure)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ),
+                },
+              ],
+            },
+            ...(grindingDetail.remainders.length
+              ? [
+                  {
+                    title: 'Returned to stock',
+                    fields: [
+                      {
+                        label: 'Materials',
+                        wide: true,
+                        value: (
+                          <div className="space-y-1">
+                            {grindingDetail.remainders.map((line, i) => (
+                              <div
+                                key={`${line.materialId}-${i}`}
+                                className="flex items-center justify-between gap-3 rounded bg-surface-2 px-2 py-1"
+                              >
+                                <span>{line.materialName ?? line.materialId}</span>
+                                <span className="font-mono">
+                                  {formatQty(line.quantity, line.unitOfMeasure)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ),
+                      },
+                    ],
+                  },
+                ]
+              : []),
+            {
+              title: `Finished at production station (${grindingDetail.finishing.length})`,
+              fields: [
+                {
+                  label: 'Records',
+                  wide: true,
+                  value:
+                    grindingDetail.finishing.length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="space-y-1">
+                        {grindingDetail.finishing.map((line) => (
+                          <div
+                            key={line.id}
+                            className="flex items-center justify-between gap-3 rounded bg-surface-2 px-2 py-1"
+                          >
+                            <span>{detailDate(line.productionDate)}</span>
+                            <span className="font-mono">
+                              {formatQty(line.achievedQuantity, line.unitOfMeasure)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
+
       {viewing && (
         <DetailsModal
           title={
@@ -713,7 +978,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
 
 function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 px-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+    <div className="flex items-center gap-1.5 px-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
       {icon}
       {label}
     </div>
@@ -730,11 +995,11 @@ function StageCard({
   stage: StageInfo;
 }) {
   return (
-    <div className="rounded-xl border border-[#E9E9E9] bg-white p-4">
-      <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <p className="mb-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-ink-faint">
         {icon} {title} · {stage.status}
       </p>
-      <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-600">
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-ink-muted">
         <span>In <b>{stage.inputQuantity}</b></span>
         <span>Out <b>{stage.achievedQuantity}</b></span>
         <span>Remainder <b>{stage.remainderQuantity}</b></span>
@@ -742,7 +1007,7 @@ function StageCard({
         <span>{new Date(stage.productionDate).toLocaleDateString()}</span>
       </div>
       {stage.remainders.length > 0 && (
-        <p className="mt-2 text-[10px] text-slate-400">
+        <p className="mt-2 text-[10px] text-ink-faint">
           Returned to store: {stage.remainders.map((r) => formatQty(r.quantity, r.unitOfMeasure)).join(', ')}
         </p>
       )}

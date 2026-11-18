@@ -24,11 +24,11 @@ interface RequisitionLine {
 }
 
 const poStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
-  SENT: 'bg-sky-50 text-sky-700 border-sky-200',
-  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CLOSED: 'bg-slate-100 text-slate-500 border-slate-200',
+  DRAFT: 'bg-surface-3 text-ink-muted border-line',
+  SENT: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
+  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  CLOSED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 const poStatusLabel: Record<string, string> = {
@@ -340,7 +340,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Purchase Orders</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Purchase Orders</h2>
           <PageDescription>Create and manage purchase orders with suppliers.</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -357,28 +357,28 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
       {/* 2. No tabs needed - only Purchase Orders */}
 
-      {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>}
+      {error && <div className="relative z-9999 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>}
 
       {/* 2b. Approved requisitions awaiting supplier LPOs */}
       {awaitingLpo.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
               Approved Requisitions · Awaiting LPO
             </h3>
-            <span className="text-[10px] text-slate-400">{awaitingLpo.length} ready</span>
+            <span className="text-[10px] text-ink-faint">{awaitingLpo.length} ready</span>
           </div>
-          <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+          <div className="bg-surface border border-line rounded-xl overflow-hidden">
             {awaitingLpo.map((r) => {
               const retry = (r.purchaseOrders ?? []).some((p: any) => p.status === 'DRAFT' || p.status === 'PARTIALLY_RECEIVED');
               return (
-                <div key={r.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div key={r.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#171717]">{r.number}</span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">APPROVED</span>
+                      <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-600 text-white">APPROVED</span>
                     </div>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-ink-faint">
                       by {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
                       {r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString()}` : ''}
                     </p>
@@ -386,7 +386,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   <button
                     onClick={() => openLpoForRequisition(r.id)}
                     disabled={ensuringLpoId === r.id}
-                    className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 shrink-0 disabled:opacity-50"
+                    className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 shrink-0 disabled:opacity-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10"
                   >
                     <Send className="w-3 h-3" />
                     {ensuringLpoId === r.id ? 'Preparing…' : retry ? 'Continue LPO' : 'Generate & Send LPO'}
@@ -401,28 +401,28 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       {/* 3. New Purchase Order Modal */}
       {showPoForm && (
         <Modal onClose={() => setShowPoForm(false)}>
-          <form onSubmit={createPo} className="bg-white rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <form onSubmit={createPo} className="bg-surface rounded-xl w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#171717]">
+              <div className="flex items-center gap-2 text-ink">
                 <Truck className="w-4 h-4 text-[#EA4335]" />
                 <h3 className="text-sm font-bold">Purchase Order from Requisition</h3>
               </div>
-              <button type="button" onClick={() => setShowPoForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowPoForm(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {poFormError && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
                 {poFormError}
               </div>
             )}
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved Requisition *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Approved Requisition *</label>
                 <select
                   value={poRequisitionId}
                   onChange={(e) => selectRequisition(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 >
                   <option value="">Select approved requisition…</option>
                   {approvedRequisitions.map((r) => (
@@ -431,7 +431,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                     </option>
                   ))}
                 </select>
-                <p className="text-[9px] text-slate-400">
+                <p className="text-[9px] text-ink-faint">
                   {approvedRequisitions.length === 0
                     ? 'No approved requisitions yet — approve a requisition before raising a purchase order.'
                     : 'Purchase orders are always raised from an approved requisition. Selecting one lists its items below.'}
@@ -440,61 +440,61 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
               {/* Supplier is derived from the materials on the order. */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
-                <div className="flex h-9 items-center gap-2 rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 text-xs">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Supplier</label>
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-xs">
                   {resolvedSupplier ? (
                     <>
-                      <span className="font-semibold text-slate-700">{resolvedSupplier.name}</span>
+                      <span className="font-semibold text-ink-2">{resolvedSupplier.name}</span>
                       {resolvedSupplier.vendorCode && (
-                        <span className="font-mono text-[10px] text-slate-400">
+                        <span className="font-mono text-[10px] text-ink-faint">
                           code {resolvedSupplier.vendorCode}
                         </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-slate-400">
+                    <span className="text-ink-faint">
                       {chosenSupplierIds.length > 1
                         ? 'Items have different suppliers — split into separate POs'
                         : 'Filled in from the requisition items'}
                     </span>
                   )}
                 </div>
-                <p className="text-[9px] text-slate-400">
+                <p className="text-[9px] text-ink-faint">
                   Derived from the requisition items. The supplier's vendor code is used in lot codes.
                 </p>
               </div>
 
               {/* Items come from the requisition — no free entry. */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requisition Items *</label>
-                <p className="text-[9px] text-slate-400">
+              <div className="space-y-2 pt-2 border-t border-line">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint block">Requisition Items *</label>
+                <p className="text-[9px] text-ink-faint">
                   Materials and quantities come from the approved requisition; set the unit cost and supplier per line.
                 </p>
                 {!poRequisitionId ? (
-                  <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-[10px] text-slate-400">
+                  <div className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-[10px] text-ink-faint">
                     Select a requisition to load its items.
                   </div>
                 ) : poItems.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">This requisition has no items.</p>
+                  <p className="text-xs text-ink-faint italic">This requisition has no items.</p>
                 ) : (
                   <div className="space-y-2">
                     {poItems.map((item, idx) => (
-                      <div key={`${item.materialId}-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3 space-y-2">
+                      <div key={`${item.materialId}-${idx}`} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-slate-700 truncate" title={item.materialName}>
+                            <p className="text-[11px] font-bold text-ink-2 truncate" title={item.materialName}>
                               {item.materialName}
                             </p>
-                            <p className="text-[9px] font-mono text-slate-400">{item.sku}</p>
+                            <p className="text-[9px] font-mono text-ink-faint">{item.sku}</p>
                           </div>
-                          <span className="shrink-0 text-[11px] font-semibold text-slate-600 whitespace-nowrap">
+                          <span className="shrink-0 text-[11px] font-semibold text-ink-muted whitespace-nowrap">
                             {formatQty(item.quantity, item.unitOfMeasure)}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Unit Cost *</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Unit Cost *</label>
                             <input
                               value={item.unitCost}
                               onChange={(e) =>
@@ -504,18 +504,18 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                               min="0"
                               step="any"
                               required
-                              className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                              className="h-8 w-full rounded-lg border border-line bg-surface px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                             />
-                            <p className="text-[9px] text-slate-400">Cost per pack.</p>
+                            <p className="text-[9px] text-ink-faint">Cost per pack.</p>
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplier</label>
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Supplier</label>
                             {item.supplierOptions.length === 0 ? (
-                              <p className="text-[10px] text-amber-600 py-1.5">
+                              <p className="text-[10px] text-amber-600 py-1.5 dark:text-amber-300">
                                 No supplier linked — add one in Master Data → Materials.
                               </p>
                             ) : item.supplierOptions.length === 1 ? (
-                              <p className="h-8 flex items-center text-[10px] text-slate-600">
+                              <p className="h-8 flex items-center text-[10px] text-ink-muted">
                                 {item.supplierOptions[0].name}
                               </p>
                             ) : (
@@ -524,7 +524,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                                 onChange={(e) =>
                                   setPoItems(poItems.map((r, i) => (i === idx ? { ...r, supplierId: e.target.value } : r)))
                                 }
-                                className="h-8 w-full rounded-lg border border-[#E9E9E9] bg-white px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
+                                className="h-8 w-full rounded-lg border border-line bg-surface px-2 text-[11px] focus:outline-none focus:border-[#EA4335]"
                               >
                                 <option value="">Which supplier…</option>
                                 {item.supplierOptions.map((s) => (
@@ -541,19 +541,19 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expected delivery</label>
-                <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
-                <p className="text-[9px] text-slate-400">Drives delivery tracking and the receiving queue.</p>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Expected delivery</label>
+                <input value={poExpected} onChange={(e) => setPoExpected(e.target.value)} type="date" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <p className="text-[9px] text-ink-faint">Drives delivery tracking and the receiving queue.</p>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
-                <p className="text-[9px] text-slate-400">Visible to procurement, stores and the supplier on the LPO.</p>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
+                <textarea value={poNotes} onChange={(e) => setPoNotes(e.target.value)} rows={3} placeholder="Terms, delivery instructions…" className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <p className="text-[9px] text-ink-faint">Visible to procurement, stores and the supplier on the LPO.</p>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button type="button" onClick={() => setShowPoForm(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button type="submit" className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold whitespace-nowrap">Create PO</span>
               </button>
@@ -566,7 +566,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div key={i} className="bg-surface border border-line rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-3 w-28" />
@@ -583,19 +583,19 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
           {filteredPos.length === 0 ? (
             <EmptyState title="No purchase orders yet." />
           ) : (
             filteredPos.map((p) => (
-              <div key={p.id} className="border-b border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div key={p.id} className="border-b border-line p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-mono text-xs font-bold text-[#171717]">{p.number}</span>
+                    <Truck className="w-3.5 h-3.5 text-ink-faint" />
+                    <span className="font-mono text-xs font-bold text-ink">{p.number}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{poStatusLabel[p.status] ?? p.status}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-ink-faint">
                     {poSupplierLabel(p)} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
                     {(() => {
                       const state = lpoState(p);
@@ -603,7 +603,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                       return ` · LPO ${state.sent}/${state.total}${state.onHold ? ` · ${state.onHold} on hold` : ''}`;
                     })()}
                   </p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-ink-muted">
                     {p.items?.map((i: any) => {
                       const received = Number(i.receivedQty ?? 0);
                       const ordered = Number(i.quantity);
@@ -612,7 +612,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                     }).join(' · ')}
                   </p>
                   {Array.isArray(p.consignments) && p.consignments.length > 0 && (
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-ink-faint">
                       Receipts:{' '}
                       {p.consignments
                         .map((c: any) =>
@@ -625,23 +625,23 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                 <div className="flex gap-2">
                   <ViewButton onClick={() => setViewingPo(p)} />
                   {lpoState(p).eligible > 0 && (
-                    <button onClick={() => setLpoPoId(p.id)} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50">
+                    <button onClick={() => setLpoPoId(p.id)} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-sky-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">
                       <Send className="w-3 h-3" /> {lpoState(p).sent > 0 ? 'Send remaining' : 'LPO'}
                     </button>
                   )}
                   {p.status === 'DRAFT' && (
                     <>
-                      <button onClick={() => handleStatusChange(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50">Mark Sent</button>
-                      <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                      <button onClick={() => handleStatusChange(p.id, 'SENT')} className="h-8 px-3 rounded-lg border border-sky-200 text-sky-600 text-[11px] font-semibold hover:bg-sky-50 dark:border-sky-500/30 dark:text-sky-300 dark:hover:bg-sky-500/10">Mark Sent</button>
+                      <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     </>
                   )}
                   {['PARTIALLY_RECEIVED', 'RECEIVED'].includes(p.status) && (
-                    <button onClick={() => handleStatusChange(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-semibold hover:bg-slate-50">Close PO</button>
+                    <button onClick={() => handleStatusChange(p.id, 'CLOSED')} className="h-8 px-3 rounded-lg border border-line text-ink-muted text-[11px] font-semibold hover:bg-surface-2">Close PO</button>
                   )}
                   {p.status === 'CLOSED' && (
-                    <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50">
+                    <button onClick={() => deletePurchaseOrder(p.id)} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold flex items-center gap-1 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
                   )}
@@ -690,14 +690,14 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                           ? 'Received'
                           : 'Not sent';
                         const stateClass = i.lpoSentAt
-                          ? 'text-emerald-600'
+                          ? 'text-emerald-600 dark:text-emerald-300'
                           : i.onHold
-                          ? 'text-amber-600'
+                          ? 'text-amber-600 dark:text-amber-300'
                           : received >= ordered
-                          ? 'text-slate-400'
-                          : 'text-slate-500';
+                          ? 'text-ink-faint'
+                          : 'text-ink-muted';
                         return (
-                          <div key={i.id} className="flex items-center justify-between gap-3 border-b border-slate-50 pb-1 last:border-0">
+                          <div key={i.id} className="flex items-center justify-between gap-3 border-b border-line pb-1 last:border-0">
                             <div className="min-w-0">
                               <p className="truncate">{i.material?.name}</p>
                               <p className={`text-[9px] font-semibold uppercase tracking-wider ${stateClass}`}>
@@ -706,12 +706,12 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                               </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="shrink-0 text-slate-500 text-[10px]">
+                              <span className="shrink-0 text-ink-muted text-[10px]">
                                 {formatQty(received, i.unitOfMeasure)} / {formatQty(ordered, i.unitOfMeasure)}
                                 {outstanding > 0 ? (
-                                  <span className="text-amber-600 font-semibold"> · {outstanding} outstanding</span>
+                                  <span className="text-amber-600 font-semibold dark:text-amber-300"> · {outstanding} outstanding</span>
                                 ) : (
-                                  <span className="text-emerald-600 font-semibold"> · complete</span>
+                                  <span className="text-emerald-600 font-semibold dark:text-emerald-300"> · complete</span>
                                 )}
                               </span>
                               {!i.lpoSentAt && received === 0 && (
@@ -728,8 +728,8 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                                   }}
                                   className={`h-6 px-2 rounded-md border text-[9px] font-semibold ${
                                     i.onHold
-                                      ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                                      : 'border-amber-200 text-amber-600 hover:bg-amber-50'
+                                      ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10'
+                                      : 'border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-500/30 dark:text-amber-300 dark:hover:bg-amber-500/10'
                                   }`}
                                 >
                                   {i.onHold ? 'Resume' : 'Hold'}
@@ -821,25 +821,25 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
       {holdTarget && (
         <Modal onClose={() => !savingHold && setHoldTarget(null)}>
-          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-4">
+          <div className="bg-surface rounded-xl w-full max-w-sm p-5 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-[#171717]">
+                <h3 className="text-sm font-bold text-ink">
                   {holdTarget.onHold ? 'Put line on hold' : 'Resume line'}
                 </h3>
-                <p className="text-[10px] text-slate-400 mt-1 truncate">{holdTarget.materialName}</p>
+                <p className="text-[10px] text-ink-faint mt-1 truncate">{holdTarget.materialName}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setHoldTarget(null)}
                 disabled={savingHold}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-muted"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-ink-muted">
               {holdTarget.onHold
                 ? 'A held line is left out of LPO selection until it is resumed.'
                 : 'This line will be available for LPO selection again.'}
@@ -847,23 +847,23 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
 
             {holdTarget.onHold && (
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reason (optional)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Reason (optional)</label>
                 <textarea
                   value={holdReason}
                   onChange={(e) => setHoldReason(e.target.value)}
                   rows={2}
                   placeholder="e.g. price under review"
-                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
               <button
                 type="button"
                 onClick={() => setHoldTarget(null)}
                 disabled={savingHold}
-                className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 disabled:opacity-50"
+                className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted disabled:opacity-50"
               >
                 Cancel
               </button>

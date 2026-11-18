@@ -73,11 +73,11 @@ interface ProductionOrder {
 }
 
 const statusBadge: Record<string, string> = {
-  SCHEDULED: 'bg-slate-100 text-slate-600 border-slate-200',
-  RELEASED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  WASTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  SCHEDULED: 'bg-surface-3 text-ink-muted border-line',
+  RELEASED: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/30',
+  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  WASTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
 };
 
 export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: string }) {
@@ -422,11 +422,11 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Production Orders</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Production Orders</h2>
           <PageDescription>Plan batches from approved BOMs, then execute.</PageDescription>
         </div>
         <div className="flex gap-2">
-          <button onClick={openWaste} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50">
+          <button onClick={openWaste} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted bg-surface hover:bg-surface-2">
             <span className="flex items-center gap-1.5">
               <Recycle className="w-3.5 h-3.5" /> Log Waste
             </span>
@@ -440,11 +440,11 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
       {/* 2. Production line — one row per production date */}
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={6} rows={6} />
         ) : filtered.length === 0 ? (
@@ -453,7 +453,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Production Date</th>
                   <th className="px-4 py-3 font-semibold text-center">Orders</th>
                   <th className="px-4 py-3 font-semibold text-center">Products</th>
@@ -467,7 +467,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   const open = !!expandedDates[group.key];
                   return (
                     <Fragment key={group.key}>
-                      <tr className="border-b border-slate-100 hover:bg-slate-50/60">
+                      <tr className="border-b border-line hover:bg-surface-2/60">
                         <td className="px-4 py-3">
                           <button
                             type="button"
@@ -477,26 +477,26 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                             className="flex items-center gap-2.5 text-left"
                           >
                             {open ? (
-                              <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                              <ChevronDown className="w-4 h-4 text-ink-faint shrink-0" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
                             )}
                             <span className="w-7 h-7 rounded-lg bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                               <CalendarDays className="w-4 h-4 text-[#EA4335]" />
                             </span>
-                            <span className="text-xs font-bold text-[#171717]">{group.label}</span>
+                            <span className="text-xs font-bold text-ink">{group.label}</span>
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-center text-[11px] font-semibold text-slate-600">
+                        <td className="px-4 py-3 text-center text-[11px] font-semibold text-ink-muted">
                           {formatNumber(group.rows.length)}
                         </td>
-                        <td className="px-4 py-3 text-center text-[11px] font-semibold text-slate-600">
+                        <td className="px-4 py-3 text-center text-[11px] font-semibold text-ink-muted">
                           {formatNumber(group.products)}
                         </td>
-                        <td className="px-4 py-3 text-center text-[11px] font-mono text-slate-600">
+                        <td className="px-4 py-3 text-center text-[11px] font-mono text-ink-muted">
                           {formatNumber(group.plannedQty)}
                         </td>
-                        <td className="px-4 py-3 text-[10px] text-slate-500 truncate max-w-[200px]" title={group.statusSummary}>
+                        <td className="px-4 py-3 text-[10px] text-ink-muted truncate max-w-[200px]" title={group.statusSummary}>
                           {group.statusSummary}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -520,7 +520,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                             <button
                               type="button"
                               onClick={() => planForDate(group.key)}
-                              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#EA4335]/30 text-[#EA4335] text-[10px] font-semibold hover:bg-rose-50"
+                              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#EA4335]/30 text-[#EA4335] text-[10px] font-semibold hover:bg-rose-50 dark:hover:bg-rose-500/10"
                               title="Add more products to this production date"
                             >
                               <Plus className="w-3 h-3" /> Plan more
@@ -530,12 +530,12 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       </tr>
 
                       {open && (
-                        <tr className="bg-slate-50/40">
+                        <tr className="bg-surface-2/40">
                           <td colSpan={6} className="p-0">
-                            <div className="overflow-x-auto border-b border-slate-100">
+                            <div className="overflow-x-auto border-b border-line">
                               <table className="w-full text-left">
                                 <thead>
-                                  <tr className="text-[9px] uppercase tracking-wider text-slate-400 bg-slate-50">
+                                  <tr className="text-[9px] uppercase tracking-wider text-ink-faint bg-surface-2">
                                     <th className="px-4 py-2 font-semibold">Order</th>
                                     <th className="px-4 py-2 font-semibold">Product</th>
                                     <th className="px-4 py-2 font-semibold">Qty</th>
@@ -548,45 +548,45 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                                 </thead>
                                 <tbody>
                                   {group.rows.map((o) => (
-                  <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr key={o.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <ClipboardList className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
                         <div>
-                          <p className="text-[11px] font-mono font-bold text-[#171717] max-w-[140px] truncate" title={o.orderNumber}>{o.orderNumber}</p>
-                          <p className="text-[9px] text-slate-400">by {o.createdBy?.fullName ?? '—'}</p>
+                          <p className="text-[11px] font-mono font-bold text-ink max-w-[140px] truncate" title={o.orderNumber}>{o.orderNumber}</p>
+                          <p className="text-[9px] text-ink-faint">by {o.createdBy?.fullName ?? '—'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-700 max-w-[180px] truncate" title={o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}>{o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}</p>
-                      <p className="text-[9px] text-slate-400 max-w-[180px] truncate" title={o.bom?.finishedSku?.sku ?? ''}>{o.bom?.finishedSku?.sku ?? ''}</p>
+                      <p className="text-xs font-semibold text-ink-2 max-w-[180px] truncate" title={o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}>{o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—'}</p>
+                      <p className="text-[9px] text-ink-faint max-w-[180px] truncate" title={o.bom?.finishedSku?.sku ?? ''}>{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">{formatNumber(o.targetQuantity)}</td>
-                    <td className="px-4 py-3 text-[11px] text-slate-500">
+                    <td className="px-4 py-3 text-xs font-mono text-ink-muted">{formatNumber(o.targetQuantity)}</td>
+                    <td className="px-4 py-3 text-[11px] text-ink-muted">
                       {o.scheduledStart ? new Date(o.scheduledStart).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {o.finishedBatch ? (
-                        <span className="text-[10px] font-mono text-slate-500">
+                        <span className="text-[10px] font-mono text-ink-muted">
                           <span className="inline-block max-w-[120px] truncate align-middle" title={o.finishedBatch.batchNumber}>{o.finishedBatch.batchNumber}</span>
                           <span className={`ml-1.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${statusBadge[o.finishedBatch.status === 'ACTIVE' ? 'COMPLETED' : 'SCHEDULED']}`}>
                             {o.finishedBatch.status}
                           </span>
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-300">—</span>
+                        <span className="text-[10px] text-ink-faint">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {o.errorPercentage !== undefined && o.errorPercentage !== null ? (
-                        <span className={`text-[11px] font-mono font-bold ${Math.abs(o.errorPercentage) < 5 ? 'text-emerald-600' : Math.abs(o.errorPercentage) < 15 ? 'text-amber-600' : 'text-rose-600'}`}>
+                        <span className={`text-[11px] font-mono font-bold ${Math.abs(o.errorPercentage) < 5 ? 'text-emerald-600 dark:text-emerald-300' : Math.abs(o.errorPercentage) < 15 ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-300'}`}>
                           {formatPercent(Math.abs(o.errorPercentage), 2)}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-300">—</span>
+                        <span className="text-[10px] text-ink-faint">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -595,7 +595,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       <ViewButton onClick={() => setViewing(o)} />
                       {o.status === 'SCHEDULED' && (
-                        <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50">
+                        <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-surface px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
                           <Trash2 className="w-3 h-3 shrink-0" /> Delete
                         </button>
                       )}
@@ -628,13 +628,13 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       {/* 3. Plan Production Wizard */}
       {showWizard && (
         <Modal onClose={() => setShowWizard(false)}>
-          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Factory className="w-4 h-4 text-[#EA4335]" />
-                <h3 className="text-sm font-bold text-[#171717]">Plan Production</h3>
+                <h3 className="text-sm font-bold text-ink">Plan Production</h3>
               </div>
-              <button type="button" onClick={() => setShowWizard(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button type="button" onClick={() => setShowWizard(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             {/* Step indicator */}
@@ -645,13 +645,13 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 const done = step > n;
                 return (
                   <div key={label} className="flex items-center gap-2">
-                    <div className={`flex items-center gap-1.5 ${active ? 'text-[#EA4335]' : done ? 'text-emerald-500' : 'text-slate-300'}`}>
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border ${active ? 'border-[#EA4335] bg-[#EA4335] text-white' : done ? 'border-emerald-400 bg-emerald-50 text-emerald-500' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className={`flex items-center gap-1.5 ${active ? 'text-[#EA4335]' : done ? 'text-emerald-500' : 'text-ink-faint'}`}>
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border ${active ? 'border-[#EA4335] bg-[#EA4335] text-white' : done ? 'border-emerald-400 bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10' : 'border-line bg-surface-2'}`}>
                         {done ? '✓' : n}
                       </div>
                       <span className="text-[10px] font-bold">{label}</span>
                     </div>
-                    {n === 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
+                    {n === 1 && <ChevronRight className="w-3.5 h-3.5 text-ink-faint" />}
                   </div>
                 );
               })}
@@ -660,32 +660,32 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
             {step === 1 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Products to Produce *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Products to Produce *</label>
                   {filteredBomOptions.length > 0 && (
-                    <span className="text-[9px] font-semibold text-slate-400">
+                    <span className="text-[9px] font-semibold text-ink-faint">
                       {formatNumber(Object.keys(wizardBoms).length)} selected · {formatNumber(filteredBomOptions.length)} available
                     </span>
                   )}
                 </div>
 
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-faint" />
                   <input
                     value={bomSearch}
                     onChange={(e) => setBomSearch(e.target.value)}
                     placeholder="Search BOMs by product or SKU…"
-                    className="pl-9 pr-3 h-9 w-full rounded-lg border border-[#E9E9E9] bg-white text-xs focus:outline-none focus:border-[#EA4335]"
+                    className="pl-9 pr-3 h-9 w-full rounded-lg border border-line bg-surface text-xs focus:outline-none focus:border-[#EA4335]"
                   />
                 </div>
 
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {bomOptions.length === 0 && (
-                    <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30">
                       No active batch formulations yet — set a formulation's status to ACTIVE in the Batch Formulation screen first.
                     </p>
                   )}
                   {bomOptions.length > 0 && filteredBomOptions.length === 0 && (
-                    <p className="text-[11px] text-slate-400 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">No BOMs match "{bomSearch}".</p>
+                    <p className="text-[11px] text-ink-faint bg-surface-2 border border-line rounded-lg px-3 py-2">No BOMs match "{bomSearch}".</p>
                   )}
                   {filteredBomOptions.map((b) => {
                     const selected = b.id in wizardBoms;
@@ -695,12 +695,12 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                         key={b.id}
                         type="button"
                         onClick={() => toggleWizardBom(b.id)}
-                        className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${selected ? 'border-[#EA4335] bg-rose-50/40' : 'border-[#E9E9E9] hover:border-slate-300'}`}
+                        className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${selected ? 'border-[#EA4335] bg-rose-50/40' : 'border-line hover:border-line-strong'}`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-xs font-bold text-slate-700">{b.productName}</p>
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-xs font-bold text-ink-2">{b.productName}</p>
+                            <p className="text-[10px] text-ink-faint">
                               {b.finishedSku?.name ?? ''} · Yield {formatQty(b.expectedYield, b.yieldUnit)}
                             </p>
                           </div>
@@ -709,7 +709,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                               <Check className="w-3 h-3" />
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[9px] font-semibold text-slate-300 mt-0.5">{formatNumber(ingCount)} ingredients</span>
+                            <span className="shrink-0 text-[9px] font-semibold text-ink-faint mt-0.5">{formatNumber(ingCount)} ingredients</span>
                           )}
                         </div>
                       </button>
@@ -721,9 +721,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
             {step === 2 && (
               <div className="space-y-3">
-                <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-2">
+                <div className="rounded-lg bg-surface-2 border border-line px-3 py-2.5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
                       {formatNumber(selectedBoms.length)} product(s)
                     </p>
                     <button type="button" onClick={() => setStep(1)} className="text-[9px] font-bold uppercase tracking-wider text-[#EA4335] hover:underline">
@@ -732,23 +732,23 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                   </div>
                   <div className="space-y-2">
                     {selectedBoms.map((b) => (
-                      <div key={b.id} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+                      <div key={b.id} className="rounded-lg border border-line bg-surface px-2.5 py-2">
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-slate-700 truncate" title={b.productName}>{b.productName}</p>
-                            <p className="text-[9px] text-slate-400">Yield {formatQty(b.expectedYield, b.yieldUnit)}</p>
+                            <p className="text-[11px] font-bold text-ink-2 truncate" title={b.productName}>{b.productName}</p>
+                            <p className="text-[9px] text-ink-faint">Yield {formatQty(b.expectedYield, b.yieldUnit)}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => toggleWizardBom(b.id)}
-                            className="text-slate-300 hover:text-rose-500 shrink-0"
+                            className="text-ink-faint hover:text-rose-500 shrink-0"
                             title="Remove product"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Target qty</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Target qty</span>
                           <input
                             value={wizardBoms[b.id]}
                             onChange={(e) => setWizardBoms({ ...wizardBoms, [b.id]: e.target.value })}
@@ -756,9 +756,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                             step="0.0001"
                             min={0.0001}
                             placeholder={`e.g. ${b.expectedYield ?? 100}`}
-                            className="h-8 w-28 rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                            className="h-8 w-28 rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]"
                           />
-                          <span className="text-[10px] text-slate-400">{b.yieldUnit}</span>
+                          <span className="text-[10px] text-ink-faint">{b.yieldUnit}</span>
                           <PackQuantityPreview quantity={wizardBoms[b.id]} unit={b.yieldUnit} />
                         </div>
                       </div>
@@ -768,23 +768,23 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
 
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Scheduled Start</label>
-                    <input value={form.scheduledStart} onChange={(e) => setForm({ ...form, scheduledStart: e.target.value })} type="datetime-local" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Scheduled Start</label>
+                    <input value={form.scheduledStart} onChange={(e) => setForm({ ...form, scheduledStart: e.target.value })} type="datetime-local" className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]" />
                   </div>
 
                   {estimatedIngredients.length > 0 && (
-                    <div className="rounded-lg border border-slate-100 overflow-hidden">
-                      <div className="flex items-center justify-between bg-slate-50 border-b border-slate-100 px-3 py-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Ingredient requirements</span>
-                        <span className="text-[9px] font-semibold text-slate-400">{formatNumber(estimatedIngredients.length)} items</span>
+                    <div className="rounded-lg border border-line overflow-hidden">
+                      <div className="flex items-center justify-between bg-surface-2 border-b border-line px-3 py-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">Ingredient requirements</span>
+                        <span className="text-[9px] font-semibold text-ink-faint">{formatNumber(estimatedIngredients.length)} items</span>
                       </div>
-                      <div className="divide-y divide-slate-50">
+                      <div className="divide-y divide-line">
                         {estimatedIngredients.map((ing) => (
                           <div key={ing.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                            <span className="text-[11px] font-semibold text-slate-700 truncate">{ing.name}</span>
-                            <span className="text-[10px] text-slate-500 shrink-0">
+                            <span className="text-[11px] font-semibold text-ink-2 truncate">{ing.name}</span>
+                            <span className="text-[10px] text-ink-muted shrink-0">
                               {formatQty(ing.amount, ing.unitOfMeasure)}
-                              {ing.isPercentage && <span className="text-slate-400"> (of batch)</span>}
+                              {ing.isPercentage && <span className="text-ink-faint"> (of batch)</span>}
                             </span>
                           </div>
                         ))}
@@ -795,9 +795,9 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               </div>
             )}
 
-            <div className="flex justify-between gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-between gap-2 pt-2 border-t border-line">
               {step === 2 ? (
-                <button onClick={() => setStep(1)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 flex items-center gap-1">
+                <button onClick={() => setStep(1)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted flex items-center gap-1">
                   <ChevronLeft className="w-3.5 h-3.5" /> Back
                 </button>
               ) : <span />}
@@ -822,19 +822,19 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       {/* 5. Waste Logging Modal */}
       {showWaste && (
         <Modal onClose={() => setShowWaste(false)}>
-          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Log Production Waste</h3>
-              <button onClick={() => setShowWaste(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="text-sm font-bold text-ink">Log Production Waste</h3>
+              <button onClick={() => setShowWaste(false)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Material *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Material *</label>
                 <select value={wasteForm.materialId} onChange={(e) => {
                   const m = materials.find((x) => x.id === e.target.value);
                   setWasteForm({ ...wasteForm, materialId: e.target.value, unitOfMeasure: m?.unitOfMeasure ?? wasteForm.unitOfMeasure });
-                }} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                }} className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">Select material…</option>
                   {materials.map((m) => (
                     <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
@@ -842,8 +842,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warehouse *</label>
-                <select value={wasteForm.warehouseId} onChange={(e) => setWasteForm({ ...wasteForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Warehouse *</label>
+                <select value={wasteForm.warehouseId} onChange={(e) => setWasteForm({ ...wasteForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">Select warehouse…</option>
                   {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
@@ -851,24 +851,24 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quantity *</label>
-                <input value={wasteForm.quantity} onChange={(e) => setWasteForm({ ...wasteForm, quantity: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Quantity *</label>
+                <input value={wasteForm.quantity} onChange={(e) => setWasteForm({ ...wasteForm, quantity: e.target.value })} type="number" min="0.0001" step="0.0001" placeholder="e.g. 2.5" className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]" />
                 <PackQuantityPreview quantity={wasteForm.quantity} unit={wasteForm.unitOfMeasure} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit (from material)</label>
-                <div className="h-9 w-full rounded-lg border border-[#E9E9E9] bg-slate-50 px-3 flex items-center text-xs font-mono text-slate-600">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Unit (from material)</label>
+                <div className="h-9 w-full rounded-lg border border-line bg-surface-2 px-3 flex items-center text-xs font-mono text-ink-muted">
                   {wasteForm.unitOfMeasure || '—'}
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Notes</label>
-                <textarea value={wasteForm.notes} onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })} rows={3} className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Notes</label>
+                <textarea value={wasteForm.notes} onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })} rows={3} className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335] resize-none" />
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowWaste(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button onClick={() => setShowWaste(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button onClick={submitWaste} disabled={saving} className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold">{saving ? 'Saving…' : 'Record Waste'}</span>
               </button>

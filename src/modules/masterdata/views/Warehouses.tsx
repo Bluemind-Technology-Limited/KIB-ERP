@@ -46,8 +46,8 @@ interface WarehouseStockRow {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  INACTIVE: 'bg-slate-100 text-slate-500 border-slate-200',
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
 };
 
 export default function Warehouses({ searchQuery = '' }: { searchQuery?: string }) {
@@ -214,7 +214,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       {/* 1. Action Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Warehouse Setup</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Warehouse Setup</h2>
           <PageDescription>Warehouses → Zones → Bins spatial hierarchy for stock location tracking.</PageDescription>
         </div>
         <div className="flex gap-2">
@@ -227,36 +227,36 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           {error}
         </div>
       )}
 
       {/* 2. Add Warehouse Form */}
       {showAdd && (
-        <form onSubmit={addWarehouse} className="bg-white border border-[#E9E9E9] rounded-xl p-4 space-y-3 animate-in fade-in duration-150">
+        <form onSubmit={addWarehouse} className="bg-surface border border-line rounded-xl p-4 space-y-3 animate-in fade-in duration-150">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <input
               value={newWarehouse.name}
               onChange={(e) => setNewWarehouse({ ...newWarehouse, name: e.target.value })}
               placeholder="Warehouse name (e.g. Main Store)"
-              className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
             <input
               value={newWarehouse.code}
               onChange={(e) => setNewWarehouse({ ...newWarehouse, code: e.target.value })}
               placeholder="Code (e.g. WH-MAIN)"
-              className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
             <input
               value={newWarehouse.address}
               onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value })}
               placeholder="Address (optional)"
-              className="h-9 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+              className="h-9 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
             />
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowAdd(false)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">
+            <button type="button" onClick={() => setShowAdd(false)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">
               Cancel
             </button>
             <button type="submit" className="btn-3d px-4 h-9">
@@ -270,7 +270,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+            <div key={i} className="bg-surface border border-line rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-4 h-4" />
@@ -293,7 +293,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       ) : (
         <div className="space-y-4">
           {filtered.map((w) => (
-            <div key={w.id} className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+            <div key={w.id} className="bg-surface border border-line rounded-xl overflow-hidden">
               {/* Warehouse row */}
               <div
                 role="button"
@@ -305,30 +305,30 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                     setExpanded({ ...expanded, [w.id]: !expanded[w.id] });
                   }
                 }}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   {expanded[w.id] ? (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                    <ChevronDown className="w-4 h-4 text-ink-faint" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <ChevronRight className="w-4 h-4 text-ink-faint" />
                   )}
                   <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center">
                     <WarehouseIcon className="w-4 h-4 text-[#EA4335]" />
                   </div>
                   <div>
-                    <p title={w.name} className="text-sm font-bold text-[#171717] leading-none max-w-[180px] truncate">{w.name}</p>
-                    <p title={w.code} className="text-[10px] text-slate-400 mt-1 font-mono max-w-[180px] truncate">{w.code}</p>
+                    <p title={w.name} className="text-sm font-bold text-ink leading-none max-w-[180px] truncate">{w.name}</p>
+                    <p title={w.code} className="text-[10px] text-ink-faint mt-1 font-mono max-w-[180px] truncate">{w.code}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-slate-400">{w.zones.length} zones</span>
+                  <span className="text-[10px] text-ink-faint">{w.zones.length} zones</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       viewWarehouseStock(w);
                     }}
-                    className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-[#EA4335] transition-colors px-1.5 py-1 rounded hover:bg-rose-50"
+                    className="flex items-center gap-1 text-[10px] font-semibold text-ink-muted hover:text-[#EA4335] transition-colors px-1.5 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10"
                     title="View materials in this warehouse"
                   >
                     <Boxes className="w-3.5 h-3.5" /> View Stock
@@ -342,7 +342,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                       e.stopPropagation();
                       deleteWarehouse(w.id);
                     }}
-                    className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                    className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
                     title="Delete warehouse"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -352,9 +352,9 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
 
               {/* Zones */}
               {expanded[w.id] && (
-                <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3 space-y-2">
+                <div className="border-t border-line bg-surface-2/50 px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Zones</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Zones</p>
                     <button
                       onClick={() => { setAddingZoneTo(addingZoneTo === w.id ? null : w.id); setNewZone({ ...newZone, warehouseId: w.id }); }}
                       className="flex items-center gap-1 text-[10px] font-semibold text-[#EA4335] hover:underline"
@@ -369,13 +369,13 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                         value={newZone.name}
                         onChange={(e) => setNewZone({ ...newZone, name: e.target.value })}
                         placeholder="Zone name (e.g. Raw Materials)"
-                        className="h-8 flex-1 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                        className="h-8 flex-1 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                       />
                       <input
                         value={newZone.code}
                         onChange={(e) => setNewZone({ ...newZone, code: e.target.value })}
                         placeholder="Code (e.g. Z-RM)"
-                        className="h-8 w-36 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                        className="h-8 w-36 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                       />
                       <button type="submit" className="btn-3d px-3 h-8">
                         <span className="text-white text-[10px] font-semibold">Add</span>
@@ -384,11 +384,11 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                   )}
 
                   {w.zones.length === 0 && (
-                    <p className="text-[10px] text-slate-400 pl-8">No zones in this warehouse.</p>
+                    <p className="text-[10px] text-ink-faint pl-8">No zones in this warehouse.</p>
                   )}
 
                   {w.zones.map((z) => (
-                    <div key={z.id} className="rounded-lg border border-slate-200 bg-white">
+                    <div key={z.id} className="rounded-lg border border-line bg-surface">
                       <div
                         role="button"
                         tabIndex={0}
@@ -399,26 +399,26 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                             setExpandedZone({ ...expandedZone, [z.id]: !expandedZone[z.id] });
                           }
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 text-left cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-surface-2 text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           {expandedZone[z.id] ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                            <ChevronDown className="w-3.5 h-3.5 text-ink-faint" />
                           ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                            <ChevronRight className="w-3.5 h-3.5 text-ink-faint" />
                           )}
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-xs font-semibold text-[#171717]">{z.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{z.code}</span>
+                          <MapPin className="w-3.5 h-3.5 text-ink-faint" />
+                          <span className="text-xs font-semibold text-ink">{z.name}</span>
+                          <span className="text-[10px] text-ink-faint font-mono">{z.code}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400">{z.bins.length} bins</span>
+                          <span className="text-[10px] text-ink-faint">{z.bins.length} bins</span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteZone(z.id);
                             }}
-                            className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                            className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
                             title="Delete zone"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -427,9 +427,9 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                       </div>
 
                       {expandedZone[z.id] && (
-                        <div className="border-t border-slate-100 px-3 py-2 space-y-2">
+                        <div className="border-t border-line px-3 py-2 space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bins / Racks</p>
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Bins / Racks</p>
                             <button
                               onClick={() => { setAddingBinTo(addingBinTo === z.id ? null : z.id); setNewBin({ ...newBin, zoneId: z.id, warehouseId: w.id }); }}
                               className="flex items-center gap-1 text-[10px] font-semibold text-[#EA4335] hover:underline"
@@ -444,13 +444,13 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                                 value={newBin.name}
                                 onChange={(e) => setNewBin({ ...newBin, name: e.target.value })}
                                 placeholder="Bin name (e.g. Shelf A1)"
-                                className="h-8 flex-1 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                                className="h-8 flex-1 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                               />
                               <input
                                 value={newBin.code}
                                 onChange={(e) => setNewBin({ ...newBin, code: e.target.value })}
                                 placeholder="Code (e.g. B-A1)"
-                                className="h-8 w-32 rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                                className="h-8 w-32 rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                               />
                               <button type="submit" className="btn-3d px-3 h-8">
                                 <span className="text-white text-[10px] font-semibold">Add</span>
@@ -459,18 +459,18 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                           )}
 
                           {z.bins.length === 0 ? (
-                            <p className="text-[10px] text-slate-400 pl-6">No bins in this zone.</p>
+                            <p className="text-[10px] text-ink-faint pl-6">No bins in this zone.</p>
                           ) : (
                             z.bins.map((b) => (
                               <div key={b.id} className="flex items-center justify-between gap-2 pl-6">
                                 <div className="flex items-center gap-2">
-                                  <Boxes className="w-3 h-3 text-slate-300" />
-                                  <span className="text-[11px] text-slate-600">{b.name}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono">{b.code}</span>
+                                  <Boxes className="w-3 h-3 text-ink-faint" />
+                                  <span className="text-[11px] text-ink-muted">{b.name}</span>
+                                  <span className="text-[10px] text-ink-faint font-mono">{b.code}</span>
                                 </div>
                                 <button
                                   onClick={() => deleteBin(b.id)}
-                                  className="text-slate-300 hover:text-rose-600 transition-colors p-1"
+                                  className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
                                   title="Delete bin"
                                 >
                                   <Trash2 className="w-3 h-3" />
@@ -525,14 +525,14 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                     ) : (
                       <div className="space-y-1.5">
                         {viewing.zones.map((z) => (
-                          <div key={z.id} className="rounded-lg border border-[#E9E9E9] px-2 py-1.5">
+                          <div key={z.id} className="rounded-lg border border-line px-2 py-1.5">
                             <div className="flex items-center justify-between gap-2">
-                              <p title={z.name} className="text-[11px] font-semibold text-[#171717] truncate">{z.name}</p>
-                              <span className="text-[9px] font-mono text-slate-400 shrink-0">{z.code}</span>
+                              <p title={z.name} className="text-[11px] font-semibold text-ink truncate">{z.name}</p>
+                              <span className="text-[9px] font-mono text-ink-faint shrink-0">{z.code}</span>
                             </div>
                             <p
                               title={z.bins.map((b) => b.name).join(', ')}
-                              className="text-[10px] text-slate-500 mt-0.5 truncate"
+                              className="text-[10px] text-ink-muted mt-0.5 truncate"
                             >
                               {z.bins.length === 0 ? 'No bins' : z.bins.map((b) => b.name).join(' · ')}
                             </p>
@@ -550,17 +550,17 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       {/* Warehouse stock modal */}
       {stockWarehouse && (
         <Modal onClose={() => setStockWarehouse(null)}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center">
                   <Boxes className="w-4 h-4 text-[#EA4335]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171717] leading-none">{stockWarehouse.name}</h3>
+                  <h3 className="text-sm font-bold text-ink leading-none">{stockWarehouse.name}</h3>
                   <p
                     title={`${stockWarehouse.code}${stockWarehouse.address ? ` · ${stockWarehouse.address}` : ''}`}
-                    className="text-[10px] text-slate-400 mt-1 max-w-[360px] truncate"
+                    className="text-[10px] text-ink-faint mt-1 max-w-[360px] truncate"
                   >
                     <span className="font-mono">{stockWarehouse.code}</span>
                     {stockWarehouse.address ? ` · ${stockWarehouse.address}` : ''}
@@ -570,15 +570,15 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
               <button
                 type="button"
                 onClick={() => setStockWarehouse(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-muted"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Materials in store</span>
-              <span className="text-[10px] text-slate-500">
+            <div className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Materials in store</span>
+              <span className="text-[10px] text-ink-muted">
                 {new Set(warehouseStock.map((r) => r.materialId)).size} material(s) · {warehouseStock.length} line(s)
               </span>
             </div>
@@ -592,29 +592,29 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
             ) : warehouseStock.length === 0 ? (
               <EmptyState title="No stock in this warehouse." hint="Received goods will show up here once they hit the ledger." />
             ) : (
-              <div className="border border-[#E9E9E9] rounded-xl overflow-hidden">
+              <div className="border border-line rounded-xl overflow-hidden">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 border-b border-[#E9E9E9]">
+                  <thead className="bg-surface-2 border-b border-line">
                     <tr>
-                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Material</th>
-                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Batch</th>
-                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Expiry</th>
-                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-400 text-right">Qty</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint">Batch</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint">Expiry</th>
+                      <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint text-right">Qty</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-line">
                     {warehouseStock.map((row, i) => (
-                      <tr key={`${row.materialId}-${row.batchLotId ?? 'none'}-${row.binId ?? 'none'}-${i}`} className="hover:bg-slate-50/60">
+                      <tr key={`${row.materialId}-${row.batchLotId ?? 'none'}-${row.binId ?? 'none'}-${i}`} className="hover:bg-surface-2/60">
                         <td className="px-3 py-2">
-                          <p title={row.materialName} className="text-[11px] font-semibold text-[#171717] leading-none max-w-[180px] truncate">{row.materialName}</p>
-                          <p title={row.sku} className="text-[9px] font-mono text-slate-400 mt-1 max-w-[180px] truncate">{row.sku}</p>
+                          <p title={row.materialName} className="text-[11px] font-semibold text-ink leading-none max-w-[180px] truncate">{row.materialName}</p>
+                          <p title={row.sku} className="text-[9px] font-mono text-ink-faint mt-1 max-w-[180px] truncate">{row.sku}</p>
                         </td>
-                        <td className="px-3 py-2 text-[10px] font-mono text-slate-500">{row.batchNumber || '—'}</td>
-                        <td className="px-3 py-2 text-[10px] text-slate-500">
+                        <td className="px-3 py-2 text-[10px] font-mono text-ink-muted">{row.batchNumber || '—'}</td>
+                        <td className="px-3 py-2 text-[10px] text-ink-muted">
                           {row.expiryDate ? new Date(row.expiryDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap">
-                          <span className="text-[11px] font-bold text-[#171717]">{formatQty(row.quantity, row.unitOfMeasure)}</span>
+                          <span className="text-[11px] font-bold text-ink">{formatQty(row.quantity, row.unitOfMeasure)}</span>
                         </td>
                       </tr>
                     ))}

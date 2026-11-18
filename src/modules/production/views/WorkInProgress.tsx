@@ -47,10 +47,10 @@ const STATION_LABEL: Record<Station, string> = {
 };
 
 const statusStyles: Record<string, string> = {
-  OPEN: 'bg-amber-50 text-amber-700 border-amber-200',
-  PARTIAL: 'bg-blue-50 text-blue-700 border-blue-200',
-  TRANSFERRED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CLOSED: 'bg-slate-100 text-slate-600 border-slate-200',
+  OPEN: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  PARTIAL: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
+  TRANSFERRED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  CLOSED: 'bg-surface-3 text-ink-muted border-line',
 };
 
 function apiError(err: any, fallback: string) {
@@ -169,7 +169,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
     <div className="mx-auto w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Carryover / Work in Progress</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Carryover / Work in Progress</h2>
           <PageDescription>
             Material and production that has not yet reached the next station. WIP is never counted as completed output.
           </PageDescription>
@@ -177,7 +177,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg border border-[#E9E9E9] bg-white px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 h-9 text-xs font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </button>
@@ -185,14 +185,14 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Active WIP records', value: formatNumber(totals.active), icon: Route, tone: 'text-amber-600' },
+          { label: 'Active WIP records', value: formatNumber(totals.active), icon: Route, tone: 'text-amber-600 dark:text-amber-300' },
           { label: 'Outstanding quantity', value: formatNumber(totals.remaining), icon: Boxes, tone: 'text-[#EA4335]' },
           { label: 'Transferred to next station', value: formatNumber(totals.transferred), icon: MoveRight, tone: 'text-[#00B4D8]' },
-          { label: 'Closed carryovers', value: formatNumber(totals.closed), icon: PackageCheck, tone: 'text-emerald-600' },
+          { label: 'Closed carryovers', value: formatNumber(totals.closed), icon: PackageCheck, tone: 'text-emerald-600 dark:text-emerald-300' },
         ].map((card) => (
-          <div key={card.label} className="rounded-xl border border-[#E9E9E9] bg-white p-4">
+          <div key={card.label} className="rounded-xl border border-line bg-surface p-4">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{card.label}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{card.label}</p>
               <card.icon className={`h-4 w-4 ${card.tone}`} />
             </div>
             <p className={`text-lg font-bold ${card.tone}`}>{card.value}</p>
@@ -204,7 +204,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+          className="h-9 rounded-lg border border-line bg-surface px-3 text-xs focus:outline-none focus:border-[#EA4335]"
         >
           <option value="ACTIVE">Active (open / partial)</option>
           <option value="OPEN">Open only</option>
@@ -216,7 +216,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
         <select
           value={stationFilter}
           onChange={(e) => setStationFilter(e.target.value)}
-          className="h-9 rounded-lg border border-[#E9E9E9] bg-white px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+          className="h-9 rounded-lg border border-line bg-surface px-3 text-xs focus:outline-none focus:border-[#EA4335]"
         >
           <option value="">All stations</option>
           <option value="INGREDIENT">Ingredients Station</option>
@@ -226,13 +226,13 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-[#E9E9E9] bg-white">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface">
         {loading ? (
           <TableSkeleton rows={6} cols={8} />
         ) : visible.length === 0 ? (
@@ -244,7 +244,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Production order</th>
                   <th className="px-4 py-3 font-semibold">Product / material</th>
                   <th className="px-4 py-3 font-semibold">Flow</th>
@@ -260,49 +260,49 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                 {visible.map((entry) => {
                   const active = entry.status === 'OPEN' || entry.status === 'PARTIAL';
                   return (
-                    <tr key={entry.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <tr key={entry.id} className="border-b border-line hover:bg-surface-2/50">
                       <td className="px-4 py-3">
-                        <p className="text-[11px] font-bold text-[#171717]">
+                        <p className="text-[11px] font-bold text-ink">
                           {entry.productionPlan?.planNumber ?? '—'}
                         </p>
-                        <p className="text-[10px] text-slate-400">{dateLabel(entry.productionDate)}</p>
+                        <p className="text-[10px] text-ink-faint">{dateLabel(entry.productionDate)}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-[11px] font-semibold text-slate-700">
+                        <p className="text-[11px] font-semibold text-ink-2">
                           {entry.productName ?? 'Ingredient requirement'}
                         </p>
                         {entry.batchNumber && (
-                          <p className="text-[10px] font-mono text-slate-400">Batch {entry.batchNumber}</p>
+                          <p className="text-[10px] font-mono text-ink-faint">Batch {entry.batchNumber}</p>
                         )}
-                        {entry.notes && <p className="text-[10px] text-slate-400">{entry.notes}</p>}
+                        {entry.notes && <p className="text-[10px] text-ink-faint">{entry.notes}</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-ink-muted">
                           {STATION_LABEL[entry.originStation]}
                           {entry.destinationStation && (
                             <>
-                              <ArrowRight className="h-3 w-3 text-slate-400" />
+                              <ArrowRight className="h-3 w-3 text-ink-faint" />
                               {STATION_LABEL[entry.destinationStation]}
                             </>
                           )}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-slate-600">
+                      <td className="px-4 py-3 text-[11px] text-ink-muted">
                         {formatNumber(entry.expectedQuantity)} {entry.unitOfMeasure}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-slate-600">
+                      <td className="px-4 py-3 text-[11px] text-ink-muted">
                         {formatNumber(entry.completedQuantity)} {entry.unitOfMeasure}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-slate-600">
+                      <td className="px-4 py-3 text-[11px] text-ink-muted">
                         {formatNumber(entry.transferredQuantity)} {entry.unitOfMeasure}
                       </td>
-                      <td className="px-4 py-3 text-[11px] font-bold text-amber-600">
+                      <td className="px-4 py-3 text-[11px] font-bold text-amber-600 dark:text-amber-300">
                         {formatNumber(entry.remainingQuantity)} {entry.unitOfMeasure}
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase ${
-                            statusStyles[entry.status] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                          className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase ${
+                            statusStyles[entry.status] ?? 'bg-slate-600 text-white'
                           }`}
                         >
                           {entry.status}
@@ -317,7 +317,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                             <MoveRight className="h-3 w-3" /> Transfer
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-300">—</span>
+                          <span className="text-[10px] text-ink-faint">—</span>
                         )}
                       </td>
                     </tr>
@@ -331,22 +331,22 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
 
       {transferTarget && (
         <Modal onClose={() => setTransferTarget(null)}>
-          <div className="w-full max-w-md rounded-xl border border-[#E9E9E9] bg-white p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-[#171717]">Transfer outstanding quantity</h3>
-            <p className="mt-1 text-[11px] text-slate-500">
+          <div className="w-full max-w-md rounded-xl border border-line bg-surface p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-ink">Transfer outstanding quantity</h3>
+            <p className="mt-1 text-[11px] text-ink-muted">
               {transferTarget.productionPlan?.planNumber ?? 'Plan'} ·{' '}
               {STATION_LABEL[transferTarget.originStation]}
               {transferTarget.destinationStation
                 ? ` → ${STATION_LABEL[transferTarget.destinationStation]}`
                 : ''}
             </p>
-            <p className="mt-2 text-[11px] font-semibold text-amber-600">
+            <p className="mt-2 text-[11px] font-semibold text-amber-600 dark:text-amber-300">
               Outstanding: {formatNumber(transferTarget.remainingQuantity)} {transferTarget.unitOfMeasure}
             </p>
 
             <div className="mt-4 space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                   Quantity to transfer
                 </label>
                 <input
@@ -355,28 +355,28 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                   step="any"
                   value={transferQty}
                   onChange={(e) => setTransferQty(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#E9E9E9] px-3 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="h-9 w-full rounded-lg border border-line px-3 text-xs focus:outline-none focus:border-[#EA4335]"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                   Notes (optional)
                 </label>
                 <textarea
                   value={transferNotes}
                   onChange={(e) => setTransferNotes(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-[#E9E9E9] px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
+                  className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:outline-none focus:border-[#EA4335]"
                   placeholder="Reason or hand-off notes"
                 />
               </div>
-              {modalError && <p className="text-[11px] text-rose-600">{modalError}</p>}
+              {modalError && <p className="text-[11px] text-rose-600 dark:text-rose-300">{modalError}</p>}
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setTransferTarget(null)}
-                className="h-9 rounded-lg border border-[#E9E9E9] px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="h-9 rounded-lg border border-line px-4 text-xs font-semibold text-ink-muted hover:bg-surface-2"
               >
                 Cancel
               </button>

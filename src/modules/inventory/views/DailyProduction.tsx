@@ -165,16 +165,16 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight text-[#171717]">Daily Production Release</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Daily Production Release</h2>
           <PageDescription>Review scheduled production plans and release raw materials from inventory.</PageDescription>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600">{error}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>
       )}
 
-      <div className="bg-white border border-[#E9E9E9] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-line rounded-xl overflow-hidden">
         {loading ? (
           <TableSkeleton cols={7} rows={6} />
         ) : filtered.length === 0 ? (
@@ -183,7 +183,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Order</th>
                   <th className="px-4 py-3 font-semibold">Product</th>
                   <th className="px-4 py-3 font-semibold">Qty</th>
@@ -196,28 +196,28 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 {filtered.map((o) => {
                   const productName = o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—';
                   return (
-                  <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr key={o.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
                           <ClipboardList className="w-3.5 h-3.5 text-[#EA4335]" />
                         </div>
                         <div>
-                          <p className="text-[11px] font-mono font-bold text-[#171717]">{o.orderNumber}</p>
-                          <p className="text-[9px] text-slate-400">by {o.createdBy?.fullName ?? '—'}</p>
+                          <p className="text-[11px] font-mono font-bold text-ink">{o.orderNumber}</p>
+                          <p className="text-[9px] text-ink-faint">by {o.createdBy?.fullName ?? '—'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-700 truncate max-w-[180px]" title={productName}>{productName}</p>
-                      <p className="text-[9px] text-slate-400">{o.bom?.finishedSku?.sku ?? ''}</p>
+                      <p className="text-xs font-semibold text-ink-2 truncate max-w-[180px]" title={productName}>{productName}</p>
+                      <p className="text-[9px] text-ink-faint">{o.bom?.finishedSku?.sku ?? ''}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">{formatNumber(o.targetQuantity, 2)}</td>
-                    <td className="px-4 py-3 text-[11px] text-slate-500">
+                    <td className="px-4 py-3 text-xs font-mono text-ink-muted">{formatNumber(o.targetQuantity, 2)}</td>
+                    <td className="px-4 py-3 text-[11px] text-ink-muted">
                       {o.scheduledStart ? new Date(o.scheduledStart).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">{o.status}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-600 text-white">{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -230,7 +230,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                             <ClipboardList className="w-3 h-3" /> Issue via Ingredients Station
                           </span>
                         ) : (
-                          <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50">
+                          <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
                             <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
                               <Eye className="w-3.5 h-3.5" /> View Details
                             </span>
@@ -249,21 +249,21 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
 
       {actingOrder && (
         <Modal onClose={() => setActingOrder(null)}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#171717]">Production Plan Details</h3>
-              <button onClick={() => setActingOrder(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="text-sm font-bold text-ink">Production Plan Details</h3>
+              <button onClick={() => setActingOrder(null)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
-            <p className="text-[11px] text-slate-500">
-              <span className="font-mono font-bold text-slate-700">{actingOrder.orderNumber}</span> —{' '}
+            <p className="text-[11px] text-ink-muted">
+              <span className="font-mono font-bold text-ink-2">{actingOrder.orderNumber}</span> —{' '}
               {actingOrder.bom?.finishedSku?.name ?? actingOrder.bom?.productName ?? ''}
             </p>
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Issue raw materials from warehouse *</label>
-                <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-[#E9E9E9] px-2 text-xs focus:outline-none focus:border-[#EA4335]">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Issue raw materials from warehouse *</label>
+                <select value={actionForm.warehouseId} onChange={(e) => setActionForm({ ...actionForm, warehouseId: e.target.value })} className="h-9 w-full rounded-lg border border-line px-2 text-xs focus:outline-none focus:border-[#EA4335]">
                   <option value="">Select warehouse…</option>
                   {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
@@ -271,35 +271,35 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 </select>
               </div>
 
-              <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
-                <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              <div className="bg-surface border border-line rounded-lg overflow-hidden">
+                <div className="bg-surface-2 border-b border-line px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-muted">
                   Pick List (BOM Ingredients)
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/30 text-[9px] uppercase tracking-wider text-slate-400">
+                      <tr className="border-b border-line bg-surface-2/30 text-[9px] uppercase tracking-wider text-ink-faint">
                         <th className="px-3 py-2 font-semibold">Ingredient</th>
                         <th className="px-3 py-2 font-semibold text-right">Required</th>
                         <th className="px-3 py-2 font-semibold">Selected Batch</th>
                         <th className="px-3 py-2 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-line">
                       {releaseForm.map((item, idx) => (
-                        <tr key={item.id} className="hover:bg-slate-50/30">
+                        <tr key={item.id} className="hover:bg-surface-2/30">
                           <td className="px-3 py-2.5">
-                            <p className="font-bold text-slate-700 leading-tight">{item.name}</p>
-                            <p className="text-[9px] text-slate-400 font-mono">{item.sku}</p>
+                            <p className="font-bold text-ink-2 leading-tight">{item.name}</p>
+                            <p className="text-[9px] text-ink-faint font-mono">{item.sku}</p>
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-slate-600">
+                          <td className="px-3 py-2.5 text-right font-mono text-ink-muted">
                             {formatQty(item.projectedQuantity, item.unit, 2)}
                           </td>
                           <td className="px-3 py-2.5">
                             {item.batchLotId ? (
                               <div className="flex flex-col">
-                                <span className="font-mono font-bold text-indigo-600">{item.batchNumber}</span>
-                                <span className="text-[9px] text-slate-400">Qty: {formatQty(item.releasedQuantity, item.unit)}</span>
+                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-300">{item.batchNumber}</span>
+                                <span className="text-[9px] text-ink-faint">Qty: {formatQty(item.releasedQuantity, item.unit)}</span>
                               </div>
                             ) : (
                               <span className="text-rose-400 italic">Not picked</span>
@@ -310,8 +310,8 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                               onClick={() => setPickingIngredientIdx(idx)}
                               className={`h-7 px-3 rounded-lg border text-[10px] font-bold transition-all ${
                                 item.batchLotId 
-                                  ? 'border-slate-200 text-slate-600 hover:bg-slate-50' 
-                                  : 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                  ? 'border-line text-ink-muted hover:bg-surface-2' 
+                                  : 'bg-indigo-600 text-white'
                               }`}
                             >
                               {item.batchLotId ? 'Change Batch' : 'Pick Batch'}
@@ -325,8 +325,8 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button onClick={() => setActingOrder(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-line">
+              <button onClick={() => setActingOrder(null)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
               <button onClick={submitRelease} disabled={saving} className="btn-3d px-4 h-9">
                 <span className="text-white text-xs font-semibold">
                   {saving ? 'Releasing…' : 'Release Ingredients'}
@@ -340,35 +340,35 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
       {/* 5. Inventory Picker Sub-modal */}
       {pickingIngredientIdx !== null && (
         <Modal onClose={() => setPickingIngredientIdx(null)}>
-          <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-[#171717]">Pick from Inventory</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">
+                <h3 className="text-sm font-bold text-ink">Pick from Inventory</h3>
+                <p className="text-[10px] text-ink-faint mt-0.5">
                   {releaseForm[pickingIngredientIdx].name} ({releaseForm[pickingIngredientIdx].sku})
                 </p>
               </div>
-              <button onClick={() => setPickingIngredientIdx(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => setPickingIngredientIdx(null)} className="text-ink-faint hover:text-ink-muted">✕</button>
             </div>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Quantity Needed:</span>
-              <span className="font-mono font-bold text-slate-700">
+            <div className="bg-surface-2 border border-line rounded-lg p-3 flex items-center justify-between text-xs">
+              <span className="text-ink-muted font-medium">Quantity Needed:</span>
+              <span className="font-mono font-bold text-ink-2">
                 {formatQty(releaseForm[pickingIngredientIdx].projectedQuantity, releaseForm[pickingIngredientIdx].unit, 2)}
               </span>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
-              <div className="bg-slate-50/50 border-b border-slate-100 px-3 py-2 flex items-center justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Available Stock Batches</span>
-                <span className="text-[9px] font-semibold text-slate-400">
+            <div className="bg-surface border border-line rounded-lg overflow-hidden">
+              <div className="bg-surface-2/50 border-b border-line px-3 py-2 flex items-center justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-ink-muted">Available Stock Batches</span>
+                <span className="text-[9px] font-semibold text-ink-faint">
                   {formatNumber((ingredientBatches[releaseForm[pickingIngredientIdx].materialId] ?? []).length)} batches found
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/30 text-[9px] uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-line bg-surface-2/30 text-[9px] uppercase tracking-wider text-ink-faint">
                       <th className="px-3 py-2 font-semibold">Batch Number</th>
                       <th className="px-3 py-2 font-semibold">Warehouse</th>
                       <th className="px-3 py-2 font-semibold text-right">Available</th>
@@ -376,17 +376,17 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       <th className="px-3 py-2 font-semibold text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-line">
                     {loadingBatches ? (
-                      <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-400 italic">Loading inventory…</td></tr>
+                      <tr><td colSpan={5} className="px-3 py-8 text-center text-ink-faint italic">Loading inventory…</td></tr>
                     ) : (ingredientBatches[releaseForm[pickingIngredientIdx].materialId] ?? []).length === 0 ? (
                       <tr><td colSpan={5} className="px-3 py-8 text-center text-rose-400 italic">No stock found for this material. Receive goods first.</td></tr>
                     ) : (ingredientBatches[releaseForm[pickingIngredientIdx].materialId] ?? []).map((batch) => (
-                      <tr key={batch.id} className="hover:bg-slate-50/50">
-                        <td className="px-3 py-2.5 font-mono font-bold text-slate-700">{batch.batchNumber}</td>
-                        <td className="px-3 py-2.5 text-slate-500">{batch.warehouseName}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-600">{formatNumber(batch.quantity, 2)}</td>
-                        <td className="px-3 py-2.5 text-slate-400">
+                      <tr key={batch.id} className="hover:bg-surface-2/50">
+                        <td className="px-3 py-2.5 font-mono font-bold text-ink-2">{batch.batchNumber}</td>
+                        <td className="px-3 py-2.5 text-ink-muted">{batch.warehouseName}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-300">{formatNumber(batch.quantity, 2)}</td>
+                        <td className="px-3 py-2.5 text-ink-faint">
                           {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-3 py-2.5 text-right">
@@ -416,7 +416,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
             </div>
 
             <div className="flex justify-end pt-2">
-              <button onClick={() => setPickingIngredientIdx(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+              <button onClick={() => setPickingIngredientIdx(null)} className="h-9 px-4 rounded-lg border border-line text-xs font-semibold text-ink-muted">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -439,7 +439,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
         <DetailsModal
           title={viewing.orderNumber}
           subtitle={viewing.bom?.finishedSku?.name ?? viewing.bom?.productName ?? '—'}
-          status={{ label: viewing.status, className: 'bg-slate-100 text-slate-600 border-slate-200' }}
+          status={{ label: viewing.status, className: 'bg-surface-3 text-ink-muted border-line' }}
           onClose={() => setViewing(null)}
           sections={[
             {
@@ -479,12 +479,12 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                     ) : (
                       <div className="space-y-1">
                         {(viewing.productionIngredients ?? []).map((ing) => (
-                          <div key={ing.id} className="flex items-start justify-between gap-3 border-b border-slate-50 pb-1 last:border-0">
+                          <div key={ing.id} className="flex items-start justify-between gap-3 border-b border-line pb-1 last:border-0">
                             <span className="min-w-0 truncate">
                               {ing.material.name}{' '}
-                              <span className="font-mono text-[9px] text-slate-400">{ing.material.sku}</span>
+                              <span className="font-mono text-[9px] text-ink-faint">{ing.material.sku}</span>
                             </span>
-                            <span className="shrink-0 font-mono text-slate-500">
+                            <span className="shrink-0 font-mono text-ink-muted">
                               {formatQty(ing.projectedQuantity, ing.material.unitOfMeasure, 2)}
                             </span>
                           </div>

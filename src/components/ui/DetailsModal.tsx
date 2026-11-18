@@ -1,5 +1,5 @@
-import { Eye, X } from 'lucide-react';
 import { Modal } from './Modal';
+import { Button } from './Button';
 
 /**
  * Shared "View details" modal.
@@ -38,24 +38,29 @@ export function DetailsModal({
 }) {
   return (
     <Modal onClose={onClose}>
-      <div className="bg-white rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+      <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#171717] leading-none truncate">{title}</h3>
-            {subtitle && <div className="text-[10px] text-slate-400 mt-1.5">{subtitle}</div>}
+            <h3 className="text-sm font-bold text-ink leading-none truncate">{title}</h3>
+            {subtitle && <div className="text-[10px] text-ink-faint mt-1.5">{subtitle}</div>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {status && (
               <span
-                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                  status.className ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                  status.className ?? 'bg-slate-600 text-white'
                 }`}
               >
                 {status.label}
               </span>
             )}
-            <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600" title="Close">
-              <X className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 text-ink-faint hover:text-ink-muted"
+              title="Close"
+            >
+              ✕
             </button>
           </div>
         </div>
@@ -63,23 +68,23 @@ export function DetailsModal({
         {sections.map((section, i) => (
           <div
             key={i}
-            className="space-y-2 rounded-lg border border-[#E9E9E9] bg-slate-50/70 px-3 py-2.5"
+            className="space-y-2 rounded-lg border border-line bg-surface-2/70 px-3 py-2.5"
           >
             {section.title && (
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{section.title}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">{section.title}</p>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               {section.fields.map((field, j) => (
                 <div key={j} className={field.wide ? 'sm:col-span-2' : undefined}>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{field.label}</p>
-                  <div className="text-[11px] text-[#171717] break-words">{field.value}</div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">{field.label}</p>
+                  <div className="text-[11px] text-ink break-words">{field.value}</div>
                 </div>
               ))}
             </div>
           </div>
         ))}
 
-        {footer && <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">{footer}</div>}
+        {footer && <div className="flex justify-end gap-2 pt-2 border-t border-line">{footer}</div>}
       </div>
     </Modal>
   );
@@ -94,17 +99,17 @@ export function ViewButton({
   label?: string;
 }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className="inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-slate-200 text-slate-600 text-[10px] font-semibold hover:bg-slate-50 transition-colors"
+      className="inline-flex items-center gap-1 h-7 px-2 text-[10px]"
       title="View details"
     >
-      <Eye className="w-3 h-3" /> {label}
-    </button>
+      {label}
+    </Button>
   );
 }
 
