@@ -7,6 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber } from '../../../lib/format';
 import { Button } from '../../../components/ui/Button';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface AggregatedIngredient {
   id: string;
@@ -310,6 +312,8 @@ export default function GrindingStation() {
     return [...byDate.values()].sort((a, b) => b.key.localeCompare(a.key));
   }, [plans]);
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(grindDays);
+
   /** Open the modal that records grinding for one plan item. */
   const openEntry = async (plan: Plan, item: PlanItem) => {
     const prefilled = sequence.nextNumber === null ? '' : String(sequence.nextNumber);
@@ -369,7 +373,7 @@ export default function GrindingStation() {
                     <h3 className="text-sm font-bold text-ink">{day.label}</h3>
                   </div>
                   <span
-                    className={`inline-block rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                    className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                       day.complete
                         ? 'bg-emerald-600 text-white'
                         : day.started
@@ -447,7 +451,7 @@ export default function GrindingStation() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <span
-                                className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                                className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                                   status === 'Completed'
                                     ? 'bg-emerald-600 text-white'
                                     : status === 'Started'
@@ -479,7 +483,7 @@ export default function GrindingStation() {
               </tr>
             </thead>
             <tbody>
-              {grindDays.map((day) => (
+              {pageItems.map((day) => (
                 <tr
                   key={day.key}
                   onClick={() => setOpenDayKey(day.key)}
@@ -493,7 +497,7 @@ export default function GrindingStation() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span
-                      className={`inline-block rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                         day.complete
                           ? 'bg-emerald-600 text-white'
                           : day.started
@@ -508,6 +512,7 @@ export default function GrindingStation() {
               ))}
             </tbody>
           </table>
+        <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
         </div>
       )}
 

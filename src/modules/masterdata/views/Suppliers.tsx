@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Handshake, Plus, Pencil, Mail, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -7,6 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface Supplier {
   id: string;
@@ -22,8 +24,8 @@ interface Supplier {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  INACTIVE: 'bg-slate-600 text-white',
 };
 
 export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }) {
@@ -130,6 +132,8 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
     (s.email ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -166,19 +170,15 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                   <th className="px-4 py-3 font-semibold">Contact</th>
                   <th className="px-4 py-3 font-semibold">Phone</th>
                   <th className="px-4 py-3 font-semibold">Address</th>
-                  <th className="px-4 py-3 font-semibold">Tax ID</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s) => (
+                {pageItems.map((s) => (
                   <tr key={s.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
-                          <Handshake className="w-3.5 h-3.5 text-[#EA4335]" />
-                        </div>
                         <p title={s.name} className="text-xs font-bold text-ink leading-none max-w-[180px] truncate">{s.name}</p>
                       </div>
                     </td>
@@ -186,8 +186,8 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                       <div>
                         <p title={s.contactPerson || '—'} className="text-xs text-ink-muted max-w-[180px] truncate">{s.contactPerson || '—'}</p>
                         {s.email && (
-                          <p title={s.email} className="text-[10px] text-ink-faint mt-0.5 flex items-center gap-1 max-w-[180px]">
-                            <Mail className="w-2.5 h-2.5 shrink-0" /> <span className="truncate">{s.email}</span>
+                          <p title={s.email} className="text-[10px] text-ink-faint mt-0.5 max-w-[180px] truncate">
+                            <span className="truncate">{s.email}</span>
                           </p>
                         )}
                       </div>
@@ -195,19 +195,22 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                     <td className="px-4 py-3 text-xs text-ink-muted">{s.phone || '—'}</td>
                     <td className="px-4 py-3 text-xs text-ink-muted max-w-[180px] truncate" title={s.address || '—'}>{s.address || '—'}</td>
                     <td className="px-4 py-3">
-                      {s.taxId ? <span className="text-[10px] font-mono text-ink-muted">{s.taxId}</span> : <span className="text-[10px] text-ink-faint">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[s.status] || statusBadge.ACTIVE}`}>{s.status}</span>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[s.status] || statusBadge.ACTIVE}`}>{s.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ViewButton onClick={() => setViewing(s)} />
-                        <button onClick={() => openEdit(s)} className="text-ink-faint hover:text-indigo-600 p-1 transition-colors dark:hover:text-indigo-300">
-                          <Pencil className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                        >
+                          Edit
                         </button>
-                        <button onClick={() => deleteSupplier(s.id)} className="text-ink-faint hover:text-rose-600 p-1 transition-colors dark:hover:text-rose-300">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => deleteSupplier(s.id)}
+                          className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -215,6 +218,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                 ))}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -251,7 +255,7 @@ export default function Suppliers({ searchQuery = '' }: { searchQuery?: string }
                 {
                   label: 'Status',
                   value: (
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${statusBadge[viewing.status] || statusBadge.ACTIVE}`}>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[viewing.status] || statusBadge.ACTIVE}`}>
                       {viewing.status}
                     </span>
                   ),

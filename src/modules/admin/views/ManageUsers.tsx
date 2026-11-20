@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Users, Plus, Shield, Check, Copy, X, Edit2, Trash2 } from 'lucide-react';
+import { Users, Plus, Shield, Check, Copy, X, Edit2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton, HeaderSkeleton } from '../../../components/ui/Skeleton';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface ManageUsersProps {
   searchQuery?: string;
@@ -60,6 +62,8 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filteredUsers);
 
   const handleOpenModal = () => {
     setNewUser({ firstName: '', lastName: '', email: '', role: 'STORE_OFFICER', tempPass: '' });
@@ -182,6 +186,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
           ) : filteredUsers.length === 0 ? (
             <div className="py-12 text-center text-xs text-ink-faint">No users found.</div>
           ) : (
+            <>
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-surface-3 border-b border-line text-ink-2">
@@ -193,7 +198,7 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filteredUsers.map((u) => (
+                {pageItems.map((u) => (
                   <tr key={u.id} className="hover:bg-surface-2/50 transition-colors">
                     <td className="py-4 px-4 font-semibold text-ink-2">
                       <div className="max-w-[180px] truncate" title={u.fullName}>{u.fullName}</div>
@@ -202,37 +207,41 @@ export default function ManageUsers({ searchQuery = '' }: ManageUsersProps) {
                       <div className="max-w-[180px] truncate" title={u.email}>{u.email}</div>
                     </td>
                     <td className="py-4 px-3">
-                      <span className="inline-flex items-center gap-1 text-[9px] bg-slate-600 text-white px-2 py-0.5 rounded font-bold">
+                      <span className="rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">
                         <Shield className="w-2.5 h-2.5 opacity-60" />
                         {u.role.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="py-4 px-3">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold border ${u.isActive ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
+                      <span className={`rounded-full inline-flex items-center justify-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${u.isActive ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
                         {u.isActive ? 'ACTIVE' : 'INACTIVE'}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right flex items-center justify-end gap-2">
-                      <ViewButton onClick={() => setViewing(u)} />
-                      <button
-                        onClick={() => handleEditClick(u)}
-                        className="h-7 w-7 rounded border border-line hover:bg-surface-3 text-ink-muted hover:text-ink flex items-center justify-center transition-colors cursor-pointer"
-                        title="Edit user"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(u)}
-                        className="h-7 w-7 rounded border border-rose-200 hover:bg-rose-50 text-rose-600 hover:text-rose-700 flex items-center justify-center transition-colors cursor-pointer dark:border-rose-500/30 dark:hover:bg-rose-500/10 dark:text-rose-300 dark:hover:text-rose-300"
-                        title="Delete user"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <ViewButton onClick={() => setViewing(u)} />
+                        <button
+                          onClick={() => handleEditClick(u)}
+                          className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                          title="Edit user"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(u)}
+                          className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
+                          title="Delete user"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
+            </>
           )}
         </div>
       </div>

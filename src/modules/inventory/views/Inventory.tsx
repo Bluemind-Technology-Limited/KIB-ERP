@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { Boxes, ArrowRightLeft, SlidersHorizontal, History as HistoryIcon, Edit2, Loader2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -9,6 +9,8 @@ import { DetailsModal, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty, quantityWeightLabel } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface StockRow {
   materialId: string; materialName: string; sku: string; unitOfMeasure: string;
@@ -328,6 +330,8 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
     return matches.sort((a, b) => a.materialName.localeCompare(b.materialName));
   }, [stock, searchQuery]);
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(groups);
+
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -374,7 +378,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 </tr>
               </thead>
               <tbody>
-                {groups.map((g) => {
+                {pageItems.map((g) => {
                   const low = g.minQuantity > 0 && g.totalQuantity <= g.minQuantity;
                   const firstSet = g.sets.find((set) => Number(set.quantity) > 0) ?? g.sets[0] ?? null;
                   const editTarget: StockRow =
@@ -424,7 +428,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                       <td className={`px-4 py-3 text-right text-sm font-bold ${low ? 'text-rose-600 dark:text-rose-300' : g.totalQuantity < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         {formatNumber(g.totalQuantity)}
                         {low && (
-                          <span className="ml-1 text-[9px] bg-rose-600 text-white px-1 py-0.5 rounded font-semibold uppercase tracking-wider inline-block">Low</span>
+                          <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1 bg-rose-600 text-white">Low</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-ink-faint">
@@ -482,16 +486,10 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                               setIsEditStockOpen(true);
                             }}
                             disabled={isEditingSaving}
-                            className="h-6 w-6 rounded border border-line text-[10px] font-semibold text-ink-muted bg-surface hover:bg-surface-2 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-6 rounded-md bg-sky-600 px-2 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title="Edit minimum quantity"
                           >
-                            {isEditingSaving ? (
-                              <div className="animate-spin">
-                                <div className="w-3 h-3 border-2 border-line-strong border-t-slate-600 rounded-full"></div>
-                              </div>
-                            ) : (
-                              <Edit2 className="w-3 h-3" />
-                            )}
+                            {isEditingSaving ? 'Saving…' : 'Edit'}
                           </button>
                         </div>
                       </td>
@@ -500,6 +498,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -542,10 +541,10 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                     <span className="text-[9px] text-ink-faint">{h.createdBy.fullName || h.createdBy.email}</span>
                     <button
                       onClick={() => setDeletingEntryId(h.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded border border-rose-200 hover:bg-rose-50 text-rose-600 flex items-center justify-center mt-1 dark:border-rose-500/30 dark:hover:bg-rose-500/10 dark:text-rose-300"
+                      className="mt-1 rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                       title="Delete this ledger entry"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -637,7 +636,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
                             {set.expiryDate ? new Date(set.expiryDate).toLocaleDateString() : '—'}
                           </td>
                           <td className="px-3 py-2">
-                            <span className="rounded bg-slate-600 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                            <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">
                               {set.batchStatus ?? '—'}
                             </span>
                           </td>
@@ -888,8 +887,8 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
           subtitle={viewing.sku}
           status={
             viewing.quantity <= (viewing.minQuantity || 0)
-              ? { label: viewing.quantity < 0 ? 'Negative' : 'Low Stock', className: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30' }
-              : { label: 'In Stock', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' }
+              ? { label: viewing.quantity < 0 ? 'Negative' : 'Low Stock', className: 'bg-rose-600 text-white' }
+              : { label: 'In Stock', className: 'bg-emerald-600 text-white' }
           }
           onClose={() => setViewing(null)}
           sections={[
@@ -914,7 +913,7 @@ export default function Inventory({ searchQuery = '' }: { searchQuery?: string }
               ],
             },
             {
-              title: `Transaction History${viewingHistoryLoading ? '' : ` (${viewingHistory.length})`}`,
+              title: `Transaction History ${viewingHistoryLoading ? '' : ` ( ${viewingHistory.length})`}`,
               fields: [
                 {
                   label: viewing.batchLotId ? 'Movements for this batch' : 'Movements for this material',

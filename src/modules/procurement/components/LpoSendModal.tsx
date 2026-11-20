@@ -217,13 +217,13 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
 
   const itemState = (item: PreviewItem) => {
     if (item.lpoSent) {
-      return { label: item.lpoNumber ?? 'Sent', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' };
+      return { label: item.lpoNumber ?? 'Sent', className: 'bg-emerald-600 text-white' };
     }
     if (item.onHold) {
-      return { label: 'On hold', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30' };
+      return { label: 'On hold', className: 'bg-amber-600 text-white' };
     }
     if (item.fullyReceived) {
-      return { label: 'Received', className: 'bg-surface-3 text-ink-muted border-line' };
+      return { label: 'Received', className: 'bg-slate-600 text-white' };
     }
     return null;
   };
@@ -238,7 +238,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
               {preview
                 ? `${preview.purchaseOrder.number}${
                     preview.purchaseOrder.requisition ? ` · from ${preview.purchaseOrder.requisition.number}` : ''
-                  } · ${formatNumber(preview.summary.eligible)} line(s) ready${preview.summary.sent ? ` · ${formatNumber(preview.summary.sent)} already sent` : ''}${
+                  } · ${formatNumber(preview.summary.eligible)} line(s) ready ${preview.summary.sent ? ` · ${formatNumber(preview.summary.sent)} already sent` : ''}${
                     preview.summary.onHold ? ` · ${formatNumber(preview.summary.onHold)} on hold` : ''
                   }`
                 : 'Preparing supplier split…'}
@@ -309,7 +309,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                           {formatQty(item.quantity, item.unitOfMeasure)}
                         </p>
                         {state ? (
-                          <span className={`inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${state.className}`}>
+                          <span className={`rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${state.className}`}>
                             {item.onHold && <PauseCircle className="w-2.5 h-2.5" />}
                             {state.label}
                           </span>
@@ -428,7 +428,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                 }`}
               >
                 {results.every((r) => r.success)
-                  ? `All ${formatNumber(results.length)} LPO${results.length === 1 ? '' : 's'} emailed successfully.`
+                  ? `All ${formatNumber(results.length)} LPO ${results.length === 1 ? '' : 's'} emailed successfully.`
                   : 'Some LPOs were not sent. Fix the issue and retry.'}
               </div>
             )}
@@ -475,7 +475,7 @@ export default function LpoSendModal({ poId, onClose, onSent }: LpoSendModalProp
                     {sending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                     {sending
                       ? 'Sending…'
-                      : `Send ${formatNumber(groups.length)} LPO${groups.length === 1 ? '' : 's'}`}
+                      : `Send ${formatNumber(groups.length)} LPO ${groups.length === 1 ? '' : 's'}`}
                   </span>
                 </button>
               )}

@@ -108,6 +108,34 @@ body {
   color: var(--kib-ink);
 }
 
+/*
+ * Anything clickable reads as clickable.
+ * Tailwind's preflight leaves buttons on the arrow cursor; the whole ERP is
+ * click-driven, so every interactive control gets the hand.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='switch']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='file'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'],
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+}
+
 #root {
   width: 100%;
   min-height: 100vh;

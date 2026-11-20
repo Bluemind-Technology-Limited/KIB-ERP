@@ -58,11 +58,11 @@ export default function ProductionPlanDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
-        return 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300';
+        return 'bg-blue-600 text-white';
       case 'IN_PROGRESS':
-        return 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300';
+        return 'bg-amber-600 text-white';
       case 'COMPLETED':
-        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300';
+        return 'bg-green-600 text-white';
       default:
         return 'bg-surface-2 border-line text-ink-2';
     }
@@ -105,7 +105,7 @@ export default function ProductionPlanDashboard() {
             className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
               filter === f
                 ? 'bg-[#AA3BFF] text-white border-[#AA3BFF]'
-                : 'bg-surface text-ink-muted border-line hover:border-line-strong'
+                : 'hover:border-line-strong bg-slate-600 text-white'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}

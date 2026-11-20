@@ -24,11 +24,11 @@ interface RequisitionLine {
 }
 
 const poStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  SENT: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  CLOSED: 'bg-surface-3 text-ink-muted border-line',
+  DRAFT: 'bg-slate-600 text-white',
+  SENT: 'bg-sky-600 text-white',
+  PARTIALLY_RECEIVED: 'bg-amber-600 text-white',
+  RECEIVED: 'bg-emerald-600 text-white',
+  CLOSED: 'bg-slate-600 text-white',
 };
 
 const poStatusLabel: Record<string, string> = {
@@ -221,7 +221,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     ] as string[];
     if (names.length === 0) return po.supplier?.name ?? '—';
     if (names.length === 1) return names[0];
-    return `${names[0]} +${names.length - 1} more`;
+    return `${names[0]} + ${names.length - 1} more`;
   };
 
   const createPo = async (e: React.FormEvent) => {
@@ -232,14 +232,14 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     const unsupplied = poItems.find((it) => it.supplierOptions.length === 0);
     if (unsupplied) {
       setPoFormError(
-        `"${unsupplied.materialName}" has no supplier. Add one in Master Data → Materials before raising this PO.`
+        `" ${unsupplied.materialName}" has no supplier. Add one in Master Data → Materials before raising this PO.`
       );
       return;
     }
 
     const unchosen = poItems.find((it) => !it.supplierId);
     if (unchosen) {
-      setPoFormError(`Choose which supplier "${unchosen.materialName}" is being bought from.`);
+      setPoFormError(`Choose which supplier " ${unchosen.materialName}" is being bought from.`);
       return;
     }
 
@@ -248,7 +248,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
         .map((id) => suppliers.find((s) => s.id === id)?.name ?? id)
         .join(', ');
       setPoFormError(
-        `All items on a purchase order must come from the same supplier — this one has ${chosenSupplierIds.length} (${names}). Split it into separate purchase orders.`
+        `All items on a purchase order must come from the same supplier — this one has ${chosenSupplierIds.length} ( ${names}). Split it into separate purchase orders.`
       );
       return;
     }
@@ -261,7 +261,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
     const supplier = resolvedSupplier;
     if (!supplier?.vendorCode?.trim()) {
       setPoFormError(
-        `Supplier "${supplier?.name ?? 'The selected supplier'}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`
+        `Supplier " ${supplier?.name ?? 'The selected supplier'}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`
       );
       return;
     }
@@ -376,7 +376,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-600 text-white">APPROVED</span>
+                      <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-600 text-white">APPROVED</span>
                     </div>
                     <p className="text-[10px] text-ink-faint">
                       by {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
@@ -593,7 +593,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                   <div className="flex items-center gap-2">
                     <Truck className="w-3.5 h-3.5 text-ink-faint" />
                     <span className="font-mono text-xs font-bold text-ink">{p.number}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{poStatusLabel[p.status] ?? p.status}</span>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${poStatusBadge[p.status]}`}>{poStatusLabel[p.status] ?? p.status}</span>
                   </div>
                   <p className="text-[10px] text-ink-faint">
                     {poSupplierLabel(p)} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)
@@ -608,7 +608,7 @@ export default function Procurements({ searchQuery = '' }: { searchQuery?: strin
                       const received = Number(i.receivedQty ?? 0);
                       const ordered = Number(i.quantity);
                       const outstanding = ordered - received;
-                      return `${i.material?.name} ${formatNumber(received)}/${formatNumber(ordered)}${outstanding > 0 ? ` (${formatNumber(outstanding)} outstanding)` : ' ✓'}`;
+                      return `${i.material?.name} ${formatNumber(received)}/${formatNumber(ordered)}${outstanding > 0 ? ` ( ${formatNumber(outstanding)} outstanding)` : ' ✓'}`;
                     }).join(' · ')}
                   </p>
                   {Array.isArray(p.consignments) && p.consignments.length > 0 && (

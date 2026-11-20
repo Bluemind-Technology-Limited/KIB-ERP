@@ -53,7 +53,7 @@ export default function FailedItemsModal({ isOpen, onClose, failedItems }: Faile
                   </p>
                   <p className="text-[9px] text-ink-muted mt-0.5">SKU: {item.material?.sku}</p>
                 </div>
-                <span className="px-2 py-1 rounded text-[9px] font-semibold bg-rose-600 text-white">
+                <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-rose-600 text-white">
                   FAILED
                 </span>
               </div>

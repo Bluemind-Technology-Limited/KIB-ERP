@@ -308,9 +308,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isCollapsed
             <p className="text-[13px] font-semibold text-ink leading-tight truncate">
               {user?.email || 'isaacwayneagabi@gmail.com'}
             </p>
-            <p className="text-[10px] text-ink-faint uppercase tracking-wider font-mono">
-              {user?.role?.replace('_', ' ') || 'Super Admin'}
-            </p>
           </div>
         </div>
 

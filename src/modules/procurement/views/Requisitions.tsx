@@ -10,10 +10,10 @@ import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview'
 import { formatQty } from '../../../lib/format';
 
 const reqStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  DRAFT: 'bg-slate-600 text-white',
+  PENDING_APPROVAL: 'bg-amber-600 text-white',
+  APPROVED: 'bg-emerald-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
 };
 
 interface SupplierDetail {
@@ -499,7 +499,7 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[r.status] ?? reqStatusBadge.DRAFT}`}>{r.status}</span>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${reqStatusBadge[r.status] ?? reqStatusBadge.DRAFT}`}>{r.status}</span>
                   </div>
                   <p className="text-[10px] text-ink-faint">
                     by {r.requestedBy?.fullName ?? '—'} · {r.items?.length ?? 0} line(s)
@@ -547,7 +547,7 @@ export default function Requisitions({ searchQuery = '' }: { searchQuery?: strin
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-ink">{selected.number}</h3>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[selected.status] ?? reqStatusBadge.DRAFT}`}>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${reqStatusBadge[selected.status] ?? reqStatusBadge.DRAFT}`}>
                         {selected.status}
                       </span>
                     </div>

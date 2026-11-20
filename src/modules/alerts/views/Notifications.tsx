@@ -15,10 +15,10 @@ interface Notification {
 }
 
 const typeIcon: Record<string, { icon: React.ComponentType<{ className?: string }>; cls: string }> = {
-  EXPIRY: { icon: AlertTriangle, cls: 'text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30' },
-  LOW_STOCK: { icon: Boxes, cls: 'text-rose-600 bg-rose-50 border-rose-200 dark:text-rose-300 dark:bg-rose-500/10 dark:border-rose-500/30' },
-  APPROVAL: { icon: ShieldCheck, cls: 'text-sky-600 bg-sky-50 border-sky-200 dark:text-sky-300 dark:bg-sky-500/10 dark:border-sky-500/30' },
-  SYSTEM: { icon: Bell, cls: 'text-ink-muted bg-surface-2 border-line' },
+  EXPIRY: { icon: AlertTriangle, cls: 'bg-amber-600 text-white' },
+  LOW_STOCK: { icon: Boxes, cls: 'bg-rose-600 text-white' },
+  APPROVAL: { icon: ShieldCheck, cls: 'bg-sky-600 text-white' },
+  SYSTEM: { icon: Bell, cls: 'bg-slate-600 text-white' },
 };
 
 export default function Notifications({ searchQuery = '' }: { searchQuery?: string }) {
@@ -173,7 +173,7 @@ export default function Notifications({ searchQuery = '' }: { searchQuery?: stri
                     {n.body && <p className="text-[10px] text-ink-faint mt-0.5 line-clamp-2">{n.body}</p>}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-ink-faint px-1.5 py-0.5 rounded border border-line">
+ <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">
                       {n.type}
                     </span>
                     <span className="text-[9px] text-ink-faint">{new Date(n.createdAt).toLocaleDateString()}</span>

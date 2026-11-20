@@ -179,7 +179,7 @@ export function IngredientRequirementsPanel({
   if (error) {
     return (
       <div
-        className={`flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300${className}`}
+        className={`flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 ${className}`}
       >
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
         {error}
@@ -205,7 +205,7 @@ export function IngredientRequirementsPanel({
             </p>
             <h3 className="mt-1 text-lg font-bold tracking-tight">
               {plan.planNumber}
-              <span className="ml-2 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 align-middle text-[9px] font-semibold uppercase tracking-wider text-white/60">
+              <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-2 bg-slate-600 align-middle text-white">
                 {plan.status.replace('_', ' ')}
               </span>
             </h3>
@@ -403,7 +403,7 @@ export function IngredientRequirementsPanel({
               Ingredient Station must issue.
             </p>
           </div>
-          <span className="flex items-center gap-1 self-start rounded-md px-2 py-0.5 text-[9px] font-bold uppercase sm:self-auto bg-emerald-600 text-white">
+          <span className="rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider self-start sm:self-auto bg-emerald-600 text-white">
             <ArrowRight className="h-3 w-3" /> Ingredient Station work order
           </span>
         </div>
@@ -452,7 +452,7 @@ export function IngredientRequirementsPanel({
                         {line.sources.map((source) => (
                           <span
                             key={`${source.planItemId}-${line.materialId}`}
-                            className="rounded bg-slate-600 px-1.5 py-0.5 text-[9px] font-medium text-white"
+                            className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white"
                           >
                             {source.productName} · {formatNumber(source.totalRequired)}
                           </span>

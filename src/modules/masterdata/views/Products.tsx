@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -7,6 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface Product {
   id: string;
@@ -27,8 +29,8 @@ interface Product {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  INACTIVE: 'bg-slate-600 text-white',
 };
 
 const emptyForm = () => ({
@@ -158,6 +160,8 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
     );
   });
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -198,7 +202,7 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {pageItems.map((p) => (
                   <tr key={p.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
@@ -223,16 +227,22 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[p.status] || statusBadge.ACTIVE}`}>{p.status}</span>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[p.status] || statusBadge.ACTIVE}`}>{p.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ViewButton onClick={() => setViewing(p)} />
-                        <button onClick={() => openEdit(p)} className="text-ink-faint hover:text-indigo-600 p-1 transition-colors dark:hover:text-indigo-300">
-                          <Pencil className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                        >
+                          Edit
                         </button>
-                        <button onClick={() => setDeleteConfirmation(p.id)} className="text-ink-faint hover:text-rose-600 p-1 transition-colors dark:hover:text-rose-300">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => setDeleteConfirmation(p.id)}
+                          className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -240,6 +250,7 @@ export default function Products({ searchQuery = '' }: { searchQuery?: string })
                 ))}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>

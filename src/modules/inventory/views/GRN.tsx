@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { PackageCheck, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { PackageCheck, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -9,6 +9,8 @@ import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../comp
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatQty } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface GrnData {
   id: string;
@@ -25,9 +27,9 @@ interface GrnData {
 }
 
 const sourceBadge: Record<string, string> = {
-  PURCHASE_ORDER: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-  CONSIGNMENT: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/30',
-  DIRECT: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  PURCHASE_ORDER: 'bg-sky-600 text-white',
+  CONSIGNMENT: 'bg-violet-600 text-white',
+  DIRECT: 'bg-amber-600 text-white',
 };
 const sourceLabel: Record<string, string> = {
   PURCHASE_ORDER: 'PO',
@@ -36,16 +38,16 @@ const sourceLabel: Record<string, string> = {
 };
 
 const grnStatusBadge: Record<string, string> = {
-  PENDING_QA: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  PENDING_QA: 'bg-amber-600 text-white',
+  APPROVED: 'bg-emerald-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
 };
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  QUARANTINE: 'bg-amber-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
+  EXPIRED: 'bg-slate-600 text-white',
 };
 
 /** SOP KIB/QCA/010 — what still has to be filled in before a lot code can be built. */
@@ -379,6 +381,8 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
     }));
   })();
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(groupedByDate);
+
   const activeSupplierName =
     mode === 'DIRECT' ? '' : supplierName;
 
@@ -419,7 +423,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                 </tr>
               </thead>
               <tbody>
-                {groupedByDate.map((group) => {
+                {pageItems.map((group) => {
                   const collapsed = !!collapsedDates[group.key];
                   return (
                     <Fragment key={group.key}>
@@ -464,7 +468,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="font-mono text-xs font-bold text-ink">{g.number}</span>
                         <span
-                          className={`ml-2 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${sourceBadge[g.source ?? 'PURCHASE_ORDER']}`}
+                          className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-2  ${sourceBadge[g.source ?? 'PURCHASE_ORDER']}`}
                         >
                           {sourceLabel[g.source ?? 'PURCHASE_ORDER']}
                         </span>
@@ -491,7 +495,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${grnStatusBadge[g.status] || grnStatusBadge.PENDING_QA}`}
+                          className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${grnStatusBadge[g.status] || grnStatusBadge.PENDING_QA}`}
                         >
                           {g.status.replace(/_/g, ' ')}
                         </span>
@@ -504,10 +508,10 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                               setDeleteError('');
                               setDeleteConfirmation({ grnId: g.id, grnNumber: g.number });
                             }}
-                            className="text-ink-faint hover:text-rose-600 transition-colors p-1.5 dark:hover:text-rose-300"
+                            className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                             title="Delete GRN"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -519,6 +523,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -701,7 +706,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                     ) : (
                       <span className="block text-[10px] text-amber-600 dark:text-amber-300">
                         {preview?.missing?.length
-                          ? `No lot code yet (${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')}). QA can edit the set number during inspection.`
+                          ? `No lot code yet ( ${preview.missing.map((m) => MISSING_LABELS[m] ?? m).join(', ')}). QA can edit the set number during inspection.`
                           : mode === 'DIRECT'
                             ? 'Select a material to preview its lot code'
                             : 'Select a purchase order to generate a lot code'}
@@ -886,7 +891,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
               title: 'Items received',
               fields: [
                 {
-                  label: `Materials (${viewing.items?.length ?? 0})`,
+                  label: `Materials ( ${viewing.items?.length ?? 0})`,
                   wide: true,
                   value:
                     (viewing.items ?? []).length === 0 ? (
@@ -917,7 +922,7 @@ export default function GRN({ searchQuery = '' }: { searchQuery?: string }) {
                                   </p>
                                   {it.batchLot?.status && (
                                     <span
-                                      className={`inline-block mt-0.5 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${batchStatusBadge[it.batchLot.status] ?? batchStatusBadge.ACTIVE}`}
+                                      className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider mt-0.5  ${batchStatusBadge[it.batchLot.status] ?? batchStatusBadge.ACTIVE}`}
                                     >
                                       {it.batchLot.status}
                                     </span>

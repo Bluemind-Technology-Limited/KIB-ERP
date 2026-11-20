@@ -6,6 +6,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { DetailsModal, ViewButton } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatMoney, formatNumber } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface LotLine {
   batchNumber: string;
@@ -126,6 +128,8 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
           )
       );
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -161,7 +165,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((day) => {
+                {pageItems.map((day) => {
                   const open = !!expanded[day.date];
                   const achievedSummary = `${qty(day.achieved.outputQty)} output · ${money(day.achieved.outputValue)}`;
 
@@ -251,6 +255,7 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -265,8 +270,8 @@ export default function DailyRecords({ searchQuery = '' }: { searchQuery?: strin
           }
           status={
             viewing.day.complete
-              ? { label: 'Complete', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' }
-              : { label: 'WIP open', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30' }
+              ? { label: 'Complete', className: 'bg-emerald-600 text-white' }
+              : { label: 'WIP open', className: 'bg-amber-600 text-white' }
           }
           onClose={() => setViewing(null)}
           footer={

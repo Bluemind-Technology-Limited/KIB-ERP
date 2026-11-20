@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -7,6 +7,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 import { toast } from '../../../stores/useToastStore';
 
 interface Material {
@@ -36,13 +38,13 @@ interface SupplierOption {
 }
 
 const typeBadge: Record<string, string> = {
-  RAW: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  PACKAGING: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-  FINISHED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
+  RAW: 'bg-amber-600 text-white',
+  PACKAGING: 'bg-sky-600 text-white',
+  FINISHED: 'bg-emerald-600 text-white',
 };
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  INACTIVE: 'bg-slate-600 text-white',
 };
 
 export default function Materials({ searchQuery = '' }: { searchQuery?: string }) {
@@ -230,6 +232,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
       (m.traceabilityCode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -277,43 +281,34 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
         ) : filtered.length === 0 ? (
           <EmptyState title="No materials found." />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-line text-[10px] uppercase tracking-wider text-ink-faint">
                   <th className="px-4 py-3 font-semibold">Material</th>
-                  <th className="px-4 py-3 font-semibold">SKU</th>
                   <th className="px-4 py-3 font-semibold">Type</th>
                   <th className="px-4 py-3 font-semibold">Suppliers</th>
                   <th className="px-4 py-3 font-semibold">UoM</th>
-                  <th className="px-4 py-3 font-semibold">Expiry</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m) => (
+                {pageItems.map((m) => (
                   <tr key={m.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-md bg-[#EA4335]/10 flex items-center justify-center shrink-0">
-                          <Package className="w-3.5 h-3.5 text-[#EA4335]" />
-                        </div>
-                        <div>
-                          <p title={m.name} className="text-xs font-bold text-ink leading-none max-w-[180px] truncate">{m.name}</p>
-                          {m.traceabilityCode && (
-                            <p className="text-[9px] text-ink-faint mt-0.5">
-                              code <span className="font-mono">{m.traceabilityCode}</span>
-                            </p>
-                          )}
-                        </div>
+                      <div>
+                        <p title={m.name} className="text-xs font-bold text-ink leading-none max-w-[180px] truncate">{m.name}</p>
+                        {m.traceabilityCode && (
+                          <p className="text-[9px] text-ink-faint mt-0.5">
+                            code <span className="font-mono">{m.traceabilityCode}</span>
+                          </p>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[10px] font-mono text-ink-muted">{m.sku}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span title={m.type} className={`text-[9px] font-bold uppercase tracking-wider w-20 text-center py-0.5 rounded border inline-block ${typeBadge[m.type]}`}>{m.type}</span>
+                      <span title={m.type} className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider w-20  ${typeBadge[m.type]}`}>{m.type}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
@@ -321,7 +316,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                           <span className="text-[10px] text-ink-faint">—</span>
                         ) : (
                           (m.suppliers ?? []).map(({ supplier }) => (
-                            <span key={supplier.id} title={supplier.name} className="text-[9px] font-semibold text-white bg-slate-600 px-1.5 py-0.5 rounded inline-block truncate max-w-[100px]">
+                            <span key={supplier.id} title={supplier.name} className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white bg-slate-600 truncate max-w-[100px]">
                               {supplier.name}
                             </span>
                           ))
@@ -330,23 +325,22 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                     </td>
                     <td className="px-4 py-3 text-xs text-ink-muted">{m.unitOfMeasure}</td>
                     <td className="px-4 py-3">
-                      {m.requiresLot ? (
-                        <span className="text-[10px] text-ink-muted">Lot tracked</span>
-                      ) : (
-                        <span className="text-[10px] text-ink-faint">No lot</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[m.status] || statusBadge.ACTIVE}`}>{m.status}</span>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[m.status] || statusBadge.ACTIVE}`}>{m.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ViewButton onClick={() => setViewing(m)} />
-                        <button onClick={() => openEdit(m)} className="text-ink-faint hover:text-indigo-600 p-1 transition-colors dark:hover:text-indigo-300">
-                          <Pencil className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => openEdit(m)}
+                          className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                        >
+                          Edit
                         </button>
-                        <button onClick={() => deleteMaterial(m.id)} className="text-ink-faint hover:text-rose-600 p-1 transition-colors dark:hover:text-rose-300">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button
+                          onClick={() => deleteMaterial(m.id)}
+                          className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -355,6 +349,8 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               </tbody>
             </table>
           </div>
+            <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
+          </>
         )}
       </div>
 
@@ -374,7 +370,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                 {
                   label: 'Type',
                   value: (
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${typeBadge[viewing.type]}`}>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${typeBadge[viewing.type]}`}>
                       {viewing.type}
                     </span>
                   ),
@@ -405,7 +401,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
               title: 'Suppliers',
               fields: [
                 {
-                  label: `Suppliers (${(viewing.suppliers ?? []).length})`,
+                  label: `Suppliers ( ${(viewing.suppliers ?? []).length})`,
                   wide: true,
                   value:
                     (viewing.suppliers ?? []).length === 0 ? (
@@ -415,7 +411,7 @@ export default function Materials({ searchQuery = '' }: { searchQuery?: string }
                         {(viewing.suppliers ?? []).map(({ supplier }) => (
                           <span
                             key={supplier.id}
-                            className="text-[9px] font-semibold text-white bg-slate-600 px-1.5 py-0.5 rounded"
+                            className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white bg-slate-600"
                           >
                             {supplier.name}
                           </span>

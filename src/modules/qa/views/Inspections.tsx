@@ -8,7 +8,6 @@ import {
   Trash2,
   ExternalLink,
   Loader2,
-  ClipboardCheck,
 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { uploadFileToR2 } from '../../../lib/r2Client';
@@ -18,6 +17,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface Inspection {
   id: string;
@@ -52,16 +53,16 @@ interface Inspection {
 }
 
 const resultBadge: Record<string, string> = {
-  PENDING: 'bg-surface-3 text-ink-muted border-line',
-  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  FAILED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  PENDING: 'bg-slate-600 text-white',
+  PASSED: 'bg-emerald-600 text-white',
+  FAILED: 'bg-rose-600 text-white',
 };
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  QUARANTINE: 'bg-amber-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
+  EXPIRED: 'bg-slate-600 text-white',
 };
 
 /** Mirrors `buildLotCode` on the server so QA sees the code while editing. */
@@ -293,6 +294,8 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
     return matchesSearch && matchesDate;
   });
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       {/* 1. Action Header */}
@@ -358,7 +361,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((i) => (
+                {pageItems.map((i) => (
                   <tr key={i.id} className="border-b border-line hover:bg-surface-2/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
@@ -396,21 +399,22 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${batchStatusBadge[i.batchLot?.status ?? ''] ?? batchStatusBadge.ACTIVE}`}>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${batchStatusBadge[i.batchLot?.status ?? ''] ?? batchStatusBadge.ACTIVE}`}>
                         {i.batchLot?.status ?? '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${resultBadge[i.result]}`}>{i.result}</span>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${resultBadge[i.result]}`}>{i.result}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <ViewButton onClick={() => setViewing(i)} />
                         {i.result === 'PENDING' && (
-                          <button onClick={() => openReview(i)} className="btn-3d px-3 h-7">
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <ClipboardCheck className="w-3 h-3" /> Review
-                            </span>
+                          <button
+                            onClick={() => openReview(i)}
+                            className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                          >
+                            Review
                           </button>
                         )}
                       </div>
@@ -419,6 +423,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
                 ))}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -709,7 +714,7 @@ export default function Inspections({ searchQuery = '' }: { searchQuery?: string
         <ConfirmationModal
           type="delete"
           title="Delete review document"
-          message={`Remove “${docToDelete.reviewDocumentName ?? 'this document'}”? The file will also be deleted from storage.`}
+          message={`Remove “ ${docToDelete.reviewDocumentName ?? 'this document'}”? The file will also be deleted from storage.`}
           onConfirm={removeReviewDoc}
           onCancel={() => setDocToDelete(null)}
           isLoading={deletingDoc}

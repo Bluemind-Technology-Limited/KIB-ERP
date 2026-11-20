@@ -143,17 +143,17 @@ export default function QualityCheckDashboard() {
                   {/* Status Badge */}
                   <div className="flex items-center gap-2">
                     {hasFailures ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-rose-600 text-white">
+                      <span className="rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-rose-600 text-white">
                         <AlertCircle className="w-3 h-3" />
                         FAILED
                       </span>
                     ) : completion === 100 ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-green-600 text-white">
+                      <span className="rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-green-600 text-white">
                         <CheckCircle2 className="w-3 h-3" />
                         READY
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-blue-600 text-white">
+                      <span className="rounded-full inline-flex items-center justify-center gap-1 min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-blue-600 text-white">
                         <Loader className="w-3 h-3 animate-spin" />
                         IN PROGRESS
                       </span>

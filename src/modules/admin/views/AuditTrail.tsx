@@ -191,7 +191,7 @@ export default function AuditTrail() {
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2/60 text-left"
                     >
                       <div className="flex items-center gap-3 flex-1">
-                        <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded ${entityTypeColors[timeline.entityType] || 'bg-slate-600 text-white'}`}>
+                        <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${entityTypeColors[timeline.entityType] || 'bg-slate-600 text-white'}`}>
                           {timeline.entityType}
                         </span>
                         <div>

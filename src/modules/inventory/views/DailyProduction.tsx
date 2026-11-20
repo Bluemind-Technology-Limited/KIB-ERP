@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, Eye } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -8,6 +8,8 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber, formatQty } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface ProductionOrder {
   id: string;
@@ -161,6 +163,8 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
       (o.bom?.finishedSku?.name ?? o.bom?.productName ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(filtered);
+
   return (
     <div className="w-full mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -193,7 +197,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((o) => {
+                {pageItems.map((o) => {
                   const productName = o.bom?.finishedSku?.name ?? o.bom?.productName ?? '—';
                   return (
                   <tr key={o.id} className="border-b border-line hover:bg-surface-2/50">
@@ -217,23 +221,24 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                       {o.scheduledStart ? new Date(o.scheduledStart).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-600 text-white">{o.status}</span>
+                      <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <ViewButton onClick={() => setViewing(o)} />
                         {o.planLinked ? (
                           <span
-                            className="inline-flex items-center gap-1 rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                            className="rounded-md bg-slate-600 px-2.5 py-1 text-[10px] font-semibold text-white"
                             title={`Ingredients for plan ${o.planNumber ?? ''} are issued at the Ingredients Station`}
                           >
-                            <ClipboardList className="w-3 h-3" /> Issue via Ingredients Station
+                            Issue via Ingredients Station
                           </span>
                         ) : (
-                          <button onClick={() => openRelease(o)} className="btn-3d px-3 h-7 bg-indigo-600 border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-                            <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <Eye className="w-3.5 h-3.5" /> View Details
-                            </span>
+                          <button
+                            onClick={() => openRelease(o)}
+                            className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
+                          >
+                            View Details
                           </button>
                         )}
                       </div>
@@ -243,6 +248,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -439,7 +445,7 @@ export default function DailyProduction({ searchQuery = '' }: { searchQuery?: st
         <DetailsModal
           title={viewing.orderNumber}
           subtitle={viewing.bom?.finishedSku?.name ?? viewing.bom?.productName ?? '—'}
-          status={{ label: viewing.status, className: 'bg-surface-3 text-ink-muted border-line' }}
+          status={{ label: viewing.status, className: 'bg-slate-600 text-white' }}
           onClose={() => setViewing(null)}
           sections={[
             {

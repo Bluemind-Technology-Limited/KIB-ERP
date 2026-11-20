@@ -15,6 +15,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 type Station = 'INGREDIENT' | 'GRINDING' | 'PRODUCTION';
 
@@ -47,10 +49,10 @@ const STATION_LABEL: Record<Station, string> = {
 };
 
 const statusStyles: Record<string, string> = {
-  OPEN: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  PARTIAL: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
-  TRANSFERRED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  CLOSED: 'bg-surface-3 text-ink-muted border-line',
+  OPEN: 'bg-amber-600 text-white',
+  PARTIAL: 'bg-blue-600 text-white',
+  TRANSFERRED: 'bg-emerald-600 text-white',
+  CLOSED: 'bg-slate-600 text-white',
 };
 
 function apiError(err: any, fallback: string) {
@@ -115,6 +117,8 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
         .some((value) => String(value).toLowerCase().includes(query))
     );
   }, [entries, searchQuery]);
+
+  const { page, totalPages, total, pageItems, setPage } = usePagination(visible);
 
   const totals = useMemo(
     () =>
@@ -257,7 +261,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                 </tr>
               </thead>
               <tbody>
-                {visible.map((entry) => {
+                {pageItems.map((entry) => {
                   const active = entry.status === 'OPEN' || entry.status === 'PARTIAL';
                   return (
                     <tr key={entry.id} className="border-b border-line hover:bg-surface-2/50">
@@ -301,7 +305,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase ${
+                          className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                             statusStyles[entry.status] ?? 'bg-slate-600 text-white'
                           }`}
                         >
@@ -312,9 +316,9 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                         {active ? (
                           <button
                             onClick={() => openTransfer(entry)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#00B4D8] px-2.5 py-1 text-[10px] font-semibold text-[#0077A8] hover:bg-[#00B4D8]/10"
+                            className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
                           >
-                            <MoveRight className="h-3 w-3" /> Transfer
+                            Transfer
                           </button>
                         ) : (
                           <span className="text-[10px] text-ink-faint">—</span>
@@ -325,6 +329,7 @@ export default function WorkInProgress({ searchQuery = '' }: { searchQuery?: str
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>

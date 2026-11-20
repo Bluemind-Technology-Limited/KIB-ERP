@@ -196,17 +196,17 @@ export default function ConsignmentQualityForm() {
 
               {/* Status Badge */}
               {item.result === 'PASS' && (
-                <span className="px-2 py-1 rounded text-[9px] font-semibold mr-2 bg-green-600 text-white">
+                <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider mr-2 bg-green-600 text-white">
                   PASS
                 </span>
               )}
               {item.result === 'FAIL' && (
-                <span className="px-2 py-1 rounded text-[9px] font-semibold mr-2 bg-rose-600 text-white">
+                <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider mr-2 bg-rose-600 text-white">
                   FAIL
                 </span>
               )}
               {!item.result && (
-                <span className="px-2 py-1 rounded text-[9px] font-semibold mr-2 bg-slate-600 text-white">
+                <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider mr-2 bg-slate-600 text-white">
                   PENDING
                 </span>
               )}

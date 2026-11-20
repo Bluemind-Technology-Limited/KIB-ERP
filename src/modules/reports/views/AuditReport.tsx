@@ -110,17 +110,17 @@ interface ActivityRow {
 }
 
 const statusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  SCHEDULED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
-  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  CANCELLED: 'bg-surface-3 text-ink-muted border-line',
+  DRAFT: 'bg-slate-600 text-white',
+  SCHEDULED: 'bg-blue-600 text-white',
+  IN_PROGRESS: 'bg-amber-600 text-white',
+  COMPLETED: 'bg-emerald-600 text-white',
+  CANCELLED: 'bg-slate-600 text-white',
 };
 
 const stageStatusBadge: Record<string, string> = {
-  SUBMITTED: 'bg-surface-3 text-ink-muted border-line',
-  VERIFIED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  FLAGGED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  SUBMITTED: 'bg-slate-600 text-white',
+  VERIFIED: 'bg-emerald-600 text-white',
+  FLAGGED: 'bg-rose-600 text-white',
 };
 
 const moduleBadge: Record<string, string> = {
@@ -143,12 +143,12 @@ function downloadCSV(rows: ActivityRow[]) {
     `${r.referenceType ?? ''} ${r.referenceId ?? ''}`.trim(),
   ]);
   const csv = [header, ...body]
-    .map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .map((line) => line.map((c) => `" ${String(c).replace(/"/g, '""')}"`).join(','))
     .join('\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `erp-activity-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `erp-activity- ${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -429,7 +429,7 @@ export default function AuditReport() {
                                             ? 'bg-emerald-600 text-white'
                                             : ins.result === 'FAILED'
                                               ? 'bg-rose-600 text-white'
-                                              : 'border-line bg-surface-2 text-ink-muted'
+                                              : 'bg-slate-600 text-white'
                                         }`}
                                       >
                                         {ins.result}
@@ -477,7 +477,7 @@ export default function AuditReport() {
                                     {rec.yieldPct !== null ? ` · yield ${formatPercent(rec.yieldPct)}` : ''}
                                   </span>
                                   <div className="flex items-center gap-2">
-                                    <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${stageStatusBadge[rec.status] ?? stageStatusBadge.SUBMITTED}`}>
+                                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${stageStatusBadge[rec.status] ?? stageStatusBadge.SUBMITTED}`}>
                                       {rec.status}
                                     </span>
                                     <button
@@ -589,7 +589,7 @@ export default function AuditReport() {
                           {new Date(r.timestamp).toLocaleString()}
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${moduleBadge[r.module] ?? 'bg-slate-600 text-white'}`}>
+                          <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${moduleBadge[r.module] ?? 'bg-slate-600 text-white'}`}>
                             {r.module}
                           </span>
                         </td>
@@ -625,7 +625,7 @@ export default function AuditReport() {
           subtitle={viewing.description}
           status={{
             label: viewing.module,
-            className: moduleBadge[viewing.module] ?? 'bg-surface-3 text-ink-muted border-line',
+            className: moduleBadge[viewing.module] ?? 'bg-slate-600 text-white',
           }}
           onClose={() => setViewing(null)}
           sections={[

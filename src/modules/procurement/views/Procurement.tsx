@@ -13,17 +13,17 @@ interface MaterialOption { id: string; name: string; sku: string; unitOfMeasure:
 interface SupplierOption { id: string; name: string; vendorCode?: string }
 
 const reqStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  DRAFT: 'bg-slate-600 text-white',
+  PENDING_APPROVAL: 'bg-amber-600 text-white',
+  APPROVED: 'bg-emerald-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
 };
 const poStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  SENT: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  RECEIVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  CLOSED: 'bg-surface-3 text-ink-muted border-line',
+  DRAFT: 'bg-slate-600 text-white',
+  SENT: 'bg-sky-600 text-white',
+  PARTIALLY_RECEIVED: 'bg-amber-600 text-white',
+  RECEIVED: 'bg-emerald-600 text-white',
+  CLOSED: 'bg-slate-600 text-white',
 };
 
 export default function Procurement({ searchQuery = '' }: { searchQuery?: string }) {
@@ -159,7 +159,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
   const confirmCreatePo = async () => {
     const supplier = suppliers.find((s) => s.id === poSupplierId);
     if (!supplier?.vendorCode?.trim()) {
-      setError(`Supplier "${supplier?.name ?? poSupplierId}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`);
+      setError(`Supplier " ${supplier?.name ?? poSupplierId}" has no vendor code. Add it in Master Data → Suppliers before raising this PO.`);
       setCreatePoConfirmation(false);
       return;
     }
@@ -358,7 +358,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                       <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-ink-muted">
-                            {item.materialName ? `${item.materialName} (${item.sku})` : `Item ${idx + 1}`}
+                            {item.materialName ? `${item.materialName} ( ${item.sku})` : `Item ${idx + 1}`}
                           </span>
                           {!poRequisitionId && (
                             <button type="button" onClick={() => setPoItems(poItems.filter((_, i) => i !== idx))} className="text-ink-faint hover:text-rose-500 p-0.5">✕</button>
@@ -474,11 +474,11 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-ink">{r.number}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${reqStatusBadge[r.status]}`}>{r.status}</span>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${reqStatusBadge[r.status]}`}>{r.status}</span>
                   </div>
                   <p className="text-[10px] text-ink-faint">by {r.requestedBy?.fullName} · {r.items?.length} line(s)</p>
                   <p className="text-[10px] text-ink-muted">
-                    {r.items?.map((i: any) => `${i.material?.name} (${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
+                    {r.items?.map((i: any) => `${i.material?.name} ( ${formatQty(i.quantity, i.unitOfMeasure)})`).join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -521,7 +521,7 @@ export default function Procurement({ searchQuery = '' }: { searchQuery?: string
                   <div className="flex items-center gap-2">
                     <Truck className="w-3.5 h-3.5 text-ink-faint" />
                     <span className="font-mono text-xs font-bold text-ink">{p.number}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${poStatusBadge[p.status]}`}>{p.status}</span>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${poStatusBadge[p.status]}`}>{p.status}</span>
                   </div>
                   <p className="text-[10px] text-ink-faint">
                     {p.supplier?.name} {p.requisition ? `· from ${p.requisition.number}` : ''} · {p.items?.length} line(s)

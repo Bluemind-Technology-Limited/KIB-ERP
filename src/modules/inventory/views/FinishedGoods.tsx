@@ -8,6 +8,8 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { DetailsModal, ViewButton, detailDate } from '../../../components/ui/DetailsModal';
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { formatNumber, formatQty } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface StockLine {
   batchLotId: string;
@@ -49,10 +51,10 @@ interface ProductStock {
 interface Warehouse { id: string; name: string; code: string }
 
 const batchStatusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  QUARANTINE: 'bg-amber-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
+  EXPIRED: 'bg-slate-600 text-white',
 };
 
 const dayLabel = (iso: string) => {
@@ -121,6 +123,8 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
     }
     return out;
   }, [products, query]);
+
+  const { page, totalPages, total, pageItems, setPage } = usePagination(rows);
 
   const openDispatch = (product: ProductStock, line: StockLine) => {
     setStockProduct(null);
@@ -201,7 +205,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ product, day, current }, idx) => (
+                {pageItems.map(({ product, day, current }, idx) => (
                   <tr
                     key={`${product.materialId}-${day.date}-${idx}`}
                     className={`border-b border-line hover:bg-surface-2/50 ${current ? 'bg-emerald-50/30' : ''}`}
@@ -223,7 +227,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-medium text-ink-muted">{dayLabel(day.date)}</span>
                         {current && (
-                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600 text-white">
+                          <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
                             Latest
                           </span>
                         )}
@@ -253,7 +257,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                         {current && product.batches.length > 0 && (
                           <button onClick={() => setStockProduct(product)} className="btn-3d px-3 h-7">
                             <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                              <Truck className="w-3 h-3" /> Stock
+                              Stock
                             </span>
                           </button>
                         )}
@@ -263,6 +267,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                 ))}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -272,7 +277,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
         <DetailsModal
           title={viewing.product.materialName}
           subtitle={`${dayLabel(viewing.day.date)} · ${viewing.product.sku}`}
-          status={{ label: 'Daily stock', className: 'bg-surface-3 text-ink-muted border-line' }}
+          status={{ label: 'Daily stock', className: 'bg-slate-600 text-white' }}
           onClose={() => setViewing(null)}
           sections={[
             {
@@ -287,7 +292,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
               ],
             },
             {
-              title: `Batches (${formatNumber(viewing.day.lines.length)})`,
+              title: `Batches ( ${formatNumber(viewing.day.lines.length)})`,
               fields: viewing.day.lines.map((line) => ({
                 label: `${line.batchNumber} · ${line.warehouseCode || line.warehouseName}`,
                 wide: true,
@@ -343,7 +348,7 @@ export default function FinishedGoods({ searchQuery = '' }: { searchQuery?: stri
                       </td>
                       <td className="px-3 py-2 text-[10px] text-ink-muted">{detailDate(line.expiryDate)}</td>
                       <td className="px-3 py-2">
-                        <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${batchStatusBadge[line.batchStatus] ?? batchStatusBadge.ACTIVE}`}>
+                        <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${batchStatusBadge[line.batchStatus] ?? batchStatusBadge.ACTIVE}`}>
                           {line.batchStatus}
                         </span>
                       </td>

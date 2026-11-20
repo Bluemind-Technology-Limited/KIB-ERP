@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Warehouse as WarehouseIcon, ChevronDown, ChevronRight, Plus, MapPin, Boxes, Trash2 } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -46,8 +45,8 @@ interface WarehouseStockRow {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  INACTIVE: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  INACTIVE: 'bg-slate-600 text-white',
 };
 
 export default function Warehouses({ searchQuery = '' }: { searchQuery?: string }) {
@@ -220,7 +219,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
         <div className="flex gap-2">
           <button onClick={() => setShowAdd(!showAdd)} className="btn-3d px-4 h-9">
             <span className="flex items-center gap-1.5 text-white text-xs font-semibold">
-              <Plus className="w-3.5 h-3.5" /> Add Warehouse
+              Add Warehouse
             </span>
           </button>
         </div>
@@ -234,7 +233,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
 
       {/* 2. Add Warehouse Form */}
       {showAdd && (
-        <form onSubmit={addWarehouse} className="bg-surface border border-line rounded-xl p-4 space-y-3 animate-in fade-in duration-150">
+        <form onSubmit={addWarehouse} className="bg-surface rounded-xl p-4 space-y-3 animate-in fade-in duration-150">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <input
               value={newWarehouse.name}
@@ -270,7 +269,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-surface border border-line rounded-xl overflow-hidden">
+            <div key={i} className="bg-surface rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-4 h-4" />
@@ -293,7 +292,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
       ) : (
         <div className="space-y-4">
           {filtered.map((w) => (
-            <div key={w.id} className="bg-surface border border-line rounded-xl overflow-hidden">
+            <div key={w.id} className="bg-surface rounded-xl overflow-hidden">
               {/* Warehouse row */}
               <div
                 role="button"
@@ -308,14 +307,6 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  {expanded[w.id] ? (
-                    <ChevronDown className="w-4 h-4 text-ink-faint" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-ink-faint" />
-                  )}
-                  <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center">
-                    <WarehouseIcon className="w-4 h-4 text-[#EA4335]" />
-                  </div>
                   <div>
                     <p title={w.name} className="text-sm font-bold text-ink leading-none max-w-[180px] truncate">{w.name}</p>
                     <p title={w.code} className="text-[10px] text-ink-faint mt-1 font-mono max-w-[180px] truncate">{w.code}</p>
@@ -328,38 +319,38 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                       e.stopPropagation();
                       viewWarehouseStock(w);
                     }}
-                    className="flex items-center gap-1 text-[10px] font-semibold text-ink-muted hover:text-[#EA4335] transition-colors px-1.5 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                    className="rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-sky-700"
                     title="View materials in this warehouse"
                   >
-                    <Boxes className="w-3.5 h-3.5" /> View Stock
+                    View Stock
                   </button>
                   <ViewButton onClick={() => setViewing(w)} />
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[w.status] || statusBadge.ACTIVE}`}>
-                    {w.status}
-                  </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteWarehouse(w.id);
                     }}
-                    className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
+                    className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                     title="Delete warehouse"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    Delete
                   </button>
+                  <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[w.status] || statusBadge.ACTIVE}`}>
+                    {w.status}
+                  </span>
                 </div>
               </div>
 
               {/* Zones */}
               {expanded[w.id] && (
-                <div className="border-t border-line bg-surface-2/50 px-4 py-3 space-y-2">
+                <div className="bg-surface-2/50 px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Zones</p>
                     <button
                       onClick={() => { setAddingZoneTo(addingZoneTo === w.id ? null : w.id); setNewZone({ ...newZone, warehouseId: w.id }); }}
                       className="flex items-center gap-1 text-[10px] font-semibold text-[#EA4335] hover:underline"
                     >
-                      <Plus className="w-3 h-3" /> Add Zone
+                      Add Zone
                     </button>
                   </div>
 
@@ -388,7 +379,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                   )}
 
                   {w.zones.map((z) => (
-                    <div key={z.id} className="rounded-lg border border-line bg-surface">
+                    <div key={z.id} className="rounded-lg bg-surface">
                       <div
                         role="button"
                         tabIndex={0}
@@ -402,12 +393,6 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                         className="w-full flex items-center justify-between px-3 py-2 hover:bg-surface-2 text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          {expandedZone[z.id] ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-ink-faint" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-ink-faint" />
-                          )}
-                          <MapPin className="w-3.5 h-3.5 text-ink-faint" />
                           <span className="text-xs font-semibold text-ink">{z.name}</span>
                           <span className="text-[10px] text-ink-faint font-mono">{z.code}</span>
                         </div>
@@ -418,23 +403,23 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                               e.stopPropagation();
                               deleteZone(z.id);
                             }}
-                            className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
+                            className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                             title="Delete zone"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            Delete
                           </button>
                         </div>
                       </div>
 
                       {expandedZone[z.id] && (
-                        <div className="border-t border-line px-3 py-2 space-y-2">
+                        <div className="px-3 py-2 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-[9px] font-bold uppercase tracking-wider text-ink-faint">Bins / Racks</p>
                             <button
                               onClick={() => { setAddingBinTo(addingBinTo === z.id ? null : z.id); setNewBin({ ...newBin, zoneId: z.id, warehouseId: w.id }); }}
                               className="flex items-center gap-1 text-[10px] font-semibold text-[#EA4335] hover:underline"
                             >
-                              <Plus className="w-3 h-3" /> Add Bin
+                              Add Bin
                             </button>
                           </div>
 
@@ -464,16 +449,15 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                             z.bins.map((b) => (
                               <div key={b.id} className="flex items-center justify-between gap-2 pl-6">
                                 <div className="flex items-center gap-2">
-                                  <Boxes className="w-3 h-3 text-ink-faint" />
                                   <span className="text-[11px] text-ink-muted">{b.name}</span>
                                   <span className="text-[10px] text-ink-faint font-mono">{b.code}</span>
                                 </div>
                                 <button
                                   onClick={() => deleteBin(b.id)}
-                                  className="text-ink-faint hover:text-rose-600 transition-colors p-1 dark:hover:text-rose-300"
+                                  className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                                   title="Delete bin"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  Delete
                                 </button>
                               </div>
                             ))
@@ -514,7 +498,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
               fields: [{ label: 'Address', value: detailValue(viewing.address), wide: true }],
             },
             {
-              title: `Zones & bins (${viewing.zones.length})`,
+              title: `Zones & bins ( ${viewing.zones.length})`,
               fields: [
                 {
                   label: 'Layout',
@@ -525,7 +509,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
                     ) : (
                       <div className="space-y-1.5">
                         {viewing.zones.map((z) => (
-                          <div key={z.id} className="rounded-lg border border-line px-2 py-1.5">
+                          <div key={z.id} className="rounded-lg bg-surface-2 px-2 py-1.5">
                             <div className="flex items-center justify-between gap-2">
                               <p title={z.name} className="text-[11px] font-semibold text-ink truncate">{z.name}</p>
                               <span className="text-[9px] font-mono text-ink-faint shrink-0">{z.code}</span>
@@ -553,9 +537,6 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
           <div className="bg-surface rounded-xl w-full max-w-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#EA4335]/10 flex items-center justify-center">
-                  <Boxes className="w-4 h-4 text-[#EA4335]" />
-                </div>
                 <div>
                   <h3 className="text-sm font-bold text-ink leading-none">{stockWarehouse.name}</h3>
                   <p
@@ -576,7 +557,7 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
               </button>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
+            <div className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Materials in store</span>
               <span className="text-[10px] text-ink-muted">
                 {new Set(warehouseStock.map((r) => r.materialId)).size} material(s) · {warehouseStock.length} line(s)
@@ -592,9 +573,9 @@ export default function Warehouses({ searchQuery = '' }: { searchQuery?: string 
             ) : warehouseStock.length === 0 ? (
               <EmptyState title="No stock in this warehouse." hint="Received goods will show up here once they hit the ledger." />
             ) : (
-              <div className="border border-line rounded-xl overflow-hidden">
+              <div className="rounded-xl overflow-hidden">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-surface-2 border-b border-line">
+                  <thead className="bg-surface-2">
                     <tr>
                       <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint">Material</th>
                       <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-ink-faint">Batch</th>

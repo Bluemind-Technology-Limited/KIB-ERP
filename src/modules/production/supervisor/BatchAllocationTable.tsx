@@ -66,11 +66,11 @@ export default function BatchAllocationTable({
       case 'ALLOCATED':
         return 'bg-surface-3 text-ink-2';
       case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300';
+        return 'bg-blue-600 text-white';
       case 'IN_PROGRESS':
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
+        return 'bg-amber-600 text-white';
       case 'COMPLETED':
-        return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300';
+        return 'bg-green-600 text-white';
       default:
         return 'bg-surface-3 text-ink-2';
     }
@@ -152,7 +152,7 @@ export default function BatchAllocationTable({
                       <button
                         onClick={() =>
                           run(alloc.id, `/supervisor/batch-allocations/${alloc.id}/complete`, {
-                            batchNumber: alloc.batchNumber || `BATCH-${Date.now()}`,
+                            batchNumber: alloc.batchNumber || `BATCH- ${Date.now()}`,
                           })
                         }
                         disabled={busyIds.has(alloc.id)}

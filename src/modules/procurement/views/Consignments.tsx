@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Plus, ChevronDown, ChevronRight, Trash2, Boxes } from 'lucide-react';
+import { Truck, Plus, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -93,16 +93,16 @@ interface Consignment {
 }
 
 const consignmentStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  READY_FOR_SHIPMENT: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-  IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30',
-  PARTIALLY_RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  RECEIVED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  QUALITY_PENDING: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-300 dark:border-orange-500/30',
-  QUALITY_APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  DISTRIBUTED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  CANCELLED: 'bg-surface-3 text-ink-muted border-line',
+  DRAFT: 'bg-slate-600 text-white',
+  READY_FOR_SHIPMENT: 'bg-sky-600 text-white',
+  IN_TRANSIT: 'bg-blue-600 text-white',
+  PARTIALLY_RECEIVED: 'bg-amber-600 text-white',
+  RECEIVED: 'bg-amber-600 text-white',
+  QUALITY_PENDING: 'bg-orange-600 text-white',
+  QUALITY_APPROVED: 'bg-emerald-600 text-white',
+  DISTRIBUTED: 'bg-emerald-600 text-white',
+  COMPLETED: 'bg-emerald-600 text-white',
+  CANCELLED: 'bg-slate-600 text-white',
 };
 
 /** Human labels for the receipt states. */
@@ -120,12 +120,12 @@ const consignmentStatusLabel: Record<string, string> = {
 };
 
 const qualityStatusBadge: Record<string, string> = {
-  PENDING: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30',
-  IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30',
-  PASSED: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30',
-  FAILED: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30',
-  APPROVED: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
-  REJECTED: 'bg-surface-3 text-ink-muted border-line',
+  PENDING: 'bg-orange-600 text-white',
+  IN_PROGRESS: 'bg-blue-600 text-white',
+  PASSED: 'bg-green-600 text-white',
+  FAILED: 'bg-rose-600 text-white',
+  APPROVED: 'bg-emerald-600 text-white',
+  REJECTED: 'bg-slate-600 text-white',
 };
 
 
@@ -322,11 +322,11 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${consignmentStatusBadge[csn.status] ?? consignmentStatusBadge.DRAFT}`}>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${consignmentStatusBadge[csn.status] ?? consignmentStatusBadge.DRAFT}`}>
                       {consignmentStatusLabel[csn.status] ?? csn.status}
                     </span>
                     {csn.qualityApproval && (
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${qualityStatusBadge[csn.qualityApproval.status]}`}>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${qualityStatusBadge[csn.qualityApproval.status]}`}>
                         QA: {csn.qualityApproval.status}
                       </span>
                     )}
@@ -335,10 +335,10 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                         e.stopPropagation();
                         deleteConsignment(csn.id);
                       }}
-                      className="text-ink-faint hover:text-rose-600 transition-colors p-1.5 dark:hover:text-rose-300"
+                      className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                       title="Delete consignment"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Delete
                     </button>
                     {isOpen ? <ChevronDown className="w-4 h-4 text-ink-faint" /> : <ChevronRight className="w-4 h-4 text-ink-faint" />}
                   </div>
@@ -359,10 +359,10 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                             checks.length > 0 &&
                             checks.every((check) => check.result === 'PASS' || check.result === 'FAIL');
                           const qaBadge = hasFail
-                            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30'
+                            ? 'bg-rose-600 text-white'
                             : allDone
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
-                              : 'bg-surface-3 text-ink-muted border-line';
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-600 text-white';
                           const qaLabel = hasFail ? 'QA FAIL' : allDone ? 'QA PASS' : 'QA PENDING';
 
                           return (
@@ -397,11 +397,11 @@ export default function Consignments({ searchQuery = '' }: { searchQuery?: strin
                                   )}
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${qaBadge}`}>
+                                  <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${qaBadge}`}>
                                     {qaLabel}
                                   </span>
                                   {item.quantity > item.distributedQty && (
-                                    <div className="text-[9px] font-bold px-2 py-1 rounded bg-amber-600 text-white">
+                                    <div className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-600 text-white">
                                       {formatNumber(item.quantity - item.distributedQty, 2)} pending
                                     </div>
                                   )}

@@ -143,7 +143,7 @@ export default function DashboardLayout({
                         {user?.fullName?.split(' ')[0] || 'Isaac'}
                       </p>
                       <p className="text-[10px] text-ink-faint truncate mb-2">{user?.email}</p>
-                      <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-[#EA4335]/10 text-[#EA4335] px-2 py-0.5 rounded border border-[#EA4335]/20">
+                      <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-[#EA4335] text-white">
                         {user?.role?.replace('_', ' ') || 'SUPER ADMIN'}
                       </span>
                     </div>

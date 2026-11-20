@@ -142,7 +142,7 @@ export default function PlanDetailView({ planId }: { planId: string }) {
                   <span
                     className={`shrink-0 rounded px-2 py-0.5 text-[9px] font-bold ${
                       achieved === 0
-                        ? 'border-line bg-surface-2 text-ink-muted'
+                        ? 'bg-slate-600 text-white'
                         : diff < 0
                           ? 'bg-rose-600 text-white'
                           : diff > 0

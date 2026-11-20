@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FlaskConical, Plus, ChevronDown, ChevronRight, CheckCircle2, Trash2, FileCog } from 'lucide-react';
+import { FlaskConical, Plus, ChevronDown, ChevronRight, FileCog } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -43,10 +43,10 @@ interface BatchFormulation {
 }
 
 const versionStatusBadge: Record<string, string> = {
-  DRAFT: 'bg-surface-3 text-ink-muted border-line',
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  ARCHIVED: 'bg-surface-3 text-ink-muted border-line',
+  DRAFT: 'bg-slate-600 text-white',
+  ACTIVE: 'bg-emerald-600 text-white',
+  APPROVED: 'bg-emerald-600 text-white',
+  ARCHIVED: 'bg-slate-600 text-white',
 };
 
 const emptyIngredient = { materialId: '', quantity: '', unitOfMeasure: '', isPercentage: false };
@@ -163,7 +163,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
     const missingCode = validIngredients.find((ing) => !materials.find((m) => m.id === ing.materialId)?.traceabilityCode?.trim());
     if (missingCode) {
       const mat = materials.find((m) => m.id === missingCode.materialId);
-      setError(`Ingredient "${mat?.name ?? missingCode.materialId}" has no traceability code. Add it in Master Data → Materials before saving this formulation.`);
+      setError(`Ingredient " ${mat?.name ?? missingCode.materialId}" has no traceability code. Add it in Master Data → Materials before saving this formulation.`);
       setCreateConfirmation(false);
       return;
     }
@@ -313,7 +313,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                       {!isOpen && ingCount > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {bomIngredients.slice(0, 3).map((ing) => (
-                            <span key={ing.id} className="text-[9px] text-white bg-slate-600 px-1.5 py-0.5 rounded">
+                            <span key={ing.id} className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white bg-slate-600">
                               {ing.material.name} {ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)}
                             </span>
                           ))}
@@ -327,7 +327,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
                       {bom.status}
                     </span>
                     <ViewButton onClick={() => setViewing(bom)} />
@@ -336,10 +336,10 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                         e.stopPropagation();
                         deleteBom(bom.id);
                       }}
-                      className="text-ink-faint hover:text-rose-600 transition-colors p-1.5 dark:hover:text-rose-300"
+                      className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
                       title="Delete formulation"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Delete
                     </button>
                     {isOpen ? <ChevronDown className="w-4 h-4 text-ink-faint" /> : <ChevronRight className="w-4 h-4 text-ink-faint" />}
                   </div>
@@ -354,7 +354,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           <span className="text-[11px] font-bold text-ink-2">
                             {bom.finishedSku?.name ?? '—'}
                           </span>
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
+                          <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${versionStatusBadge[bom.status] ?? versionStatusBadge.DRAFT}`}>
                             {bom.status}
                           </span>
                         </div>
@@ -365,7 +365,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                           {bom.status === 'DRAFT' && (
                             <button onClick={() => approveFormulation(bom.id)} className="btn-3d px-3 h-7">
                               <span className="flex items-center gap-1 text-white text-[10px] font-semibold">
-                                <CheckCircle2 className="w-3 h-3" /> Approve
+                                Approve
                               </span>
                             </button>
                           )}
@@ -398,7 +398,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                                 <tr key={ing.id} className="border-b border-line">
                                   <td className="px-2 py-2 text-[11px] font-semibold text-ink-2 max-w-[180px] truncate" title={ing.material.name}>{ing.material.name}</td>
                                   <td className="px-2 py-2">
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${ing.material.type === 'RAW' ? 'bg-amber-600 text-white' : 'bg-sky-600 text-white'}`}>
+                                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${ing.material.type === 'RAW' ? 'bg-amber-600 text-white' : 'bg-sky-600 text-white'}`}>
                                       {ing.material.type}
                                     </span>
                                   </td>
@@ -496,8 +496,8 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                     <div key={i} className="rounded-lg border border-line bg-surface-2/40 p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-ink-muted">Ingredient {i + 1}</span>
-                        <button type="button" onClick={() => removeIngredientRow(i)} className="text-ink-faint hover:text-rose-500 p-0.5">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button type="button" onClick={() => removeIngredientRow(i)} className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700">
+                          Remove
                         </button>
                       </div>
                       <div className="space-y-1">
@@ -527,7 +527,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                               className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
                                 !ing.isPercentage
                                   ? 'bg-[#EA4335] text-white border-[#EA4335]'
-                                  : 'bg-surface text-ink-faint border-line hover:border-line-strong'
+                                  : 'hover:border-line-strong bg-slate-600 text-white'
                               }`}
                             >
                               Unit
@@ -538,7 +538,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                               className={`flex-1 px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
                                 ing.isPercentage
                                   ? 'bg-[#EA4335] text-white border-[#EA4335]'
-                                  : 'bg-surface text-ink-faint border-line hover:border-line-strong'
+                                  : 'hover:border-line-strong bg-slate-600 text-white'
                               }`}
                             >
                               % of Batch
@@ -611,7 +611,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
               title: 'Overview',
               fields: [
                 { label: 'Product', value: viewing.productName },
-                { label: 'Finished SKU', value: viewing.finishedSku ? `${viewing.finishedSku.name} (${viewing.finishedSku.sku})` : '—' },
+                { label: 'Finished SKU', value: viewing.finishedSku ? `${viewing.finishedSku.name} ( ${viewing.finishedSku.sku})` : '—' },
                 { label: 'Status', value: viewing.status },
                 { label: 'Description', value: detailValue(viewing.description), wide: true },
               ],
@@ -632,7 +632,7 @@ export default function BOM({ searchQuery = '' }: { searchQuery?: string }) {
                   wide: true,
                   value: viewing.ingredients?.length
                     ? viewing.ingredients
-                        .map((ing) => `${ing.material.name} (${ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)})`)
+                        .map((ing) => `${ing.material.name} ( ${ing.isPercentage ? `${formatNumber(ing.quantity)}%` : formatQty(ing.quantity, ing.unitOfMeasure)})`)
                         .join(' · ')
                     : '—',
                 },

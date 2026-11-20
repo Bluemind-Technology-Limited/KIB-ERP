@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, CheckCircle2, ChevronRight, ChevronLeft, ChevronDown, Factory, CalendarDays, Recycle, Search, Check, Trash2, X } from 'lucide-react';
+import { ClipboardList, Plus, CheckCircle2, ChevronRight, ChevronLeft, ChevronDown, Factory, CalendarDays, Recycle, Search, Check, X } from 'lucide-react';
 import { axiosClient } from '../../../lib/axiosClient';
 import { TableSkeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -9,6 +9,8 @@ import { DetailsModal, ViewButton, detailDate, detailValue } from '../../../comp
 import { PageDescription } from '../../../components/ui/PageDescription';
 import { PackQuantityPreview } from '../../../components/ui/PackQuantityPreview';
 import { formatNumber, formatPercent, formatQty, parseUom, packWeightKg } from '../../../lib/format';
+import { Pagination } from '../../../components/ui/Pagination';
+import { usePagination } from '../../../hooks/usePagination';
 
 interface BomIngredientOption {
   id: string;
@@ -73,11 +75,11 @@ interface ProductionOrder {
 }
 
 const statusBadge: Record<string, string> = {
-  SCHEDULED: 'bg-surface-3 text-ink-muted border-line',
-  RELEASED: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/30',
-  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  WASTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  SCHEDULED: 'bg-slate-600 text-white',
+  RELEASED: 'bg-indigo-600 text-white',
+  PROCESSING: 'bg-amber-600 text-white',
+  COMPLETED: 'bg-emerald-600 text-white',
+  WASTED: 'bg-rose-600 text-white',
 };
 
 export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: string }) {
@@ -158,7 +160,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       } else if (err?.response) {
         setError(`Failed to load production orders (HTTP ${err.response.status}).`);
       } else if (err instanceof TypeError) {
-        setError(`Failed to load production orders: unexpected data from the server (${err.message}).`);
+        setError(`Failed to load production orders: unexpected data from the server ( ${err.message}).`);
       } else {
         setError('Failed to load production orders. Check that the backend is running and reachable.');
       }
@@ -377,6 +379,8 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
       });
   }, [filtered]);
 
+  const { page, totalPages, total, pageItems, setPage } = usePagination(groupedByDate);
+
   const deleteProductionOrder = async (id: string) => {
     setDeleteConfirmation(id);
   };
@@ -463,7 +467,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 </tr>
               </thead>
               <tbody>
-                {groupedByDate.map((group) => {
+                {pageItems.map((group) => {
                   const open = !!expandedDates[group.key];
                   return (
                     <Fragment key={group.key}>
@@ -572,7 +576,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       {o.finishedBatch ? (
                         <span className="text-[10px] font-mono text-ink-muted">
                           <span className="inline-block max-w-[120px] truncate align-middle" title={o.finishedBatch.batchNumber}>{o.finishedBatch.batchNumber}</span>
-                          <span className={`ml-1.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${statusBadge[o.finishedBatch.status === 'ACTIVE' ? 'COMPLETED' : 'SCHEDULED']}`}>
+                          <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1.5  ${statusBadge[o.finishedBatch.status === 'ACTIVE' ? 'COMPLETED' : 'SCHEDULED']}`}>
                             {o.finishedBatch.status}
                           </span>
                         </span>
@@ -590,21 +594,24 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[o.status] || statusBadge.SCHEDULED}`}>{o.status}</span>
+                      <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[o.status] || statusBadge.SCHEDULED}`}>{o.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
                       <ViewButton onClick={() => setViewing(o)} />
                       {o.status === 'SCHEDULED' && (
-                        <button onClick={() => deleteProductionOrder(o.id)} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-surface px-2.5 text-[10px] font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10">
-                          <Trash2 className="w-3 h-3 shrink-0" /> Delete
+                        <button
+                          onClick={() => deleteProductionOrder(o.id)}
+                          className="rounded-md bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-rose-700"
+                        >
+                          Delete
                         </button>
                       )}
                       {(o.status === 'RELEASED' || o.status === 'PROCESSING') && (
                         <span
-                          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-1 text-[9px] font-semibold text-[#AA3BFF]"
+                          className="rounded-md bg-slate-600 px-2.5 py-1 text-[10px] font-semibold text-white"
                           title="Grinding, production and WIP are tracked at the stations"
                         >
-                          <ClipboardList className="w-3 h-3 shrink-0" /> In production — track in stations
+                          In production — track in stations
                         </span>
                       )}
                     </td>
@@ -621,6 +628,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
                 })}
               </tbody>
             </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
           </div>
         )}
       </div>
@@ -943,7 +951,7 @@ export default function ProductionOrders({ searchQuery = '' }: { searchQuery?: s
               fields: [
                 { label: 'Finished batch', value: viewing.finishedBatch ? <span className="font-mono">{viewing.finishedBatch.batchNumber}</span> : '—' },
                 { label: 'Batch status', value: detailValue(viewing.finishedBatch?.status) },
-                { label: 'Ingredients', wide: true, value: viewing.productionIngredients?.length ? viewing.productionIngredients.map((i) => `${i.material.name} (${formatQty(i.projectedQuantity, i.material.unitOfMeasure)})`).join(' · ') : '—' },
+                { label: 'Ingredients', wide: true, value: viewing.productionIngredients?.length ? viewing.productionIngredients.map((i) => `${i.material.name} ( ${formatQty(i.projectedQuantity, i.material.unitOfMeasure)})`).join(' · ') : '—' },
                 { label: 'Ingredients released', value: detailDate(viewing.ingredientsReleasedAt, true) },
                 { label: 'Released by', value: detailValue(viewing.ingredientsReleasedBy?.fullName) },
                 { label: 'Yield logged', value: viewing.yieldLoggedAt ? `${detailDate(viewing.yieldLoggedAt, true)} · ${viewing.yieldLoggedBy?.fullName ?? '—'}` : '—' },

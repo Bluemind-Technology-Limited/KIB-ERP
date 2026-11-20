@@ -382,7 +382,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
                   <div className="flex items-center gap-2">
                     <Wrench className="w-3.5 h-3.5 text-ink-faint" />
                     <span className="font-mono text-xs font-bold text-ink">{machine.code}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${statusColors[machine.status] || 'bg-slate-600 text-white'}`}>
+                    <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusColors[machine.status] || 'bg-slate-600 text-white'}`}>
                       {machine.status.replace(/_/g, ' ')}
                     </span>
                   </div>
@@ -417,7 +417,7 @@ export default function Machines({ searchQuery = '' }: { searchQuery?: string } 
         <ConfirmationModal
           type="delete"
           title="Delete Machine"
-          description={`Machine "${deleteConfirmation.name}" will be deleted. This action cannot be undone.`}
+          description={`Machine " ${deleteConfirmation.name}" will be deleted. This action cannot be undone.`}
           onConfirm={handleDeleteMachine}
           onCancel={() => setDeleteConfirmation(null)}
           isLoading={isDeleting}

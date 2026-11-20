@@ -264,7 +264,7 @@ export default function FinishingStation() {
                               setCloseReason('');
                               setError('');
                             }}
-                            className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-amber-600 text-white"
+                            className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-600 text-white"
                           >
                             Close outstanding
                           </button>
@@ -311,12 +311,12 @@ export default function FinishingStation() {
                                 </td>
                                 <td className="px-3 py-2">
                                   <span
-                                    className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                                    className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                                       item.stationStatus === 'COMPLETED'
                                         ? 'bg-emerald-600 text-white'
                                         : item.stationStatus === 'IN_PROGRESS'
                                           ? 'bg-amber-600 text-white'
-                                          : 'border-line bg-surface-2 text-ink-muted'
+                                          : 'bg-slate-600 text-white'
                                     }`}
                                   >
                                     {item.stationStatus ?? 'PENDING'}
@@ -341,7 +341,7 @@ export default function FinishingStation() {
                               Batch {item.sequence} · {item.bom?.finishedSku?.name ?? item.bom?.productName}
                             </p>
                             <div className="flex items-center gap-3 text-[10px]">
-                              <span className="rounded px-2 py-0.5 bg-slate-600 text-white">
+                              <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">
                                 Required {formatQty(item.targetQuantity, item.bom?.yieldUnit)}
                               </span>
                               <span className="rounded border border-[#AA3BFF]/30 bg-[#AA3BFF]/5 px-2 py-0.5 text-[#AA3BFF]">

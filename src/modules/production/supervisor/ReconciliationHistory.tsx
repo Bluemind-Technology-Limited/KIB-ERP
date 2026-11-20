@@ -87,11 +87,11 @@ export default function ReconciliationHistory({ planId }: { planId: string }) {
   const statusColor = (status: string) => {
     switch (status) {
       case 'VERIFIED':
-        return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300';
+        return 'bg-green-600 text-white';
       case 'FLAGGED':
-        return 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300';
+        return 'bg-rose-600 text-white';
       default:
-        return 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300';
+        return 'bg-amber-600 text-white';
     }
   };
 

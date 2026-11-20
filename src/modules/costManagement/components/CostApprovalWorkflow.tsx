@@ -71,9 +71,9 @@ export default function CostApprovalWorkflow() {
   };
 
   const getVarianceColor = (percent: number) => {
-    if (percent > 10) return 'text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-500/10';
-    if (percent > 5) return 'text-orange-600 bg-orange-50 dark:text-orange-300 dark:bg-orange-500/10';
-    return 'text-yellow-600 bg-yellow-50 dark:text-yellow-300 dark:bg-yellow-500/10';
+    if (percent > 10) return 'bg-red-600 text-white';
+    if (percent > 5) return 'bg-orange-600 text-white';
+    return 'bg-yellow-600 text-white';
   };
 
   if (isLoading && pendingApprovals.length === 0) {

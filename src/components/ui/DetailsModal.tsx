@@ -47,7 +47,7 @@ export function DetailsModal({
           <div className="flex items-center gap-2 shrink-0">
             {status && (
               <span
-                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                   status.className ?? 'bg-slate-600 text-white'
                 }`}
               >

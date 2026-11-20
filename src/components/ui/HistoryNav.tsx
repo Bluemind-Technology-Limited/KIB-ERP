@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Global Back / Forward control for the app header.
@@ -14,7 +15,7 @@ function currentIndex() {
 }
 
 const BUTTON_CLASS =
-  'inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface px-3 text-xs font-semibold text-ink-3 transition-colors hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40';
+  'inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-surface text-ink-3 transition-colors hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40';
 
 export function HistoryNav() {
   const navigate = useNavigate();
@@ -39,8 +40,9 @@ export function HistoryNav() {
         disabled={!canGoBack}
         className={BUTTON_CLASS}
         aria-label="Go back"
+        title="Back"
       >
-        Back
+        <ChevronLeft className="h-4 w-4" />
       </button>
       <button
         type="button"
@@ -48,8 +50,9 @@ export function HistoryNav() {
         disabled={!canGoForward}
         className={BUTTON_CLASS}
         aria-label="Go forward"
+        title="Forward"
       >
-        Forward
+        <ChevronRight className="h-4 w-4" />
       </button>
     </div>
   );

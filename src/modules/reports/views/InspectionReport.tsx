@@ -55,11 +55,11 @@ interface ReportResponse {
 }
 
 const resultBadge: Record<string, string> = {
-  PASS: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  FAIL: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  FAILED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  PENDING: 'bg-surface-3 text-ink-muted border-line',
+  PASS: 'bg-emerald-600 text-white',
+  PASSED: 'bg-emerald-600 text-white',
+  FAIL: 'bg-rose-600 text-white',
+  FAILED: 'bg-rose-600 text-white',
+  PENDING: 'bg-slate-600 text-white',
 };
 
 function downloadCSV(rows: ReportRow[]) {
@@ -77,12 +77,12 @@ function downloadCSV(rows: ReportRow[]) {
     r.remarks ?? '',
   ]);
   const csv = [header, ...body]
-    .map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .map((line) => line.map((cell) => `" ${String(cell).replace(/"/g, '""')}"`).join(','))
     .join('\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `inspection-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `inspection-report- ${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -484,10 +484,10 @@ export default function InspectionReport() {
             label: viewingAdjustment.status,
             className:
               viewingAdjustment.status === 'APPROVED'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
+                ? 'bg-emerald-600 text-white'
                 : viewingAdjustment.status === 'REJECTED'
-                  ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-amber-600 text-white',
           }}
           onClose={() => setViewingAdjustment(null)}
           sections={[

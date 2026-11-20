@@ -198,10 +198,10 @@ interface TraceTree {
 }
 
 const statusBadge: Record<string, string> = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  QUARANTINE: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-  EXPIRED: 'bg-surface-3 text-ink-muted border-line',
+  ACTIVE: 'bg-emerald-600 text-white',
+  QUARANTINE: 'bg-amber-600 text-white',
+  REJECTED: 'bg-rose-600 text-white',
+  EXPIRED: 'bg-slate-600 text-white',
 };
 
 const originLabel: Record<BatchMatch['origin'], string> = {
@@ -267,7 +267,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
       setMatches(found);
       setGrindingMatches(grindingFound);
       if (found.length === 0 && grindingFound.length === 0) {
-        setError(`No batches match "${q}".`);
+        setError(`No batches match " ${q}".`);
       } else if (found.length + grindingFound.length === 1) {
         if (found.length === 1) await loadTree(found[0].id);
         else await openGrinding(grindingFound[0].id);
@@ -419,7 +419,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                   </p>
                 </div>
                 {g.positionInBlock ? (
-                  <span className="shrink-0 rounded bg-slate-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                  <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0 bg-slate-600 text-white">
                     Batch {g.positionInBlock} of {g.batches}
                   </span>
                 ) : null}
@@ -442,13 +442,13 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-ink">{tree.batch.batchNumber}</p>
                     <span
-                      className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                         statusBadge[tree.batch.status] ?? statusBadge.ACTIVE
                       }`}
                     >
                       {tree.batch.status}
                     </span>
-                    <span className="rounded bg-slate-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                    <span className="rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-600 text-white">
                       {originLabel[tree.origin]}
                     </span>
                   </div>
@@ -578,7 +578,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                               </span>
                             )}
                             <span
-                              className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                              className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                                 statusBadge[rb.batch.status] ?? statusBadge.ACTIVE
                               }`}
                             >
@@ -768,7 +768,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
               ],
             },
             {
-              title: `Ingredients consumed (${grindingDetail.ingredients.length})`,
+              title: `Ingredients consumed ( ${grindingDetail.ingredients.length})`,
               fields: [
                 {
                   label: 'Raw lots',
@@ -833,7 +833,7 @@ export default function Traceability({ searchQuery: _searchQuery = '' }: { searc
                 ]
               : []),
             {
-              title: `Finished at production station (${grindingDetail.finishing.length})`,
+              title: `Finished at production station ( ${grindingDetail.finishing.length})`,
               fields: [
                 {
                   label: 'Records',

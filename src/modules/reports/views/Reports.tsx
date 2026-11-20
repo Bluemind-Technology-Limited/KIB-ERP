@@ -29,14 +29,14 @@ interface ValuationRow {
 }
 
 const statusBadge: Record<string, string> = {
-  SCHEDULED: 'bg-surface-3 text-ink-muted border-line',
-  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-  WASTED: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+  SCHEDULED: 'bg-slate-600 text-white',
+  PROCESSING: 'bg-amber-600 text-white',
+  COMPLETED: 'bg-emerald-600 text-white',
+  WASTED: 'bg-rose-600 text-white',
 };
 
 function downloadCSV(filename: string, headers: string[], rows: (string | number)[][]) {
-  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const esc = (v: string | number) => `" ${String(v).replace(/"/g, '""')}"`;
   const csv = [headers.map(esc).join(','), ...rows.map((r) => r.map(esc).join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -231,7 +231,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
                         <p className="text-[9px] font-mono text-ink-faint">{r.sku}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusBadge[r.status]}`}>{r.status}</span>
+                        <span className={`rounded-full inline-block text-center min-w-[78px] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider  ${statusBadge[r.status]}`}>{r.status}</span>
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">{formatNumber(r.targetQuantity)}</td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-ink-muted">
@@ -314,7 +314,7 @@ export default function Reports({ searchQuery = '' }: { searchQuery?: string }) 
           subtitle={viewing.orderNumber}
           status={{
             label: viewing.status,
-            className: statusBadge[viewing.status] ?? 'bg-surface-3 text-ink-muted border-line',
+            className: statusBadge[viewing.status] ?? 'bg-slate-600 text-white',
           }}
           onClose={() => setViewing(null)}
           sections={[
